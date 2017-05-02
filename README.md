@@ -24,7 +24,7 @@ Requirements:
 - [The Free Pascal compiler](https://www.freepascal.org/)
 - [SDL2 and SDL2_ttf](https://libsdl.org/) libraries/dlls
 - [The SDL2 Pascal headers](https://github.com/ev1313/Pascal-SDL-2-Headers)
-- [Various moonlibs](#)
+- [Various moonlibs](https://github.com/bunnylin/moonlibs)
 
 After downloading the SuperSakura sources, you need to install FPC. Try to
 make a hello-world program to confirm it works.
@@ -40,8 +40,11 @@ a directory near FPC's other bundled units. On Windows, this is probably
 Alternatively, just dump everything in the SuperSakura source directory.
 
 To compile, you can use the included comp.bat or comp.sh commands:
+
     comp <file>
+
 Or invoke the compiler directly:
+
     fpc <file>
 
 Although FPC will automatically build any units programs need, you may want
@@ -49,6 +52,7 @@ to start off by compiling the individual SDL2_xxx.pas and mcxxx.pas files
 one by one, to see potential error messages more clearly.
 
 Finally, build the engine and its tools:
+
     comp supersakura
     comp supersakura-con
     comp recomp
@@ -59,11 +63,15 @@ Using the engine
 ----------------
 
 To compile resources into a usable SuperSakura data file:
+
     recomp <projectname>
 
 To run the game:
+
     supersakura <projectname>
+
 Or, the non-graphical version:
+
     supersakura-con <projectname>
 
 Aside from standard console output, these also create a recomp.log and
@@ -82,6 +90,7 @@ keep your PC-98 games in those, you will have to first extract the files
 manually. EditDisk or another tool like it may do the trick.
 
 To convert resources:
+
     decomp <filename or directory>
 
 For example, to run the DOS version of The Three Sisters' Story (the Windows

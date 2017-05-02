@@ -1,0 +1,12 @@
+*
+!*.*
+!*/
+
+test*
+*.exe
+*.log
+*.o
+*.old
+*.dat
+*.ini
+*.or
