@@ -3,7 +3,7 @@ program SuperSakura;
 {                                                                           }
 { SuperSakura engine :: Copyright 2009-2017 :: Kirinn Bunnylin / Mooncore   }
 { https://mooncore.eu/ssakura                                               }
-{ https://github.com/something                                              }
+{ https://github.com/bunnylin/supersakura                                   }
 {                                                                           }
 { This program is free software: you can redistribute it and/or modify      }
 { it under the terms of the GNU General Public License as published by      }
@@ -25,7 +25,7 @@ program SuperSakura;
 { - Pascal translation of SDL2 headers (27-Mar-2017)                        }
 {   https://github.com/ev1313/Pascal-SDL-2-Headers                          }
 { - Various moonlibs                                                        }
-{   https://github.com/something                                            }
+{   https://github.com/bunnylin/moonlibs                                    }
 {                                                                           }
 { Runtime dependencies:                                                     }
 { - Simple DirectMedia Library SDL2 and SDL2_ttf (2.0.5)                    }

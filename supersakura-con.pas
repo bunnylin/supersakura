@@ -4,7 +4,7 @@ program SuperSakuraCon;
 { SuperSakura engine :: Copyright 2009-2017 :: Kirinn Bunnylin / Mooncore   }
 { Console version! No audio or gamepad support.                             }
 { https://mooncore.eu/ssakura                                               }
-{ https://github.com/something                                              }
+{ https://github.com/bunnylin/supersakura                                   }
 {                                                                           }
 { This program is free software: you can redistribute it and/or modify      }
 { it under the terms of the GNU General Public License as published by      }
@@ -24,7 +24,7 @@ program SuperSakuraCon;
 {                                                                           }
 { Compilation dependencies:                                                 }
 { - Various moonlibs                                                        }
-{   https://github.com/something                                            }
+{   https://github.com/bunnylin/moonlibs                                    }
 {                                                                           }
 
 {$mode fpc}
