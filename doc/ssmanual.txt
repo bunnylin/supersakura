@@ -1,0 +1,546 @@
+::: SuperSakura developer's manual :::
+--------------------------------------------------------------------
+
+Transitions, fades and swipes:
+==============================
+
+To allow multiple graphic objects to be faded in simultaneously (for example,
+a new background with two characters overlaid), overlays and non-animating
+sprites are created invisible, and are only turned visible upon a swipe
+command. Backgrounds are created visible, but are not instantly refreshed;
+however, "gfx.show bkg" must be followed by a swipe command before returning
+control to the user. (The new background is loaded over the old one
+instantly, so it had better be refreshed through scriptcode, or it will be
+refreshed through user interaction!)
+
+Example:
+gfx.clearallbutbkg
+gfx.show sprite ofs 100 BUNNY1
+waitkey
+gfx.show bkg ROOM01
+gfx.show anim ofs 100 BUNBLINK
+swipe 9
+
+The above example would do nothing at all until the user presses a key.
+Then the code would clear the screen, draw ROOM01 as the new background, and
+BUNNY1 as a character; and the new composite view would be crossfaded in over
+whatever was showing before. During the fade and after it, the animation
+BUNBLINK would be running, fading in along with the new view.
+
+Animations start working upon loading even without a swipe.
+If "gfx.show anim" in the example was before waitkey, the user would see
+BUNBLINK but not the intended underlying BUNNY1!
+
+This is the list of transition styles used by SuperSakura:
+0: Instant draw, no swipe or fade
+1: (not implemented)
+2: Sweep from top to bottom
+3: Sweep from left to right
+4: Tilting rectangle
+5: Radial pinwheel
+6: Fill outward from center
+7: Sweep from middle to left and right
+8: Sweep from middle to top and bottom
+9: Crossfade
+10: Interlaced from top to bottom and bottom to top simultaneously
+11: Push new view in from the left, motion blur
+12: Push new view in from the right, motion blur
+13: Sweep from left and right to middle
+14: Sweep from top and bottom to middle
+15: Pop-in from center
+16: Sweep from top to bottom with interlaced blinds (not implemented)
+17: Sweep from bottom to top with interlaced blinds (not implemented)
+255: Fast crossfade, used internally to let some swipes fade out
+
+--------------------------------------------------------------------
+
+Events:
+=======
+
+A script may define four kinds of events:
+clickable image area, clickable graphic object, timed, and user interrupt.
+
+Each event must be associated with a unique name and a jump label in the
+current script. The name should be at most 8 characters long, and contain
+only letters and numbers. Events are created with event.create, and destroyed
+with event.remove.
+
+Event.clear can be used to wipe all events. Be sure to clear events when
+you're done with them, as they are not automatically removed. If you run
+a new script, existing events will not trigger since their jump addresses are
+not valid within the new script, but the events are not removed. If you
+return to the previous script later, the events will trigger normally again.
+
+If you use events in a SAVE/LOAD or other subscript, it's best to remove your
+events with explicit event.remove commands. Using event.clear will wipe out
+also other events you had active in the game itself.
+
+When an event is triggered, the engine calls RunScript on the current script
+to push the script state on a stack. It then sets execution to the jump
+address assigned to the event. The code executed at that address should
+conclude with an exit command; an exit without choices defined pops the
+previous script off the stack and continues executing where it left off.
+An event.exit command, on the other hand, pops the previous script state but
+continues executing code at the event. This is useful if you want the event
+to remove itself, without leaving an extra script copy on the stack.
+
+Here are the specific event types:
+
+To create a clickable screen area, you need to define the event as an "area"
+event, and assign the top left and bottom right corner coordinates. The
+coordinates use the 0..32k scale, and may be absolute values, variables, or
+random numbers which are resolved only once at creation. The coordinates are
+relative to the viewport; if a viewframe is enabled, screen areas outside the
+viewport can also be made clickable by exceeding the 0..32k coordinate range.
+If the jump label is left empty, the event will not trigger.
+  event.create NAME; area, X1, Y1, X2, Y2; JUMPLABEL
+  event.mouseon NAME; JUMPLABEL
+  event.mouseoff NAME; JUMPLABEL
+
+To create a clickable graphic object, the event must be defined as "object".
+The clickable and mouseoverable area is then tied to the given graphic
+object's screen location. If the graphic object is removed, the event is
+automatically removed as well.
+  event.create NAME; object; GOBNAME; JUMPLABEL
+  event.mouseon NAME; JUMPLABEL
+  event.mouseoff NAME; JUMPLABEL
+
+To create a timed event, the event must be "timed". The event is triggered
+repeatedly at given millisecond intervals, until the event is destroyed. The
+millisecond value can be absolute, a variable reference, or a random number.
+The value is refetched each time the event is triggered, so setting the
+interval to random will give different values for each trigger.
+  event.create NAME; timed, 1000; JUMPLABEL
+
+To create a user interrupt event, the event must be "escinterrupt" or
+"interrupt". The first is triggered if the user presses ESC or right-clicks.
+The second is triggered upon left- or right-click, ENTER or ESC. Use these to
+let the user skip boring scenes. Important cutscenes should use escinterrupt,
+so the user won't accidentally skip over them. If both interrupt types are
+defined, left-click and ENTER trigger the normal interrupt, while right-click
+and ESC trigger the escinterrupt. Left-click and ENTER only trigger a normal
+interrupt if the game is in sleep state; not during waitkey, text choice
+selection, or waitevent states.
+  event.create NAME; interrupt; JUMPLABEL
+  event.create NAME; escinterrupt; JUMPLABEL
+
+A CAUTION is in order about timed events! Each time the timer is triggered,
+the script state is pushed onto a script stack. The associated code segment
+is then run however many times the timer had triggered. But, each frame takes
+a variable amount of time, guaranteed to cap at a maximum of 500ms. If the
+timer triggers too many times per frame, there will be a script stack
+overflow.
+  In SuperSakura, the script stack is 16 levels deep, so you can have up to
+15 calls until the old execution point is lost. This means retriggering timed
+events really shouldn't use periods below 34 msecs. I would recommend 50 msec
+as a reasonable best granularity for serious timed effects, as this would
+still allow 5 leftover stack slots for other simultaneous events and to allow
+popping previous scripts.
+  There are two ways around this limitation: increase the script stack size
+(currently each takes about 100kb of memory, so it's a 1.6 meg stack), or
+add a hack that caches the event triggering and performs
+pushscript/scriptahead as pairs outside the renderer/effector segment.
+No point adding such hacks unless someone actually needs them.
+
+--------------------------------------------------------------------
+
+Textboxes:
+==========
+
+Textboxes are the basis for presenting dynamic information, and accepting
+most user input.
+
+You must first set the number of textboxes allowed at any one time. The
+minimum and default amount is 3 boxes. Example:
+"tbox.numboxes 6" would make textboxes 0 to 5 available.
+
+Each box is assigned a style, a set of information describing the box. Boxes
+should not share a style, since location is defined as part of the style.
+Boxes with the same style would then appear on top of each other. However,
+using multiple styles allows remembering useful styles and switching boxes
+immediately to a new location or appearance without having to redefine all
+their variables. Each box may also automatically switch to a different style,
+when the viewframe mode is toggled.
+
+The engine has default styles for boxes 0..2, so you can run basic game
+scripts without having to worry about the box styles until later.
+
+By default, textbox 0 contains the main game text. Textbox 1 serves as
+a dialogue title box. In scriptcode, you can of course print any text in any
+box. Also, by default the list of selectable verbs is placed in textbox 0,
+the selected verb goes in textbox 1, and the selection highlight is done with
+textbox 2. In this case, if any game text is visible in textbox 0, the game
+waits for the user's keypress before clearing the text and displaying the
+choice verbs.
+
+It is also possible to change the textboxes used for choices:
+"sys.choicebox 3" would leave boxes 0..2 for game text or whatever you wish,
+while using box 3 to display the choices, box 4 to display the selected verb,
+and box 5 to highlight the current choice.
+
+You can use the command style.set to define the location and appearance of
+a textbox. Here is a list of recognised style aspects:
+
+loc = x, y
+  Sets the location of the textbox's printable area's top left corner. Note,
+  that textbox margins are added outside the printable area, expanding the
+  box further.
+  Uses virtual values 0..32768, where 0 is the top/left edge of the game
+  window, and 32768 is the bottom/right edge. Values below zero or above 32k
+  are theoretically ok.
+
+  In framed mode, the coordinates are relative to the viewframe graphic, so
+  it is possible to align a textbox precisely regardless of letterboxing.
+  In frameless mode, the coordinates are relative to the game window, to make
+  use of potentially letterboxed space; precise positioning in relation to
+  game graphics is not possible.
+
+  Default location for textbox 0 is bottom center: 4672, 26432.
+  Default location for textbox 1 is just above that: 4672, 23744.
+  Other textboxes default to 0, 0.
+
+size = x, y
+  Sets the textbox's printable area's width and height.
+  Uses virtual values 0..32768 again. Values outside the range are invalid.
+  If autofitting is enabled, these size values are ignored.
+
+  In framed mode, the sizes are relative to the viewframe graphic.
+  In frameless mode, the sizes are relative to the game window.
+
+  Default size for textbox 0 is 23424 x 5184.
+  Default size for textbox 1 is 5120 x 1312, though autofitting overrides it.
+  Default size for other boxes is 5000 x 5000.
+
+minwidth = x, maxwidth = x
+minheight = y, maxheight = y
+  Autofitting textboxes may be given a minimum width, a minimum height and
+  a maximum height. Uses virtual values 0..32768.
+  If autofitting is not enabled, these values are ignored.
+
+  In framed mode, the sizes are relative to the viewframe graphic.
+  In frameless mode, the sizes are relative to the game window.
+
+  Don't use maxwidth with choiceboxes; each choice needs a whole row to
+  itself, and restricting the width enough to cause linebreaks mid-choice
+  looks nasty and isn't handled well.
+
+  Default minwidth for textbox 1 is 7680.
+  All other default minimums are 0; default maximums are 32768, the greatest
+  allowed value.
+
+autofit = n
+  An autofitting textbox is dynamically expanded to have as many rows as its
+  content has newline marks, and to be as wide as the widest row of text it
+  contains. The size may be limited by minsize and maxsize values, defined
+  above. Autofitting is most useful for making a vertical list of choices in
+  a snugly fitting textbox, and for adjusting the size of the choice
+  highlight box.
+
+  The choice highlighting box, by default textbox 2, has special handling:
+  if autofitting is enabled, the highlighting box will neatly encompass the
+  current choice line; if autofitting is disabled, the highlighting box will
+  be pushed up to the choice column's full width.
+
+  Set value to 0 to disable autofitting, or non-zero to enable.
+  Textboxes 1 and 2 default to autofitting on, all others off.
+
+snaptobox = n
+  If normal box positioning is not accurate enough, you can use this to align
+  a textbox pixel-perfectly against the edge of another box. Note that the
+  snapping is only done when a box style has changed, upon screen mode
+  changes, and upon autofitting. Sliding the box around with tbox.move or
+  tbox.resize does not trigger the snapping, which may result in the textbox
+  changing position unpredictably. So if you want a box to snap AND change
+  size or location, don't use tbox.move or tbox.resize, use direct set.style
+  commands instead.
+
+  The snapping algorithm examines all edges to snap to between the two boxes,
+  trying to select the intuitively closest edge. You should position the box
+  as close to the target edge as possible.
+
+  Set value to the textbox number you want to snap to. An invalid textbox
+  number turns off snapping. Default for all boxes is 255, snapping disabled.
+
+basetype = n
+  The base image of the box can be either run-time generated, or a graphic
+  resource. Basetype defines which is used, and what kind of frame should be
+  generated over the image. The lowest two bits determine the base image
+  type, and the remaining bits the frame type.
+    0 - use bkgcolor to generate a gradient background
+    1 - use a PNG as the background, stretching to fit
+    2 - use a PNG as the background, tiling to fit
+    3 - undefined
+  Combine any of the above with a frame type:
+    0 - no frame
+    4 - bevelled edge
+    8 - 2px gold frame
+
+  For textboxes 0 and 1, default is 4, a bevelled run-time gradient.
+  For textbox 2, default is 8, a gold-framed run-time gradient.
+  For all other boxes, default is 0, a frameless run-time gradient.
+
+margins = left, right, top, bottom
+  Sets the textbox's outer margins, the extra space added to each edge of
+  the box's printable area. All four values must be set at the same time.
+
+  If the textbox is set to use a base PNG, then the margins are given as
+  pixel values relative to the base PNG's original size.
+  If the basetype is run-time generated then, in frameless mode the margins
+  are relative to the game window; in framed mode, to the viewframe graphic.
+
+  For textbox 0, the default margins are: 688, 688, 640, 640
+  For textbox 1, the default margins are: 344, 344, 384, 384
+  For textbox 2, the default margins are: 136, 136, 72, 72
+  All other default margins are 0.
+
+fontheight = n
+  Sets the height of the font used in the box. The value's interpretation
+  depends, however.
+
+  If the textbox is set to use a PNG base, and the flag fontPNGrelative is
+  set to non-zero, then the font height is read as a pixel value relative to
+  the PNG base's original pixel height.
+  If the basetype is run-time generated, or the flag fontPNGrelative is set
+  to zero, then, in frameless mode the font height is a 32k virtual value
+  relative to the game window's height; in framed mode, a 32k virtual value
+  relative to the viewframe graphic's height.
+
+  The complexity is necessary to allow accurate control over text and box
+  rendering. You only need to turn fontPNGrelative on if it is necessary to
+  position text inside the box pixel-perfectly, eg. notebook lines in 3sis.
+
+  Selecting a too high font may make it impossible for some text to be
+  printed, if it won't fit in the box's printable area's height.
+
+  Default for all boxes is 1280.
+
+textalign = [left\center\right]
+  Horizontal alignment for text inside a box can be changed to centered, or
+  right-aligned.
+  Default for all boxes is left-aligned.
+
+textcolor = color
+  All text in the box is rendered with this single color, unless printed
+  color change codes are encountered.
+  The color is given as a hexadecimal RGBA value. The text is not alpha-mixed
+  with the textbox, but is imprinted with the precise given text color. Most
+  text should probably have an alpha of FF, or at least an alpha equal to or
+  greater than the box's background alpha.
+  Default is FFFFFFFF, a pure white without transparency.
+
+bkgcolor = top left color, top right, bottom left, bottom right
+  Each textbox can have a gradient color background, if the basetype is set
+  to run-time generated. Use this to define the four corner colors. The
+  background is linearry interpolated between the corners.
+  If the box is set to use a PNG base, these colors are ignored.
+  The colors are given as hexadecimals, in RGBA format. You can use the alpha
+  component to add transparency to the gradient.
+
+  Default colors for textbox 0 are: A0A0F0E0, 8090F0D0, 8090F0C0, 6080F090
+  Default colors for textbox 1 are: 776699D0, 8A82B2C0, 8880B0A0, C0B0D090
+  Default colors for textbox 2 are: 1028B0B0, 00000000, 1018A0A0, 00000000
+  Default color for all other textboxes is an invisible black: 00000000.
+
+PNGname = [image name]
+  If basetype is set to use a PNG, it will use the image defined here as the
+  box's base. The image must have an alpha channel.
+
+PNGedges = left, right, top, bottom
+  If basetype is set to use a PNG, these values are used to mark which parts
+  of the image can be stretched or tiled and which should be left untouched.
+  This allows defining a custom frame by dividing the image into nine
+  rectangles, where the image is only stretched or squeezed horizontally
+  between the left and right lines, and vertically only between the top and
+  bottom lines. The values are given in straight pixels.
+
+  It may be preferable to disable image scaling for interface elements like
+  textboxes (by tagging the image with a resolution of 0x0). But even if the
+  image is rescaled, the engine automatically converts the given edge values,
+  so the image should still be stretched as required.
+
+transition = n
+  Selects the transition used when the box pops in or out. Except for the
+  instant transitions, all other transitions are carried out over
+  a millisecond period defined in v901.
+    0 - instant
+    1 - pop-in and pop-out
+    2 - fade-in and fade-out
+    3 - left-to-right swipe
+  Default for all boxes is 1.
+
+fontPNGrelative = n
+  Set to 0 to make the font's size be a 32k value, in frameless mode relative
+  to the game window's height, in framed mode relative to the viewframe
+  graphic's height.
+  Set to non-zero to make a PNG-based box treat its fontheight as a pixel
+  value relative to the base graphic's original pixel size. This is handy for
+  aligning a font pixel-perfectly inside a box, for example as used for the
+  lined notepad choicebox in The Three Sisters' Story.
+  Default for all boxes is 0.
+
+boldfont = n
+  Set to 0 to use a normal font, or non-zero for bold.
+  For textbox 1, default is bold font, and a normal font for all other boxes.
+
+noshadow = n
+  Set to 0 to have the engine draw a shadow under the font for improved
+  contrast. Set to non-zero to not draw the shadow, for example if your font
+  color is already black. The drop shadow's internal offset is hardcoded.
+  Default is 0.
+
+alphalighten = n
+  Set to 0 to use normal alpha mixing, that obscures the background by the
+  box image's alpha value. Set to non-zero to do lightening instead; this
+  ignores the alpha value, and instead adds the box's color values directly
+  over the background, capping each color channel at 255.
+  For textbox 2, the default is lightening mixing.
+  For all other textboxes, the default is normal alpha mixing.
+
+negatebkg = n
+  Set to 0 to render the textbox normally. Set to non-zero to make whatever
+  the box is rendered on get its colors' flipped before the box is drawn on
+  top. This is generally only useful for a retro selection box that inverts
+  a black and white selection.
+  The default for all boxes is 0.
+
+alwaysrebuild = n
+  Set to 0 to only build the box's base image once, and then rescale the
+  image on the fly as the box pops in and out. Set to non-zero to force
+  rebuilding the base image for each frame where the box is transitioning.
+  This allows keeping the box's frame unsquashed.
+  Default is 0 for all textboxes except 1 and 2.
+
+autowaitkey = n
+  Set to non-zero, and the engine will check boxes with this style for
+  overflow while in WaitKey state. If more text has been printed than can be
+  displayed in the box, a keypress shows the remaining text.
+  Set to zero, and overflown text is unceremoniously dumped.
+  For textbox 0, default is on. For all other boxes, default is 0.
+
+--------------------------------------------------------------------
+
+String handling
+===============
+
+Strings printed in textboxes may contain special codes. Each is preceded by
+the escape character "&" and is terminated with an optional semicolon.
+
+&v#####; inserts the value of the variable ##### into the string. Note that
+         this must be a direct numeric value, and cannot be a full
+         expression. "&v50" is OK, but "&v(49+1)" is not.
+&s#####; inserts the string variable ##### into the string. Note that the
+         string index must also be a direct numeric value, not an expression.
+&n       inserts a hard linebreak.
+&c####;  changes the color of the text. The RGBA color must be given as four
+         hexadecimals, eg. &c08FF would be a greenish blue at full alpha. The
+         new color will stick until the next tbox.clear or color change.
+&gXXX;##; inserts an image into the text, for example a heart or a sweatdrop.
+          XXX is the graphic's name, and it must be followed by a number
+          giving the frame you want to display. The frame is automatically
+          shrunk to an appropriate size. The graphic must have an alpha
+          channel, as the image goes through the text rendering function, and
+          any pixel that has non-zero alpha is drawn as fully visible with
+          the active color.
+
+Example:
+title &c8FFF;Hidemi
+print &s2;-chan, why are you avoiding me?&nThat's &v1 times today. &gEMO;1
+
+Note that color changes in the middle of a string are not allowed for
+textboxes that use center- or right-alignment. For such boxes, color may only
+change at the beginning of the string, or right after a hard linebreak.
+Likewise, images should not be inserted in center- or right-aligned boxes,
+unless there is no other content on the same row.
+
+--------------------------------------------------------------------
+
+Variable handling
+=================
+
+Variables in SuperSakura scriptcode are all 32-bit signed integers.
+The variable indexes are hardcoded to range 0..1023, but the top limit could
+be pushed up to 64k. There are also string variables, with a dynamic index
+range of 0..65535.
+
+=======
+The following string variables have hardcoded meanings:
+
+[0] The program name. Displayed as the game window's title.
+
+=======
+The following longint variables have hardcoded meanings:
+
+[0..255] are considered "local" variables, and each script has its own.
+        Upon a RunScript command, these are pushed onto a scriptstack, and
+        reset to 0. If a script has no player choices defined, and the Exit
+        command is encountered, the engine returns execution to the previous
+        script, and restores the variables 0..255 from the scriptstack.
+        Any local variable may be used for the choice jump indexes, though it
+        is conventional to use variables 1..16.
+[0] is used as a result or accumulator variable by some commands. Try not to
+    use it otherwise.
+[900..999] are reserved for engine effects, as follows:
+
+[900] Transition speed, in milliseconds. Default 750 milliseconds.
+[901] Textbox transition speed, in milliseconds. Default 200 milliseconds.
+[902..904] These contain the current gamma values for red, green and blue.
+      The values are in the range [-256..256], where 0 means an unadjusted
+      brightness. Writing to the variables does not automatically change
+      rendering gamma; the fx.gammaslide command uses these to track the
+      current gamma, so you can set the slide's starting gamma by writing to
+      the variables before using gammaslide.
+[905] unused
+[906] Allow saves -flag. If zero, the user may save the game. If non-zero,
+      saving is disabled.
+      "sys.allowsaves" is the same as "let v906 = 0"
+      "sys.allownosaves" is the same as "let v906 = 1"
+[907] Credit roll speed, logical 32k units per second, default 2560. At the
+      default speed, each credit line takes 12.8 seconds to move from the
+      bottom of the window to the top. Minimum value is 32, maximum 65535.
+[908] Credit roll horizontal location, displacement in 32k units from the
+      center of the screen. Default 0; allowed range -16k..+16k.
+
+--------------------------------------------------------------------
+
+Making Mods
+===========
+
+A mod should have its own directory under the main project directory.
+Anything there under AUD\ and GFX\ will add to and overwrite the resources of
+the main project, when the mod is loaded. To edit strings, you must first run
+Recomp /dumpstrings on the original scripts, then pick the string text files
+you want to make changes in, and move them into the mod's SCR\ subdirectory.
+Change any strings you like, delete those that you don't change, and then use
+Recomp /mod to use the edited string files in the mod; normal dat-file
+compilation will just ignore the strings files.
+
+Modding scriptcode requires using special directives, added to copies of the
+original scripts. Recomp can use these to make a diff of sorts. Be sure to
+delete all original scripts that you haven't made any changes to; any scripts
+in the mod without the $MOD directive will simply overwrite any original
+script by the same name.
+
+$MOD - at beginning of script, signifies it's supposed to be read as a diff
+       from the script code.
+$MODVARS n - also preferably at the beginning, informs SuperSakura how many
+       global variables to reserve for this mod. The variables can then be
+       accessed in all standard statements by using 
+$DELETE - deletes the line of code following the directive; basically, tells
+       SuperSakura to write NOPs over this command
+$DELETEBLOCK - deletes everything from this up to the next $END
+$INSERT - inserts the line of code following the directive into the script;
+       the code is parsed and saved as an extra script snippet, and Recomp
+       makes a mod note that at this execution offset, SuperSakura must
+       capture execution and do a RunScript scriptmod_x before executing
+       the normal command at that offset. The engine can have a sorted
+       list of mod hook offsets and only ever check if the next one in
+       line has been reached; and update that if ScriptGoto is called.
+$INSERTBLOCK - inserts code up to the next $END. Each $insert is actually an
+       $insertblock, and there's an implicit Exit written at the end of
+       every inserted snippet
+
+As a side effect, if-then and goto will only work within a single $insert
+block; crossovers into the original code with those won't work.
+
+In inserted code, you may also need to use fresh variables; must add
+a dynamic mod-variable thing.

@@ -1,0 +1,150 @@
+// Season of the Sakura - Endings
+// Before calling, set gvar 512 to the ending number index
+
+sys.allownosaves
+sys.framemode disabled
+mus.play SK_33
+gfx.clearallbutbkg
+gfx.show bkg TB_000
+let v900 := 500 // transition delay 0.5 sec
+gfx.transition 9
+sleep
+let v900 := 1500 // transition delay 1.5 sec
+let v907 := 2222 // credit duration 14.75 seconds
+let v908 := 0 // credits rise along center of screen
+gfx.clearallbutbkg
+sleep 400
+case v512; bad; reiko; kiyomi; mio; shoko; ruri; aki; seia; meimi
+
+// Bad ending
+@bad:
+gfx.show bkg SP_001
+gfx.transition 10
+sleep
+goto roll
+
+// The runscript commands below automatically return after executing the
+// ENDINGx scripts, since there are no user choices available in those.
+
+@Reiko:
+gfx.show overlay ofs 4506 alias ENDIMU AE_193
+gfx.transition 10
+sleep
+runscript ENDING1
+goto roll
+
+@Kiyomi:
+gfx.show overlay ofs 4506 alias ENDIMU AE_194
+gfx.transition 10
+sleep
+runscript ENDING2
+goto roll
+
+@Mio:
+gfx.show overlay ofs 4506 alias ENDIMU AE_195
+gfx.transition 10
+sleep
+runscript ENDING3
+goto roll
+
+@Shoko:
+gfx.show overlay ofs 4506 alias ENDIMU AE_197
+gfx.transition 10
+sleep
+runscript ENDING4
+goto roll
+
+@Ruri:
+gfx.show overlay ofs 4506 alias ENDIMU AE_191
+gfx.transition 12 // use a blurred push to simulate suddenly turning
+sleep
+runscript ENDING5
+goto roll
+
+@Aki:
+gfx.show overlay ofs 4506 alias ENDIMU AE_192
+gfx.transition 10
+sleep
+runscript ENDING6
+goto roll
+
+@Seia:
+gfx.show overlay ofs 4506 alias ENDIMU AE_196
+gfx.transition 10
+sleep
+runscript ENDING7
+goto roll
+
+@Meimi:
+gfx.show overlay ofs 4506 alias ENDIMU AE_198
+gfx.transition 10
+sleep
+runscript ENDING8
+
+@roll:
+tbox.clear 255
+// in the Japanese credits, the ending image scrolls left, leaving space for
+// the credits along the right edge... but, having tried it, I think leaving
+// the closing image where it is looks better.
+// let v908 := 12000
+// fx.move ENDIMU; 0, 0; 2500
+// sleep
+
+// Adjust the textbox style for credit rendering
+sleep 600
+style.reset 0
+style.set 0: fontheight = 1400; autofit = 1; transition = 0
+style.set 0: basetype = 0; bkgcolor = 0, 0, 0, 0; margins = 0, 127, 0, 255
+style.copy 1, 0
+style.set 1: fontheight = 1800; boldfont = 1
+
+credit 1; \cB9DF;Season of the Sakura>>
+credit 0; \cACEF;DIRECTOR
+credit 0; Taizo the Destroyer>
+credit 0; \cACEF;ORIGINAL ARTWORK
+credit 0; Ishiki Ryotaro>
+credit 0; \cACEF;ART DIRECTOR
+credit 0; Sanagi Oshima>
+credit 0; \cACEF;ARTISTS
+credit 0; Usa Usagi
+credit 0; Yumirin
+credit 0; Saya Izawa
+credit 0; Curly-kun>
+credit 0; \cACEF;ASSISTANT
+credit 0; Oguro>
+credit 0; \cACEF;SCENARIO
+credit 0; Kaoru Shisa
+credit 0; Professor Compression
+credit 0; Naozo Konno>
+credit 0; \cACEF;MUSIC
+credit 0; Takanori Nakaigawa>
+credit 0; \cACEF;PROGRAM
+credit 0; Taizo the Destroyer> // missing from the original English credits
+credit 0; \cACEF;THANKS TO
+credit 0; Eiwa Technical Service>>
+credit 0; \cACEF;ENGLISH TRANSLATION
+credit 0; Totoro Hunter Leto II>
+credit 0; \cACEF;SLAVE IN AMERICA
+credit 0; Motenai Yoda>
+credit 0; \cACEF;PLANNING & DEVELOPMENT
+credit 1; \cE02F;JAST>>>
+credit 0; \cACEF;Adapted for the SuperSakura engine by
+credit 0; Mimu Bunnylin / MoonCore
+sleep
+sleep 1000
+
+// Change style to show a centered, big, bold The End that fades in
+style.set 0: transition = 2; boldfont = 1; fontheight = 3333; autofit = 0
+style.set 0: textcolor = C8E0FFD0; textalign = center
+style.set 0: loc = 8192, 14718; size = 16384, 4000
+
+print The End
+waitkey
+
+// fade to black
+gfx.clearall
+gfx.show bkg TB_000
+gfx.transition 10
+sleep
+
+runscript MAIN

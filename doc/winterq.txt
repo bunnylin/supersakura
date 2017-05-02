@@ -1,0 +1,64 @@
+Winterquest plot
+
+Evil king Rex I, Artistic Autocrat
+Henchmen
+Benevolent hacker, Kirinn
+Friendly land pirates
+The player, You
+
+========================
+It is November. The people of your village look forward to the winter.
+Suddenly, a herald arrives!
+He declares that it is time to pay your dues to King Rex I, the Artistic
+Autocrat.
+- "What dues?"
+- "Why, you must pay for anything that makes you happy. Everything belongs to
+  his majesty, but he is graciously allowing people to use his property for
+  a fair reimbursement."
+- "How can that be? I built my house. Why would it belong to the king?"
+- "Because that is what kings are for. After all, someone must own
+  everything. That is the only way to ensure that all things are ultimately
+  used for the greatest benefit of everyone equally. So you see, although
+  your house is really the king's, as long as you use the house fairly, you
+  have license to reside there."
+
+- "I didn't know we had a king."
+- "He has a divine mandate. No one can argue with that."
+
+- "So how much tax must we pay to this Artistic Autocrat?"
+- "Tut! Speak not his majesty's name or title, for they are not yours. Only
+  those specially favored by his majesty may utter them. For your
+  presumption, your village must pay a name tax... in addition to the sun
+  tax, air tax, earth tax, friendship tax, love tax, music tax, and the
+  convenient tax collection tax. The total comes to two tenths of your food
+  stores, but you will be pleased to know, that the next collection will
+  likely be smaller."
+- *outrage*
+- "You will, of course, be exempt from the snow tax, as winter has been
+  cancelled."
+- "Cancelled!"
+- "King Rex I discovered, through his wise advisors, that tax collection is
+  brought to a halt during winter, since his tax collectors are unable to
+  travel from village to village overseeing the people's use of his majesty's
+  property. As a result, come spring, all villages had to pay additional tax
+  with interest. Without winter, such undue breaks will no longer disrupt the
+  safe and stable tax collection routine, benefiting everyone."
+
+- "We cannot give away our food!"
+- "Please remember, the food is not yours, but the king's. If you resist,
+  your village will be punished with an additional tax of two hundred times
+  your entire food stores. Surely, you see the reasonable option?"
+
+- "Surely, the king will see that taxation like this will leave all villages
+  starving. Soon, there will be no one left to pay taxes! If only someone
+  would go and present our case to the king, he would change his taxes."
+
+========================
+The player travels to the king's land.
+
+Finale:
+King Rex turns into a big tentacle monster!
+HUG: ... the power of love compels the monster to accept your marriage
+     proposal.
+TALK: He is too great to ever be defeated! So you should join his cause.
+      (grinning tentacle monster offers bags of cash to you)

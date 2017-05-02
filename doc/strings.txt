@@ -1,0 +1,38 @@
+Stringmaster
+============
+
+During the game:
+- Read from DAT, write to memory
+- Randomly access any string in any language immediately
+
+During building:
+- Read from a DAT, write to memory
+- Read from a TSV, write to memory
+- Build new string sets while compiling scripts
+- Randomly access strings in any language to help with above
+
+String blocks set up in each script record.
+DATs may create new script labels, which normally includes a full set of
+strings for that script in the same DAT. They can recreate an existing label,
+which probably has a full new set of strings included. Saved stringsets may
+overwrite or add to existing strings in a label, but usually either only
+overwrite existing, or only add a whole new language.
+
+Memory structures:
+Strings are saved per script as part of the script record, to reduce label
+seeking time. Global strings go in the otherwise invalid script zero.
+Since string blocks are saved to disk in a giant compressed chunk, when
+loading them heavy memory allocation and moving is unavoidable, unless you
+are happy to access strings of multiple labels from a single memory chunk,
+which would defeat the point of splitting strings between labels anyway.
+Therefore, it can't be helped: in memory strings must be stored as per-label
+arrays[0..language] of arrays of UTF8string.
+
+Functions:
+GetLanguageIndex()
+GetScr_fast(nam:pstring)
+ImportStringTable()
+DumpStringTable()
+CompressStringTable()
+DecompressStringTable()
+

@@ -1,0 +1,6 @@
+// Season of the Sakura
+// Introduction shown at the start of a new game
+
+gfx.clearall
+
+return // return to main script

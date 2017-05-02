@@ -1,0 +1,236 @@
+// The Three Sisters' Story
+// Main menu and game definitions
+
+#sys.allownosaves
+sys.settitle "The Three Sisters' Story"
+$s1 := "Koichi"
+
+// ==================================================================
+// Viewport setup
+
+// Viewport 0 is hardcoded to be the user's entire program window.
+// We want a 640x400 frame (viewport 1) containing a 480x296 view
+// (viewport 2). The left and right margins are 80 pixels each, and
+// 16 pixels at the top. So the coordinates of the game view are
+// 80,16 to 560,312.
+
+// The game should be scaled to the user's preferred screen size, so
+// use the biggest viewport of aspect ratio 640:400 (that is 16:10)
+// that fits in the program window. The game view is a fraction of
+// that viewport. Viewport 2 coords as 32k:
+// 80 / 640 * 32768 = 4096
+// 16 / 400 * 32768 = 1310.72
+// 560 / 640 * 32768 = 28672
+// 312 / 400 * 32768 = 25559.04
+// 
+// viewport.setparams viewport:2 locx 4096 locy 1311 sizex 28672 sizey 25559
+// That command is used in CALLS.TXT to turn on the viewframe.
+// Of course, we don't need a viewframe yet in the main menu!
+// So for now, viewport 2 can cover the entire viewport 1.
+
+// 480x296 view in 640x400 frame @ 80,16
+viewport.setparams viewport:1 parent:0, ratiox = 16, ratioy = 10
+viewport.setparams viewport:2 parent:1, locx 0 locy 0 sizex 32768 sizey 32768
+
+viewport.setdefault 2 // all game graphics will go in viewport 2
+viewport.setbkgindex viewport:1 index 0
+viewport.setbkgindex viewport:2 index 1
+
+#gfx.show FLERIN bkg viewport 1 // frame behind other graphics
+
+// ==================================================================
+// Textbox setup
+
+tbox.setnumboxes 5
+choice.setpartbox 3
+choice.setchoicebox 3
+choice.sethighlightbox 4
+choice.columns 1
+
+// 1: Game text & choice box
+tbox.setparam 1 minrows 4
+tbox.setparam 1 maxrows 4
+tbox.setparam 1 minsizex 23000
+tbox.setparam 1 maxsizex 23000
+tbox.setparam 1 ax 16384
+tbox.setparam 1 ay 32768
+tbox.setparam 1 lx 16384
+tbox.setparam 1 ly 32000
+tbox.setparam 1 margintop 1060
+tbox.setparam 1 marginbottom 1060
+tbox.setparam 1 marginleft 1800
+tbox.setparam 1 marginright 1800
+
+tbox.setparam 1 textcolor 0x104F
+tbox.setparam 1 basecolor 0xFFFE
+tbox.setparam 1 basefill 0
+
+tbox.settexture 1 SISBOX
+tbox.setparam 1 texleftedge 36
+tbox.setparam 1 texrightedge 36
+tbox.setparam 1 textopedge 36
+tbox.setparam 1 texbottomedge 36
+tbox.setparam 1 bevel 0
+
+tbox.setparam 1 autowaitkey 1
+
+// 2: Dialogue title box
+tbox.setparam 2 minrows 1
+tbox.setparam 2 maxrows 1
+tbox.setparam 2 mincols 8
+tbox.setparam 2 lx 4800
+tbox.setparam 2 ly 24000
+tbox.setparam 2 margintop 256
+tbox.setparam 2 marginbottom 256
+tbox.setparam 2 marginleft 512
+tbox.setparam 2 marginright 512
+tbox.setparam 2 snaptobox 1
+tbox.setparam 2 textcolor 0x402F
+tbox.setparam 2 basecolor0 0xDDDE
+tbox.setparam 2 basecolor1 0xEEEC
+tbox.setparam 2 basecolor2 0xEEEB
+tbox.setparam 2 basecolor3 0xCCCA
+
+// 3: Choice box
+tbox.setparam 3 maxrows 10
+tbox.setparam 3 mincols 6
+tbox.setparam 3 lx 640
+tbox.setparam 3 ly 19000
+tbox.setparam 3 ay 4800
+tbox.setparam 3 margintop 880
+tbox.setparam 3 marginbottom 1320
+tbox.setparam 3 marginleft 640
+tbox.setparam 3 marginright 800
+tbox.setparam 3 textcolor 0x402F
+tbox.setparam 3 basecolor 0xFFFE
+tbox.setparam 3 basefill 0
+tbox.settexture 3 SISBOX2 type stretched
+tbox.setparam 3 texleftedge 148
+tbox.setparam 3 texrightedge 133
+tbox.setparam 3 textopedge 36
+tbox.setparam 3 texbottomedge 39
+tbox.setparam 3 bevel 0
+
+// 4: Highlight box
+tbox.setparam 4 marginleft 320
+tbox.setparam 4 marginright 320
+tbox.setparam 4 margintop 80
+tbox.setparam 4 marginbottom 80
+tbox.setparam 4 bevel 1
+tbox.setparam 4 basecolor 0xFFF7
+
+
+// Game text box in framed mode
+// 512x64 pixels at 64,328
+#tbox.style.set 5: basetype 0; bkgcolor = 0, 0, 0, 0; textcolor = FFFFFFFF
+#tbox.style.set 5: loc = 3600, 26980; size = 25564 x 5210; fontheight = 1300
+#tbox.style.set 5: margins = 0, 0, 0, 0; transition 0; noshadow 1
+
+// Framed title box, completely invisible
+#tbox.style.copy 6, 1
+#tbox.style.set 6: basetype 0; bkgcolor = 0, 0, 0, 0; textcolor = 0
+
+
+// ===== Title Screen =====
+gfx.clearall
+gfx.transition 0
+event.create.interrupt skiptitle
+
+gfx.show SANSI bkg
+gfx.show NEWLOGO
+$v900 := 1200
+gfx.transition 15
+sleep
+$v900 := 500
+gfx.show ofsx 24576 ofsy 13517 TCHOICE1
+gfx.transition 9
+sleep 100
+gfx.show ofsx 24346 ofsy 16138 TCHOICE2
+gfx.setframe TCHOICE2; 4
+gfx.transition 9
+sleep 100
+gfx.show ofsx 26931 ofsy 18964 TCHOICE3
+gfx.transition 9
+sleep 100
+gfx.show ofsx 28723 ofsy 21340 TCHOICE4
+gfx.transition 9
+sleep
+goto mainmenu
+
+@skiptitle:
+gfx.clearkids
+gfx.show NEWLOGO
+gfx.show ofsx 24576 ofsy 13517 TCHOICE1
+gfx.show ofsx 24346 ofsy 16138 TCHOICE2
+gfx.show ofsx 26931 ofsy 18964 TCHOICE3
+gfx.show ofsx 28723 ofsy 21340 TCHOICE4
+gfx.setframe TCHOICE2; 4
+gfx.transition 0
+sleep 100
+
+
+// ===== Main Menu =====
+@mainmenu:
+event.clear
+waitkey
+call SK_101.
+
+$v900 := 750
+// clickable areas in 948x592 resolution:
+// 717,245; 924,282
+// 706,294; 924,330
+// 780,343; 924,389
+// 834,391; 924,430
+event.create.area NEWGAME; 24783,13561, 31938,15609; 2 ; ngclick
+event.mouseon NEWGAME; ngon
+event.mouseoff NEWGAME; ngoff
+//event.create.area LOADGAME; 24403,16273, 31938,18266; 2 ; lgclick
+//event.mouseon LOADGAME; lgon
+//event.mouseoff LOADGAME; lgoff
+event.create.area GALLERY; 26961,18986, 31938,21532; 2 ; galclick
+event.mouseon GALLERY; galon
+event.mouseoff GALLERY; galoff
+event.create.area QUITGAME; 28828,21642, 31938,23801; 2 ; qgclick
+event.mouseon QUITGAME; qgon
+event.mouseoff QUITGAME; qgoff
+fiber.stop
+#waitevent
+
+@ngon:
+gfx.setsequence TCHOICE1; 1
+exit
+@ngoff:
+gfx.setsequence TCHOICE1; 4
+exit
+@galon:
+gfx.setsequence TCHOICE3; 1
+exit
+@galoff:
+gfx.setsequence TCHOICE3; 4
+exit
+@qgon:
+gfx.setsequence TCHOICE4; 1
+exit
+@qgoff:
+gfx.setsequence TCHOICE4; 4
+exit
+
+@galclick:
+exit
+
+
+// ===== New Game =====
+@ngclick:
+event.clear
+gfx.clearall
+call INTRO.
+gfx.clearall
+
+#gfx.show FLERIN bkg viewport 1
+#sys.allowsaves
+
+call SK_101.
+
+// ===== Quit Game =====
+@qgclick:
+sys.quit

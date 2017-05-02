@@ -1,0 +1,128 @@
+::: SuperSakura scriptcode commands reference :::
+=================================================
+
+string type: may use escape codes
+
+General commands
+================
+PRINT string
+TITLE string
+PRINTBOX expression; string
+PX expression; string
+NEWLINE [expression]
+
+CREDIT expression; string
+
+RUNSCRIPT string
+EXIT
+GOTO label
+CASE expression; jump labels
+RETURN
+WAITKEY
+WAITKEY.NOCLEAR
+WAITEVENT
+SLEEP [expression]
+DUMMY
+
+
+Textbox commands
+================
+TBOX.NUMBOXES expression
+TBOX.CLEAR [expression]
+TBOX.HIDE expression
+TBOX.POPIN expression
+TBOX.POPOUT expression
+TBOX.MOVE expression, expression; expression [; style]
+TBOX.RESIZE expression, expression; expression [; style]
+TBOX.SETSTYLE number; expression
+TBOX.SETFRAMEDSTYLE number; expression
+
+STYLE.COPY expression; expression
+STYLE.SET expression; aspect = expression [,expression...] [; aspect = ...]
+
+
+Variables
+=========
+INC Vexpression
+DEC Vexpression
+LET Vexpression := expression
+LET Sexpression := string\Sexpression [: string\Sexpression]
+IF expression <=> expression THEN
+IF string\Sexpression <=> string\Sexpression THEN
+ENDIF
+
+
+Choice commands
+===============
+CHOICE.RESET
+CHOICE.ADD Vexpression; tier 1 string; [tier n string;] jump labels
+CHOICE.REMOVE tier 1 string; [tier n string]
+CHOICE.ON tier 1 string; [tier n string]
+CHOICE.OFF tier 1 string; [tier n string]
+
+
+Graphics commands
+=================
+GFX.CLERALL
+GFX.CLEARALLBUTBKG
+GFX.PUSHSTATE
+GFX.POPSTATE
+GFX.CLEARSTATE
+GFX.POPANDCLEAR
+GFX.REDRAWALL
+GFX.REMOVEANIMS
+GFX.GETSEQUENCE string
+GFX.GETFRAME string
+GFX.SETSEQUENCE string; expression
+GFX.SETFRAME string; expression
+GFX.REMOVE string
+GFX.SHOW aspects string
+GFX.TRANSITION expression
+GFX.SOLIDBLIT string; expression
+GFX.PRECACHE string
+
+
+Music commands
+==============
+MUS.PLAY string
+MUS.STOP
+
+
+Effect commands
+===============
+FX.MOVE string; expression, expression; expression [; style]
+FX.GOBSLIDEALPHA string; expression; expression
+
+FX.BASH expression, expression; expression; expression
+FX.FLASH expression
+FX.PRECIPITATE ???
+FX.GAMMASLIDE expression, expression, expression; expression
+
+
+Event commands
+==============
+EVENT.CREATE string; area\object\timed\interrupt\escinterrupt; jump label
+EVENT.MOUSEON string; jump label
+EVENT.MOUSEOFF string; jump label
+EVENT.REMOVE string
+EVENT.EXIT
+EVENT.CLEAR
+
+
+System commands
+===============
+SYS.ALLOWSAVES
+SYS.ALLOWNOSAVES
+SYS.ALREADYPLAYED
+SYS.CODEPAGE number
+SYS.CHOICEBOX number
+SYS.CHOICECOLUMNS number
+SYS.FRAMEMODE enabled\disabled\auto
+SYS.VIEWPORT expression, expression; expression, expression
+SYS.BACKGROUNDGOB expression
+SYS.WINDOWICON string
+SYS.CURSOR string
+SYS.LOADDAT string
+SYS.SAVEGAME ???
+SYS.LOADGAME ???
+SYS.QUIT

@@ -1,0 +1,208 @@
+1. Horizontal and vertical lines
+2. Meandering lines
+3. Palette adjustments
+4. Detect reverse-ditherable areas
+5. Flatten dithering, smooth h/v lines
+6. Post-processing
+
+---------------------------------------------------------------------
+
+Initialisation
+==============
+- For better quality, the palette needs to be gamma-adjusted by 2.2; upgrade
+  the 32bpp RGBA to RGBA64, using mcg_GammaTab
+
+
+Horizontal and vertical lines
+=============================
+- Identify distinct horizontal and vertical lines of at most two colors
+- Scan all pixels in image, draw a 4-pixel line from each
+- Comparing two rows of 4 pixels:
+   * If alpha row's 1st and 3rd or 2nd and 4th pixels are not the same, skip
+   * If either color in alpha row is the same as any color in beta row, skip
+   * Calculate the average RGBA64 of both alpha and beta rows, compare them
+     using DiffYCC; $328000 seems to be a good threshold.
+   * If the threshold is exceeded, mark both pixel rows as having an edge
+     against each other; dither detection will avoid smoothing across edges
+- If a pixel has edges on both opposite sides, it gets marked as a line
+- This still leaves occasional gaps within lines; to fill these, scan the
+  whole image again
+   * Does the pixel terminate an established line? If yes, project a virtual
+     line further along. If you find another line segment ahead, and it has
+     at least one same color, it may be a fillable gap
+   * Scan the entire gap; if every pixel is the same color as one of the
+     colors used in the line segments, mark the gap as a line
+
+
+Meandering lines
+================
+- Look for distinct single-color lines, mark them as clearly not dithered
+- Don't worry about dithered meandering lines, they are very rare
+- Attempt to launch a meandering line from every UNMARKED pixel with exactly
+  two neighboring same-color pixels
+   * Scan along the line in either direction until you reach a pixel with
+     anything except two same-color neighbors, or until you reach the
+     starting pixel again if it's a looped line; treat this as a starting
+     point for marking the line
+   * Scan through the whole line again, recording the movement from the line
+     origin so it can be easily done one more time; keep an eye on the four
+     last directions travelled; if the line is at any point doing a 2- or
+     3-pixel wide zig-zag pattern, cancel the whole thing because that's most
+     likely a dithering artifact instead of a legitimate line
+   * If the total recorded path is shorter than 4 pixels, skip it, it's
+     probably not a real line
+   * Trace the line one last time from the origin, following the recorded
+     path; mark every UNMARKED pixel as XLINE
+
+
+Palette adjustments
+===================
+- At this point, tweaks can be applied to the gamma-adjusted palette
+- RGB to YCbCr conversion: (according to ITU-R BT.709)
+   Y' = 0.2126r + 0.7152g + 0.0722b
+   Cr = (r - Y') / 1.5748
+   Cb = (b - Y') / 1.8556
+- YCbCr to RGB conversion, derived from above, green is not 100% precise:
+   r = 1.5748 * Cr + Y'
+   g = Y' - 0.468124273 * Cr - 0.187324273 * Cb
+   b = 1.8556 * Cb + Y'
+
+- Standard square curves for 16-bit x, where n is the transformation strength
+  with range of [0..nmax]:
+   f(x) = x * x / 65535
+   g(x) = 2x - f(x)
+   h(x, n) = (f(x) * (nmax - n) + g(x) * n) / nmax
+           = f(x) + ((x - f(x)) * 2n) / nmax
+- Use standard curve as follows:
+   * User specifies n in the interface, it has range 0..32, 16 is neutral
+   * RGB = h(RGB, n)
+   * Saturation doesn't use those curves; chroma is basically the distance of
+     all components from a greyscale level. Use Y' luma as the reference
+     lightness level, and move all components linearry toward or away from
+     that value. Careful to cap output at 0 and 65535.
+   * Temperature n is applied directly to red and blue components:
+     R = h(R, n)
+     B = h(B, 32 - n)
+
+
+4x4 dithering detection
+=======================
+- Look for 4x4 pixel patterns, tally an integer detection score
+- Does it have any detected edges inside the 4x4 area? Skip to the next block
+- Does it have anything except UNMARKED and FILTER flags? Skip to next block
+- Is it a flat color block?
+   * Mark the whole block as FILTER, and for each pixel in the block, tally
+     the color components and the number of times the block has been marked
+     as FILTER, same as below, and skip to next block
+- Does it look like a standard dithering pattern?
+   * If it's a pure 50-50 checkerboard pattern: mark as FILTER etc and skip
+   * Otherwise if checkerboardonly is TRUE: skip this block
+   * If one half is a single color, but the other half is not:
+      + If remaining half has more than 2 other colors plus the first half's
+        color: skip this block
+   * Otherwise, if either half has more than 2 colors: skip this block
+   * Furthermore, if the block has two pixels of the same color next to each
+     other anywhere, and that color is not the dominant one: skip this block
+- Add up points from neighboring blocks as follows:
+   * Neighboring block with any detected internal edges: skip
+   * Neighboring block with not exactly the same colors: skip
+   * Neighboring block with 2 px of same color next to each other, and that
+     color is not the dominant one: skip
+   * Does our block have only 1 or 2 colors?
+      + Neighbor with 16/16 matching pixels: +60
+      + Neighbor with 15/16 matching pixels: +40
+      + Neighbor with 14/16 matching pixels: +30
+      + Neighbor with 13/16 matching pixels: +24
+      + Neighbor with 12/16 matching pixels: +20
+   * Does our block have 3 or more colors?
+      + Neighbor with 16/16 matching pixels: +60
+   * Score from diagonal neighbors gets divided by 3
+- If points exceed threshold, default 120, mark every pixel as FILTER
+   * If checkerboardonly is TRUE, store the two palette indexes used in this
+     block, instead of an outright flattened color; if any pixel has already
+     been marked FILTER but has two same colors, then two different colors
+     is more important and will overwrite the previous indexes; also, take
+     the block's top left coordinate and do X XOR Y, and if low bit set, then
+     top left corner's color index goes first in memory, otherwise second
+   * Average the gamma-adjusted RGBA64 components of every pixel in the
+     block, to have the flattened color
+   * For each pixel in the block, tally the color components and the number
+     of times the pixel has been marked as FILTER (four 16-bit components,
+     each may be marked multiply so need 3 dwords, plus markcount byte)
+
+
+2x2 dithering detection
+=======================
+- Now scan entire image as 2x2 blocks, backwards and forwards, until neither
+  pass produces a single new marking
+- If this block is not composed of UNMARKED and FILTER flags only: skip
+- If this block has no UNMARKED flags: skip
+- If block has any internal edges: skip
+- If block is completely a single color: skip
+- If checkerboardonly is TRUE, and block is not a dither of 2 colors: skip
+- Tally an integer detection score based on following 2x2 neighbors:
+        %
+
+      % % %
+       %#%
+    % %#@#% %
+       %#%
+      % % %
+
+        %
+   * Any neighbor without the exact same colors or a subset is ignored
+   * If neighbor has exact same pixel pattern, it is worth 16 points
+   * If neighbor is off by only one pixel, it is worth 8 points
+   * Otherwise neighbor is worth 0 points
+   * If neighbor is entirely marked as FILTER, it gets x3 multiplier
+   * Immediately adjacent neighbors (#) get x2 multiplier
+- If points exceed threshold, default 120, mark every pixel as FILTER
+   * If checkerboardonly is TRUE, store the two palette indexes used in this
+     block, instead of an outright flattened color; if any pixel has already
+     been marked FILTER but has two same colors, then two different colors
+     is more important and will overwrite the previous indexes; also, take
+     the block's top left coordinate and do X XOR Y, and if low bit set, then
+     top left corner's color index goes first in memory, otherwise second
+   * Average the gamma-adjusted RGBA64 components of every pixel in the
+     block, to have the flattened color; if any pixel in block is already
+     marked FILTER, use their current flat color at triple weight; add the
+     current flat colors from immediately adjacent neighbors (#), if they are
+     marked entirely FILTER
+   * For each pixel in the block, tally the color components and the number
+     of times the pixel has been marked as FILTER (16-bit components, each
+     may be marked 16 times so use dwords, plus markcount byte)
+
+- Special: if checkerboardonly is TRUE, extend checkerboard detection
+- Test all UNMARKED pixels that are directly adjacent to FILTER pixels; if
+  the pixel fits the dither pattern and is not flanked perpendicularry by
+  a single pixel of its same color, then it is marked FILTER and it imports
+  the dither pair from the adjacent FILTER pixel
+
+
+Render flag and final images
+============================
+Flag colors:
+00 - Unmarked ............. black
+01 - Horizontal line ...... blue
+02 - Vertical line ........ red
+03 - H/V line ............. purple
+04 - Meandering line etc .. grey
+08 - Filter ............... green
+10 - Edge on left ......... dark red
+20 - Edge on right ........ light red
+40 - Edge on top .......... dark blue
+80 - Edge on bottom ....... light blue
+FF - DON'T TOUCH .......... white
+
+Rendering H/V lines:
+- Scan three pixels left/up and four pixels right/down; if the line continues
+  uninterrupted to those, tally up the values across this length with the
+  following multipliers:
+    3 4 6 8 8 6 4 3
+  Then get a weighed average using that and render the pixel with it. This
+  flattens 2x1 and 4x1 dithering patterns, while having a bit of softness
+  across lightness changes within the line.
+
+
+Post-processing
+===============

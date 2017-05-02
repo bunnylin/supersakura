@@ -1,0 +1,22 @@
+// If anything tries to run CALLS by a direct runscript, this happens.
+print 2 "Mwahaha! Functionality!"
+waitkey
+return
+
+@_call1:
+tbox.clear 2
+print 2 "Call 1 successful."
+return
+
+@_call2:
+tbox.clear 2
+print 2 "Call 2 successful."
+return
+
+@_summonviewframe:
+viewport.setparams viewport:2 locx=3277, locy=874, sizex=26214, sizey=26214
+fiber.stop
+
+@_dismissviewframe:
+viewport.setparams viewport:2 locx=0, locy=0, sizex=32768, sizey=32768
+fiber.stop

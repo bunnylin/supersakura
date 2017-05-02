@@ -1,0 +1,799 @@
+// Winterquest - SuperSakura engine test gauntlet
+
+gfx.clearkids
+gfx.show TITLE bkg
+gfx.transition
+sleep
+$v300 := 0
+
+// ===== test class menu =====
+@testclasses:
+choice.reset
+choice.set "\cF00F;Effects"
+choice.set "\cF80F;Events"
+choice.set "\cFF0F;Textboxes"
+choice.set "\c0F0F;Variables"
+choice.set "\c0FFF;Strings"
+choice.set "\c00FF;Other"
+choice.set "\c80FF;Exit"
+$v1 := (choice.get)
+
+case $v1 ."effys:testevents:testboxes:testvars:teststrings:testother:farewell"
+choice.go
+
+// ------------------------------------------------------------------
+@testboxes:
+print 2 "Quotes and escapes"
+print "Acquired \\\";)\"-emoticon!\\"
+waitkey
+print 2 "Glyph printing"
+print "\gEMO:0 Oh yes! \gEMO:0\n"
+print "ehehehe. \gEMO:3\gEMO:1 *innocent whistling* \gEMO:2"
+waitkey
+print 2 "Color test"
+print "This is a color test. Fuhuhu! \cF00F;Red! "
+print "\cFF0F;Yellow! \c0F0F;Green! \c00FF;Blue! \cF0FF;Violet!\n"
+print "And a newline keeps the previous color."
+print "Also, \cFFF0;invisible\cFFFF; and \cFFF4;xparent \cF00F;text.\n"
+print "Next to test special cases."
+print "This will also break if controls are not overflown right.\n"
+print "Shortened version: ABC\cF;DEF \ ...\cFF;...\n"
+print "Full 8 hexes: ABC\cFFFF4242;DEF"
+waitkey
+
+@testboxesback:
+print "Test box transitions?"
+choice.reset
+choice.set "Yes" .testboxes2
+choice.set "No" .testclasses
+choice.go
+
+@testboxes2:
+#tbox.style.set 6: reset; basetype 0; bkgcolor = 0,0,0,0; textcolor = EEFFFFFF
+#tbox.style.set 6: loc = 1000, 10200; size = 30768 x 6200; margins = 0, 0, 0, 0
+#tbox.style.set 6: fontheight = 2000; autofit 0 alwaysrebuild 0 textalign center
+#tbox.hide 1
+#tbox.hide 6
+waitkey
+#tbox.style.set 1: transition = 1
+#tbox.style.set 6: transition = 1
+#tbox.style.set 7: transition = 1
+print "Transition 1, pop in/out"
+print 6 '"Just popping by," he intoned in an intense tone.'
+waitkey noclear=1
+#tbox.popout 1
+#tbox.popout 6
+waitkey
+#tbox.style.set 1: transition = 2
+#tbox.style.set 6: transition = 2; textalign right
+#tbox.style.set 7: transition = 2
+print "Transition 2, fade in/out"
+print 6 "Those who would know themselves . . .\nmust first know arithmetics."
+waitkey noclear=1
+#tbox.popout 1
+#tbox.popout 6
+waitkey
+#tbox.style.set 1: transition = 3
+#tbox.style.set 6: transition = 3; textalign center
+#tbox.style.set 7: transition = 3
+print "Transition 3, sweep in/out"
+print 6 "Look into your heart\n\nyou KNOW this to be true!"
+waitkey noclear=1
+#tbox.popout 1
+#tbox.popout 6
+waitkey
+#tbox.style.set 1: transition = 0
+#tbox.style.set 7: transition = 0
+print "Transition 0, instant. With movement and sizing!\n"
+print "Instant, linear, coscos and halfcos."
+waitkey noclear=1
+
+tbox.setloc 1 locx 6000 locy 4000 time 4000 style=instant
+tbox.setsize 1 sizex 14000 sizey 8000
+waitkey noclear=1
+
+tbox.setloc 1 locx 4384 locy 26000 time 4000 style=linear
+waitkey noclear=1
+
+tbox.setloc 1 locx 6000 locy 4000 time 4000 style=cosine
+waitkey noclear=1
+
+tbox.setloc 1 locx 4384 locy 26000 time 4000 style=halfcos
+sleep
+
+tbox.clear 1
+print "Done!"
+waitkey
+
+#tbox.style.set 1: transition = 1
+#tbox.style.set 7: transition = 1
+goto testboxesback
+
+// ------------------------------------------------------------------
+@testvars:
+print 2 "Variable tests"
+
+# Token precedence priority in ssscript.pas:
+# lowest: set/inc/dec
+# comparison operators
+# or/xor/plus/minus
+# mul/div/mod/and/shl/shr
+# highest: not/neg/var/rng/tonum/tostr
+
+$v70 := 0
+$v71 := 1
+$v72 := -1
+$v73 := 2
+print "v70 = \$v70; (0)\n"
+print "v71 = \$v71; (1)\n"
+print "v72 = \$v72; (-1)\n"
+print "v73 = \$v73; (2)"
+waitkey
+$v74 := -2
+$v75 := 0x9C44
+$v76 := -0x7D00
+$v77 := -123456789
+print "v74 = \$v74; (-2)\n"
+print "v75 = \$v75; (40004)\n"
+print "v76 = \$v76; (-32000)\n"
+print "v77 = \$v77; (-123456789)"
+waitkey
+$(v + (69 + $v71)) := 5 + $v74 * -9
+$v71 := 7 and 3 or 16 xor 24 shr 2
+$(v + (144 >> 1)) := 314 mod (25 << 2) div 2
+#$v73 := cos 0
+#$v74 := cos(0x7FFF)
+#$v75 := cos -16384
+print "v70 = \$v70; (23)\n"
+print "v71 = \$v71; (21)\n"
+print "v72 = \$v72; (7)\n"
+#print "cos 0 = \$v73;;  cos max = \$v74;;  cos min = \$v75;"
+waitkey
+$v70 := 5 = 5
+$v71 := -1 <> -1
+$v72 := (60 < 25 * 3) or ((77 > $v77) shl 1) or ((3 = 3 >= 2 - 1) shl 2) or ((1 <= 1) shl 3)
+print "v70 = \$v70; (1)\n"
+print "v71 = \$v71; (0)\n"
+print "v72 = \$v72; (15)"
+waitkey
+$v80 := 80
+$v70 := 0
+$v71 := 0
+$v72 := 0
+$v76 := 0
+$v77 := 0
+$v78 := 0
+@rndloop:
+  $v81 := 70 + rnd 3
+  inc (v + $v81)
+  $v81 := 78 + rnd (-3)
+  inc (v + $v81)
+  dec v80
+if $v80 <> 0 then goto rndloop end
+
+print "Finally, 80 pairs of random numbers 0..2 and 0..-2 were drawn. "
+print "Results were tallied into separate vars. All vars should show "
+print "similar counts, and both groups should add up to 80."
+waitkey
+print "v70 = \$v70;;  "
+print "v71 = \$v71;;  "
+print "v72 = \$v72;\n"
+print "v76 = \$v76;;  "
+print "v77 = \$v77;;  "
+print "v78 = \$v78;"
+waitkey
+goto testclasses
+
+// ------------------------------------------------------------------
+@teststrings:
+$v0 := rnd 7
+if $v0 = 0 then $s1 := "A red" end
+if $v0 = 1 then $s1 := "The " end
+if $v0 = 2 then $s1 := "A silver" end
+if $v0 = 3 then $s1 := "A happy" end
+if $v0 = 4 then $s1 := "An evil" end
+if $v0 = 5 then $s1 := "A cantankerous" end
+if $v0 = 6 then $s1 := "An unusual" end
+$v0 := rnd 6
+if $v0 = 0 then $s2 := " fox " end
+if $v0 = 1 then $s2 := " hound " end
+if $v0 = 2 then $s2 := " rabbit " end
+if $v0 = 3 then $s2 := " Orz " end
+if $v0 = 4 then $s2 := " blob " end
+if $v0 = 5 then $s2 := " droid " end
+$v0 := rnd 5
+if $v0 = 0 then $s3 := " Avatar " end
+if $v0 = 1 then $s3 := " NPC " end
+if $v0 = 2 then $s3 := " character " end
+if $v0 = 3 then $s3 := " protagonist " end
+if $v0 = 4 then $s3 := " mech " end
+$v0 := rnd 5
+if $v0 = 0 then $s4 := "jumped over" end
+if $v0 = 1 then $s4 := "blew up" end
+if $v0 = 2 then $s4 := "crashed comically into" end
+if $v0 = 3 then $s4 := "devoured" end
+if $v0 = 4 then $s4 := "pondered" end
+$v0 := rnd 6
+if $v0 = 0 then $s5 := "a bush" end
+if $v0 = 1 then $s5 := "a skyscraper" end
+if $v0 = 2 then $s5 := "the spacetime continuum" end
+if $v0 = 3 then $s5 := "itself" end
+if $v0 = 4 then $s5 := "the moon" end
+if $v0 = 5 then $s5 := "its habitat" end
+
+$v0 := 6
+$(s+$v0) := $s1$(s + (2 + rnd 2)) + "\$s4; " + $s5
+$s6 += "."
+$s1 := ~"@@@" // this must not affect the content of s5 at this point
+
+@teststringsoutcome:
+print 2 "String concatenation"
+print \$s6; // print must resolve all string references immediately
+$s3 := ~"@@@" // screenmode switch must retain correct string, not reprint
+$s6 := ~"@@@"
+waitkey
+print 2 "String comparison"
+$s1 := "Yes"
+$s2 := "No"
+$s3 := "yeS"
+print '"\$s1;" = "\$s2;"?'
+if $s1 = $s2 then print ~TRUE end
+if $s1 <> $s2 then print ~FALSE end
+print '\n"\$s1;" = "\$s3;"?'
+if $s3 = $s1 then print ~TRUE else print ~FALSE end
+print '\n"\$s2;" = "no"?'
+if $s2 = "no" then print ~TRUE else print ~FALSE end
+waitkey
+goto testclasses
+
+// ------------------------------------------------------------------
+@testevents:
+  choice.reset
+  choice.set "Area/gob event" testevent1
+  choice.set "Interrupt\nevent" testevent2
+  choice.set "Emergency lights!" testevent3
+  choice.set "Clear\nevents" testevent4
+  choice.set "Subscript call test" testcalls
+  choice.set "Back" testclasses
+choice.go
+
+@testevent1:
+gfx.show VILLAGE bkg
+gfx.show VILLAGEK locx 18432 locy 14336
+gfx.show CUBERT1 locx 256
+gfx.show CUBERTA1 type sprite locx 256
+gfx.show NUM name NUM1 type sprite locx -960 locy -1280
+gfx.show NUM name NUM2 type sprite locx 31680 locy 31147
+gfx.transition 0
+print "Mess with Cubert's face!\nClick the kids to quit."
+event.create.gob AREA1 CUBERTA1 a1click a1on a1off
+event.create.area AREA2 locx 18432 locy 14336 sizex 9932 sizey 4710 a2click
+event.mouseon AREA2 a2on
+event.mouseoff AREA2 a2off
+event.create.gob NUM1 NUM1 num1click
+event.create.gob NUM2 NUM2 num2click
+
+$eventwait := 1
+while $eventwait do yield end
+gfx.clearkids
+gfx.show TITLE bkg
+gfx.transition
+tbox.clear 1
+tbox.clear 2
+goto testevents
+
+@a1click:
+  if $v302 = 0 then
+    $v302 := 1
+    gfx.show CUBERTSM locx 256
+    gfx.transition
+    choice.go
+  end
+  $v302 := 0
+  gfx.remove CUBERTSM
+  gfx.transition
+fiber.stop
+@a2click:
+  event.remove AREA1
+  event.remove AREA2
+  $eventwait := 0
+fiber.stop
+
+@a1on:
+  gfx.setframe CUBERTA1 2
+fiber.stop
+@a1off:
+  gfx.setframe CUBERTA1 0
+fiber.stop
+@a2on:
+  print 2 "Kids"
+fiber.stop
+@a2off:
+  tbox.clear 2
+fiber.stop
+
+@num1click:
+  gfx.getframe NUM1
+  $v0 := ($v0 + 1) and 3
+  gfx.setframe NUM1 $v0
+fiber.stop
+@num2click:
+  gfx.setframe NUM2 ((gfx.getframe NUM2) + 1) and 3
+fiber.stop
+
+@testevent2:
+event.create.interrupt intclick
+event.create.esc intesc
+$v301 := 1
+$legendlive := 1
+fiber.start LegendofDog
+while $legendlive = 1 do yield end
+event.remove.int
+event.remove.esc
+goto testevents
+
+@LegendofDog:
+print 2 "Narrator"
+print "There once was a young dog."
+sleep 900
+print ~"."
+sleep 1000
+print ~"."
+sleep 1300
+print " who was the prince of dogs!"
+sleep 2000
+print " One sunny morning,"
+sleep 1800
+print " he demanded to be brought a golden bone."
+sleep 3200
+tbox.clear 1
+print "Now the prince of dogs had a pet dwarf."
+sleep 2500
+print " A very cunning dwarf he was."
+sleep 2000
+print " He promised to deliver the bone to the prince by sundown."
+sleep 4000
+tbox.clear 1
+print "The dwarf stole a car and drove to the Feline Kingdom,"
+sleep 3000
+print " the police hot on his tail."
+sleep 2500
+print "\n\cBBCF;(a pun his prince would've appreciated)"
+sleep 4000
+tbox.clear 1
+print "In a stunning turncoat move,"
+sleep 1600
+print " the dwarf told the Cat Princess everything,"
+sleep 1800
+print " and suggested using a \cF8FF;Trojan Bone\cFFFF;"
+sleep 1900
+print " to sneak a cat in the dog prince's chamber."
+sleep 3500
+tbox.clear 1
+print "The devious plan was carried out."
+sleep 1000
+print " However."
+sleep 700
+print ~"."
+sleep 700
+print ~"."
+sleep 1200
+print " the cat princess herself had hidden in the bone!"
+sleep 2600
+print " Wearing a revealing polecat dancer costume!"
+sleep 3400
+tbox.clear 1
+print "The dog prince was instantly smitten."
+sleep 1800
+print " The prince and princess married,"
+sleep 1400
+print " and had lots of weird hybrid offspring."
+sleep 3300
+tbox.clear 1
+print "The dwarf shrugged, and moved to \cD6DF;Zombie Elephant Land\cFFFF;,"
+sleep 2200
+print " where he built a hermit fortress."
+sleep 3600
+goto intesc2
+
+@intclick:
+  $v301 := $v301 + 1
+  if $v301 >= 10 then goto intenough end
+  tbox.clear 2
+  print 2 "Narrator \$v301;"
+  stop
+@intenough:
+  fiber.stop test.LegendofDog
+  event.remove.int
+  event.remove.esc
+  tbox.clear
+  tbox.clear 2
+  print "Oh, great. We ran out of narrators."
+  waitkey
+  $legendlive := 0
+  stop
+@intesc:
+  fiber.stop test.LegendofDog
+  @intesc2:
+    event.remove.interrupt
+    event.remove.escape
+    tbox.clear
+    tbox.clear 2
+    print 2 "tl;dr"
+    print "Everyone lived happily ever after."
+    waitkey
+    $legendlive := 0
+  stop
+
+@testevent3:
+  if $v300 <> 0 then goto lightsout end
+  event.create.timer FUNLIGHT; 1024; lightevent
+@lightevent:
+  $v300 := $v300 and 1 + 1
+  if $v300 = 1 then goto lightblue end
+@lightred:
+  #fx.gammaslide 160, -64, -80; 900; 1
+  stop
+@lightblue:
+  #fx.gammaslide -64, -64, 160; 900; 1
+  stop
+
+@lightsout:
+  event.remove FUNLIGHT
+  #fx.gammaslide 0, 0, 0; 600; 1
+  $v300 := 0
+  goto testevents
+
+@testevent4:
+  event.remove
+  if $v300 <> 0 then goto lightsout end
+  goto testevents
+
+@testcalls:
+  print "Attempting to print two lines into print 2 box using CALLS..."
+  waitkey noclear=1
+  call calls._call1
+  waitkey noclear=1
+  call calls._call2
+  waitkey
+  goto testevents
+
+// ------------------------------------------------------------------
+@effys:
+  gfx.clearkids
+  gfx.transition
+  tbox.clear 2
+  tbox.clear 6
+  choice.reset
+  choice.set "FPS test" testfps
+  choice.set "Transitions" testtransu
+  choice.set "Flashing" testflash
+  choice.set "Bashing" testbash
+  choice.set "Gob movement" testgobmove
+  choice.set "Gob solidblit" testsolidblit
+  choice.set "Gob alphaslide" testalphaslide
+  choice.set "Gamma slides" testgammaslide
+  choice.set "Credit roll" testcredits
+  choice.set "Back" testclasses
+choice.go
+
+// ------------------------------------------------------------------
+@testfps:
+gfx.clearall
+gfx.show VILLAGE bkg
+gfx.show VILLAGE locx 8192 locy 4096
+gfx.show VILLAGEK locx -4096
+gfx.show VILLAGEK locx 0
+gfx.show VILLAGEK locx 4096
+gfx.show VILLAGEK locx 8192
+gfx.show VILLAGEK locx 12288
+gfx.show CUBERT1 name CU1
+gfx.show CUBERTsm
+gfx.show CUBERTa1
+gfx.show CUBERT1 name CU2 locx 7000 locy 1500
+gfx.show CUBERTsm locx 7000 locy 1500
+gfx.show CUBERTa1 locx 7000 locy 1500
+gfx.show CUBERT1 name CU3 locx 14000 locy 3000
+gfx.show CUBERTsm locx 14000 locy 3000
+gfx.show CUBERTa1 locx 14000 locy 3000
+gfx.show CUBERT1 name CU4 locx 21000 locy 4500
+gfx.show CUBERTsm locx 21000 locy 4500
+gfx.show CUBERTa1 locx 21000 locy 4500
+
+$v301 := 0xFFFFFF80 // half-transparent white
+$v302 := 0x00000080 // half-transparent black
+#gfx.solidblit CU2 $v301
+#gfx.solidblit CU3 $v302
+#fx.gobslidealpha CU3 0x80 0
+#fx.gobslidealpha CU4 0x80 0
+
+gfx.transition
+sleep 0
+
+print "Close ALL bkg programs, only consoles may remain.\n"
+print "Compile ssakura with normal, not debug mode.\n"
+print "Press $ to get FPS reading, or press enter to go back."
+waitkey
+gfx.clearall
+gfx.show TITLE bkg
+gfx.transition
+goto effys
+
+// ------------------------------------------------------------------
+@testtransu:
+gfx.clearall
+gfx.show TITLE bkg
+gfx.transition
+#tbox.style.set 3: loc = 700, 700
+
+choice.reset
+choice.set "0 - instant"
+choice.set "1 - not implemented"
+choice.set "2 - sweep from top"
+choice.set "3 - sweep from left"
+choice.set "4 - tilting rectangle"
+choice.set "5 - radial pinwheel"
+choice.set "6 - box fill from center"
+choice.set "7 - horizontal parting"
+choice.set "8 - vertical parting"
+choice.set "9 - crossfade"
+choice.set "10 - interlaced sweep"
+choice.set "11 - blurred push from left"
+choice.set "12 - blurred push from right"
+choice.set "13 - horizontal closing"
+choice.set "14 - vertical closing"
+choice.set "15 - pop-in"
+choice.set "Back"
+$v1 := (choice.get)
+if $v1 = 16 then goto byetransu end
+gfx.show VILLAGE bkg
+gfx.transition index $v1 time 4096
+sleep
+waitkey
+goto testtransu
+
+@byetransu:
+#tbox.style.set 3: loc = 700, 16000
+#tbox.hide 3
+goto effys
+
+// ------------------------------------------------------------------
+@testgobmove:
+gfx.show VILLAGEK locx 18432 locy 14336 z 8
+gfx.show CUBERT1 locx 132
+gfx.transition
+gfx.show CUBERTa1 locx 132
+print "Press enter to test: instant, linear, cos, and halfcos."
+waitkey
+gfx.move CUBERT1 instant 18000 0 2000
+waitkey
+gfx.move CUBERT1 linear 132 0 2000
+waitkey
+gfx.move CUBERT1 cos 18000 0 4000
+waitkey
+gfx.move CUBERT1 halfcos 132 0 4000
+waitkey
+gfx.clearkids
+gfx.transition
+choice.go
+
+// ------------------------------------------------------------------
+@testflash:
+gfx.flash //r5
+goto effys
+
+// ------------------------------------------------------------------
+@testbash:
+gfx.show BIGMACK1 locx 12345
+gfx.transition
+gfx.show BIGMACa1 locx 12345
+
+$v300 := 0
+$v301 := 256 // 256^2 / 4 = 16384 = 0.5 Hz
+$v303 := 256 // 256^2 7 4 = 16384 = 50% of gob width
+$v305 := 3000 // 3 seconds
+choice.reset
+choice.set "Direction+" bashdirplus
+choice.set "Direction-" bashdirminus
+choice.set "Frequency+" bashfreqplus
+choice.set "Frequency-" bashfreqminus
+choice.set "Amplitude+" bashampplus
+choice.set "Amplitude-" bashampminus
+choice.set "Duration+" bashduraplus
+choice.set "Duration-" bashduraminus
+choice.set "BASH" dobash
+choice.set "Random BASH" dorandombash
+choice.set "Back" effys
+
+@printbash:
+if $v300 < 0 then $v300 := $v300 + 32768 end
+if $v300 >= 32768 then $v300 := $v300 - 32768 end
+if $v301 < -768 then $v301 := -768 end
+if $v301 > 768 then $v301 := 768 end
+$v302 := $v301 * $v301 / 4
+if $v301 < 0 then $v302 := 0 - $v302 end
+if $v303 < -768 then $v303 := -768 end
+if $v303 > 768 then $v303 := 768 end
+$v304 := $v303 * $v303 / 4
+if $v303 < 0 then $v304 := 0 - $v304 end
+if $v305 <= 0 then $v305 := 0 end
+if $v305 > 8000 then $v305 := 8000 end
+tbox.clear 6
+print 6 "Direction: \v$300;\n"
+print 6 "Frequency: \v$302;/32768 Hz\n"
+print 6 "Amplitude: \v$304;/32768 of gob width\n"
+print 6 "Duration: \$v305; msec"
+choice.go
+
+@bashdirplus:
+$v300 := $v300 + 2048
+goto printbash
+@bashdirminus:
+$v300 := $v300 - 2048
+goto printbash
+@bashfreqplus:
+$v301 := $v301 + 16
+goto printbash
+@bashfreqminus:
+$v301 := $v301 - 16
+goto printbash
+@bashampplus:
+$v303 := $v303 + 16
+goto printbash
+@bashampminus:
+$v303 := $v303 - 16
+goto printbash
+@bashduraplus:
+$v305 := $v305 + 250
+goto printbash
+@bashduraminus:
+$v305 := $v305 - 250
+goto printbash
+
+@dobash:
+gfx.bash $v300, $v302, $v304, $v305, TITLE
+goto printbash
+@dorandombash:
+gfx.bash rnd 32768, (rnd 80000 + 80000), rnd 3333 + 3333, 1200 + rnd 1200, TITLE
+goto printbash
+
+// ------------------------------------------------------------------
+@testgammaslide:
+$v310 := $v902 // red
+$v311 := $v903 // green
+$v312 := $v904 // blue
+$v313 := 2400 // duration msecs
+choice.reset
+choice.set "Red+" "slider+"
+choice.set "Red-" "slider-"
+choice.set "Green+" "slideg+"
+choice.set "Green-" "slideg-"
+choice.set "Blue+" "slideb+"
+choice.set "Blue-" "slideb-"
+choice.set "Slide!" doslide
+choice.set "Normalify" gammanormal
+choice.set "Back" effys
+
+@printgamma:
+print 2 "Red: \$v310;\n"
+print 2 "Green: \$v311;\n"
+print 2 "Blue: \$v312;\n"
+print 2 "Duration: \$v313;"
+choice.go
+
+@slider+:
+if $v310 < 256 then $v310 := $v310 + 32 end
+goto printgamma
+@slider-:
+if $v310 > -256 then $v310 := $v310 - 32 end
+goto printgamma
+@slideg+:
+if $v311 < 256 then $v311 := $v311 + 32 end
+goto printgamma
+@slideg-:
+if $v311 > -256 then $v311 := $v311 - 32 end
+goto printgamma
+@slideb+:
+if $v312 < 256 then $v312 := $v312 + 32 end
+goto printgamma
+@slideb-:
+if $v312 > -256 then $v312 := $v312 - 32 end
+goto printgamma
+
+@doslide:
+#fx.gammaslide $v310 $v311 $v312 $v313 1
+goto printgamma
+
+@gammanormal:
+#fx.gammaslide 0 0 0 $v313 1
+goto printgamma
+
+// ------------------------------------------------------------------
+@testsolidblit:
+  $v301 := 0x6C5EB5FF
+  $v302 := 1
+  #gfx.solidblit "FRAME" $v301 // should turn viewframe commodore blue
+  #gfx.solidblit TITLE $v302 // should turn viewport black
+  gfx.transition 10
+  sleep
+  waitkey
+  #gfx.solidblit TITLE $v0 // back to normal
+  #gfx.solidblit "FRAME" $v0
+  gfx.show CUBERT1 locx 6000
+  gfx.show CUBERTA1 locx 6000
+  gfx.transition 10 // restores view, now with Cubert
+  sleep
+  waitkey
+  $v303 := 0xFFFFFFFF
+  #gfx.solidblit CUBERT1 $v303 // flash Cubert white!
+  gfx.transition
+  sleep 100
+  #gfx.solidblit CUBERT1 $v0 // fade to normal
+  gfx.transition 10
+  sleep $v900 + 500 // wait until transition done, plus .5 seconds
+  #gfx.solidblit CUBERT1 $v303
+  gfx.transition
+  sleep 100
+  #gfx.solidblit CUBERT1 $v0
+  gfx.transition 10
+  sleep $v900 + 500
+  $v303 := 0x900090FF
+  #gfx.solidblit CUBERT1 $v303 // flash to purple
+  gfx.transition 10 time 256
+  sleep 100
+  gfx.remove CUBERT1 // and take it away
+  gfx.transition 10
+  sleep
+  waitkey
+goto effys
+
+// ------------------------------------------------------------------
+@testalphaslide:
+  gfx.show CUBERT1 locx 8000
+  gfx.show CUBERTA1 locx 8000
+  gfx.show CUBERTA1 locx 16000 locy -2000 name EVILEYES
+  #fx.gobslidealpha CUBERT1; 0; 0
+  #fx.gobslidealpha EVILEYES; 128; 0
+  gfx.transition
+  waitkey
+  #fx.gobslidealpha CUBERT1; 255; 3000
+  sleep
+  waitkey
+  #fx.gobslidealpha CUBERT1; 128; 1000
+  sleep
+  waitkey
+  #fx.gobslidealpha CUBERT1; 0; 1000
+  sleep
+  waitkey
+  #fx.gobslidealpha CUBERT1; 255; 0
+  waitkey
+  gfx.clearkids
+  gfx.transition
+goto effys
+
+// ------------------------------------------------------------------
+@testcredits:
+  $v907 := 2828
+  #credit 0 "BIG FAT TURTLE>>>"
+  $v907 := 5555
+  #credit 1 "sleek little bunny"
+  sleep
+goto effys
+
+// ------------------------------------------------------------------
+@testother:
+  print "Now attempting to execute a runscript with a string ref! If successful, the print 2 box will show it."
+  waitkey noclear=1
+  $s5 := "calls"
+  call $s5 + "."
+  print "Atsa'all."
+  waitkey
+goto testclasses
+
+// ------------------------------------------------------------------
+@farewell:
+  event.remove
+  #fx.gammaslide 0, 0, 0; 50; 1
+  sleep
+  choice.reset
+return // pop script, back to main

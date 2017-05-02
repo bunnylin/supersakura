@@ -1,0 +1,6 @@
+language Japanese
+
+file XFERBOX2
+res 640x400
+integerscaling
+

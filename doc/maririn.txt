@@ -1,0 +1,165 @@
+Maririn DX
+==========
+
+Suupaa Urutoro Mutsuchin\Mucchin Puripuri Saiboogu Maririn DX
+...
+Super Ultra... Mutsuchin? The tsu looks too big to be a consonant extender,
+but vndb romanises the word as mucchin. Neither spelling appears to mean
+anything obvious. Puripuri is a sound effect, either sizzling angry or sweet
+and soft... Cyborg. Marilyn Deluxe? Maririn sounds funnier though, and this
+game is pretty silly.
+
+The OVL files are somewhat different from the later standard.
+
+First word: points to an array of words, the action list, terminated upon the
+first address mentioned in the array. Each word points to a series of bytes.
+The first byte defines how to interpret the rest of the bytes and how many
+bytes there are in the series.
+
+Second word: points to an array of words, the jump list, terminating at the
+address of the first word discussed above. Each word points to a bytecode
+segment. The first bytecode segment is run automatically on script entry.
+
+The action list has the following formats:
+00 + 5 bytes: action type, tracking var, jump ID, next script, [00\FF].
+              If next script is defined, run it immediately after bytecode.
+01 + 5 bytes: action type, tracking var, jump ID, next script, [00]
+02 + 5 bytes: action type, tracking var, conditional var, 2 x jump ID.
+              If conditional var is not set, use first ID, else use second.
+07 + 10 bytes:
+08 + many bytes:
+09 + 9 bytes: action type, 2 x tracking var?, 4 x jump ID, next script, [FF].
+              After executing the bytecode segment of the last valid jump ID,
+              run the next script immediately.
+0A + 8 bytes: action type, tracking var, [08 08], 3 x jump ID, [FF]
+
+S006:
+Eyeing Maririn's face gives repeatedly jump id 2.
+Eyeing boobage gives repeatedly jump id 3.
+Eyeing "xxx" gives repeatedly jump id 4.
+Eyeing any of the above after eyeing all jumps to script 7.
+[08 02 01|01 00 0C 00 02 FF 01 0C|02 03|02 FF   |02|07]
+[08 02 02|02 00 0C 00 03 FF 02 0C|01 03|03 FF   |03|07]
+[08 03 03|03 00 0C 00 04 FF 03 0C|01 02|04 FF   |04|07]
+         |                       |vars |        |ID|scr
+
+S008:
+[08 03 01|02|09 00 09 01|02 03 04 05|   FF 02 00|06|      09 FF]
+         |va|           | jump IDs  |           |ID|      scr
+
+S009:
+Eyeing the guy gives 2, repeats 3.
+Eyeing the wires repeats 5.
+Eyeing the background gives 6, 5, then repeats 6.
+Trying to go closer gives 7, then repeats 8.
+Doing something after doing all those moves to script 10.
+[08 02 01|03|00 01 00       02|FF 03 01         |03|     |FF 00]
+[08 02 02|04|09 03 09 01 04 05|FF FF FF|04 03 05|05|FF FF|0A 00]
+[08 02 03|04|09 03 09 02|06 05|FF FF FF|04 03 05|06|FF FF|0A 00]
+[08 01 04|05|09 03 09 03|07 08|FF FF FF|05 03 04|08|FF FF|0A 00]
+         |va|           | IDs |        |  vars  |ID|     |scr
+S010:
+Talking gives 2, 3, 4, and 5 plus next script.
+[08 03 01|05|00 09 00      |02|FF 05 09 01   |03 04 05|FF|0B FF]
+         |va|              |ID| set var 5    |  IDs   |  |scr
+
+S012:
+Eyeing the doc repeats 10 until var 6 is set, then repeats 11.
+Talking gives 2, 3, 4, 5, sets var 6. Then 6, 7, 8, 9, instantly next script.
+[02 02 02|06|0A 0B]
+[08 03 01|06|09 09 09 01|02 03 04 05|FF 06 09 02|06 07 08 09|0D|FF]
+         |va|           | jump IDs  | set var 6 | jump IDs  |  |
+
+S015:
+[08 03 01|07|09 01 09 01|02 03 04 FF|FF 07 01|05|10|00]
+         |va|           | jump IDs  |        |ID|  |
+
+S016:
+Trying to go repeats 8 until var 8 is set, then gives 9 plus next script.
+Looking at the wires gives 6, sets var 8, then repeats 7.
+[0A 02 04|08|08|06|08|07|FF]
+         |va|  |ID|  |ID|
+
+[08 01 06|08|00 01 00|08|FF FF 01|09|11|00]
+         |va|        |ID|        |ID|  |
+
+S020:
+Talking gives 2, 3, repeats 4 until var set. Then 5, 6 plus next script.
+Looking at the kid gives 10, and sets a var.
+[0A 02 03 0A 0A 09 FF 0A 0B]
+[08 03 01 0B 09 0E 09 01|02 03 04|FF FF 0A 0E 02|05 06|FF 15 00]
+                        | jmp ID |              | IDs |
+
+S014:
+Bashing the doc runs 3, then initiates battle. Then immediately next script.
+[07 00 00 FF|0F 0F|04|02|03|01 FF]
+            | scr |ic|  |ID|
+S017:
+Talking gives 4, then 5 which inits a battle.
+[07 00 00 FF|11 12|03 03|01|04 05|FF FF 02 00]
+            | scr |icon?|  | IDs |
+
+The game's interface is point-and-click, and the cursor changes to indicate
+action on clickable areas. MS_CUR contains the cursors, but the enumeration
+seems to vary depending on action formats in the first word array. The
+clickable areas are probably hardcoded, and defined per script.
+00:01 - Go
+00:02 - Look
+00:03 - Talk
+00:04 - Hit (pink fist)
+00:05 - Push (smacking palm)
+00:07 - Open
+
+---------------------------------------------------------------------
+Hardcoded actions to take on script entry:
+(probably best try to find these in the exe and dump them into CALLS)
+
+S001: draw B01 with C_02C.
+S002: draw B01
+S003: draw B02
+S004: draw B02. Play calm music.
+S005: draw B03 with B03B over it. Play scientific progressive music.
+S006: draw BC03. Play different music.
+S007: draw BC03
+S008: draw B03 with B03B, and C_01. Play sci-prog music again.
+S009: draw B03 with B03C.
+S010: draw B03 with B03C and C_01.
+S011: draw BC08. Play battle music.
+S012: draw B03 with C_01. Play sci-prog.
+S013: draw BC07
+S014: draw BC07
+S015: draw B03. Play sci-prog.
+S016: draw B03 with C_01.
+S017: draw B06. Play city music.
+S018: draw B06. Play city music again.
+S019: draw B09 with B09B.
+S020: draw B09 with C_17. Play simple, melancholy music.
+
+---------------------------------------------------------------------
+Bytecode
+========
+
+Code 02 xx executes a hardcoded sequence, as follows. If it's possible to
+find these in the exe, they should be put into CALLS; otherwise, each
+sequence has to be written out in during script decompilation.
+
+S003: [02 01] draw BC01, and play an action theme.
+      [02 02 07 0B] flashes the screen twice...
+      [02 3A] clearallbutbkg
+S008: [02 03] draw BC03.
+      [02 04] draw BC04, play silly music.
+      [02 05] draw BC05.
+      [02 3B] remove the overlays, show again B03, B03B and C_01.
+      [02 06] white out for a bit, flash once, black out the view.
+      [02 07] black out?
+S010: [02 08] draw image BC06.
+      [02 09] redraw B03, B03C and C_01.
+S011: [02 0A] black out
+      [02 0B] draw B03.
+S015: [02 10] draw C_01.
+      [02 0C] draw BC12.
+S016: [02 0F] draw BC13.
+S017: [02 0D] draw C_12.
+      [02 0E] clearallbutbkg
+S020: [02 11] clearallbutbkg
+S021: [02 12] draw BC47.

@@ -1,0 +1,70 @@
+// Tenshitachi no Gogo ~ Tenkousei / Transfer Student PC-98
+// Main menu and game definitions
+
+sys.settitle "Tenshitachi no Gogo - Tenkousei"
+$s1 := "Hayato"
+$s1 := "隼人"
+
+viewport.setparams viewport:1 parent:0, ratiox = 16, ratioy = 10
+viewport.setparams viewport:2 parent:1, locx 0 locy 0 sizex 32768 sizey 32768
+
+viewport.setdefault 2 // all game graphics will go in viewport 2
+viewport.setbkgindex viewport:1 index 0
+viewport.setbkgindex viewport:2 index 1
+
+#gfx.show slot 0 TENK11
+
+// Textbox setup
+tbox.setnumboxes 5
+choice.setpartbox 3
+choice.setchoicebox 3
+choice.sethighlightbox 4
+choice.columns 1
+
+// 2: Dialogue title box
+tbox.setparam 2 minrows 1
+tbox.setparam 2 maxrows 1
+tbox.setparam 2 mincols 8
+tbox.setparam 2 lx 4800
+tbox.setparam 2 ly 25000
+tbox.setparam 2 margintop 256
+tbox.setparam 2 marginbottom 256
+tbox.setparam 2 marginleft 512
+tbox.setparam 2 marginright 512
+tbox.setparam 2 snaptobox 1
+
+// 3: Choice box
+tbox.setparam 3 maxrows 10
+tbox.setparam 3 mincols 6
+tbox.setparam 3 lx 640
+tbox.setparam 3 ly 18000
+tbox.setparam 3 ay 6400
+tbox.setparam 3 margintop 768
+tbox.setparam 3 marginbottom 768
+
+tbox.setparam 3 basecolor 0x8BCF
+tbox.setparam 3 basefill 0
+tbox.settexture 3 XFERBOX2 type stretched
+tbox.setparam 3 texleftedge 13
+tbox.setparam 3 texrightedge 13
+tbox.setparam 3 textopedge 14
+tbox.setparam 3 texbottomedge 13
+tbox.setparam 3 bevel 0
+
+
+// ===== Title screen =====
+gfx.show ."0001_A" bkg
+gfx.transition 9
+sleep
+waitkey
+gfx.clearall
+
+// Intro
+// runscript INTRO
+
+// Start the game
+#sys.allowsaves
+call TEN_S003.
+
+// ===== Quit Game =====
+sys.quit

@@ -1,0 +1,499 @@
+User Interactions
+=================
+In general:
+- Reading text, press enter or click
+- Textual choice selection, select with cursor keys and enter or click
+- Imagemap choice selection, point & click or select with cursors and enter
+- Mouseover such imagemap areas, or move between them with cursors
+- Meta-interaction through modal pop-up menu, right-click or press esc.
+  If an interrupt event has been defined, generate that instead of the
+  metamenu.
+
+=============================
+While PAUSED:
+- Script fibers do not execute, events do not trigger
+- Animations, effects and timer do not run
+- Sound processing is paused
+- Input is ignored except for unpause and shift-pause; and Quit and
+  fullscreen switch commands which are always handled; and other debug
+  commands like invoking the debug/gamelog console
+- Metamenu cannot be invoked
+
+==============================
+While the METAMENU has been invoked:
+- On entry:
+   + If textboxes are hidden, they are made visible
+   + Script fibers and events are pushed and cleared
+   + The existing animations, boxes, and effects are pushed and frozen
+   + The pushed stuff all together forms an instant save state
+   + Spawn a METAMENU script fiber
+- On exit:
+   + Pop everything from the instant save state
+- Script fibers, events, animations, effects run normally
+- Textboxes cannot be hidden
+
+- Cursor keys and enter works as normal, ESC dismisses the metamenu,
+  other keyboard shortcuts do nothing
+- Gamepad direction buttons change selection, select button selects current
+  selection, cancel and start buttons dismiss the metamenu as above
+- Mouseovers on box change selections, left-click on selection selects it,
+  left-click anywhere outside the box or right-click anywhere dismisses the
+  metamenu as above
+
+- Metamenu may call saveload and settings scripts
+
+=============================
+While no special menu or thing is up:
+- Script fibers and events run normally
+   + A triggered event may close a choicebox if one exists
+- Animations and effects run normally
+- Saveload and settings scripts can be called directly by shortcuts
+
+Keyboard:
+- If textboxes are hidden, then Enter makes them visible
+- If textboxes are visible and any are displayed, Ctrl-H hides them
+- If the topmost interactive box has choices
+   + Cursor keys change selection in box
+   + Enter selects current selection in box; goes to the next choice level if
+     defined, or else jumps to the script place of the choice; clears the
+     textbox's interactiveness flag
+   + ESC cancels toward the box's top choice level, or if already on the top
+     level then pass the ESC to the next check
+- If the topmost interactive box has no choices
+   + Cursor keys are passed to the next check
+   + Enter pokes the box, clearing the interactiveness flag
+   + ESC is passed to the next check
+- If mouseoverables are defined
+   + Cursor keys move highlight between mouseover areas
+   + Enter selects the currently highlighted area; if none is highlighted,
+     pass it to the next check
+   + ESC is passed to the next check
+- If mouseoverables are not defined either...
+   + Cursor keys are ignored
+   + Enter:
+      * if interrupt is defined, invokes it
+      * else ignored
+   + ESC:
+      * if esc-interrupt is defined, invokes it
+      * else summons the metamenu
+
+Mouse:
+- Mouse movement:
+   + If textboxes are visible and the topmost interactive box has choices,
+     and the mouse is over a choice, then highlight it
+   + Also, if mouseoverables are defined, and the mouse is no longer over one
+     or more, then trigger mouseoff events; if it is over new mouseoverables,
+     then trigger mouseon events
+- Left-click:
+   + If textboxes are hidden, then make them visible
+   + Else if the topmost interactive box has choices, and the mouse is over
+     a choice, then select the choice
+   + Else if the topmost interactive box has no choices, and the mouse is
+     over the box, then do the same as Enter
+   + Else if mouseoverables are defined, and the mouse is currently on one or
+     more, then trigger them
+   + Else if the topmost interactive box has no choices, then do the same
+     as Enter
+   + Else if interrupt is defined, invokes it
+- Right-click:
+   + If textboxes are visible and the topmost interactive box has choices
+     and it's not already on the top choice level, then cancels toward the
+     box's top choice level
+   + Else if textboxes are visible and the mouse is over any displayed box,
+     then hides the textboxes
+   + Else if esc-interrupt is defined, invokes it
+   + Else summons the metamenu
+
+Gamepad:
+- Start button: pause and unpause the game
+- If textboxes are hidden, then confirm/hide/cancel button makes them visible
+- If textboxes are visible and any boxes are displayed, then hide button
+  hides the textboxes
+- If the topmost interactive box has choices
+   + Direction buttons and left stick change selection in box
+   + Confirm button selects current selection in box like Enter
+   + Cancel button cancels toward the box's top choice level, or if already
+     on the top level, then pass the cancel button to the next check
+- If the topmost interactive box has no choices
+   + Direction buttons and left stick are passed to the next check
+   + Confirm button works like Enter
+   + Cancel button is passed to the next check
+- If mouseoverables are defined
+   + Direction buttons and left stick move highlight between mouseover areas
+   + Confirm button selects the currently highlighted area; if none is
+     highlighted, pass it to the next check
+   + Cancel button is passed to the next check
+- If mouseoverables are not defined either...
+   + Direction buttons and left stick are ignored
+   + Confirm/cancel button: if interrupt is defined, invokes it
+   + Menu button:
+      * if esc-interrupt is defined, invokes it
+      * else summons the metamenu
+
+  it's bad to have mousables during a choicebox since it won't be
+  accessible through the keyboard or gamepad
+
+==================
+Pausestate
+0 PAUSESTATE_NORMAL: unpaused
+1 PAUSESTATE_SINGLE: single-stepping
+2 PAUSESTATE_PAUSED: paused
+
+Locstate
+0 LOCSTATE_NORMAL: not in special screen, metamenu etc can be summoned
+1 LOCSTATE_SPECIAL: in a special screen
+
+Fiberstate
+0 FIBERSTATE_NORMAL: executing script code
+1 FIBERSTATE_WAITBOX: waiting until the box being waited for no longer has
+  the interactiveness flag set; or -1 for all boxes
+2 FIBERSTATE_WAITSLEEP: waiting for all sleep fx to end
+3 FIBERSTATE_WAITFX: waiting for all timed fx to end
+
+===================
+do timers
+- calculate tickcount
+- if PAUSESTATE_SINGLE, then pause the game here
+- if PAUSESTATE_PAUSED, override tickcount = 0
+- process timer events, trigger as necessary
+
+do SDL_events
+- handle: pause, shift-pause, fullscreen switch, quit request
+   + if shift-pause, then unpause and override tickcount = resttime,
+     also if a mouse button is held down then post its click message
+- if PAUSESTATE_PAUSED then flush other input events, otherwise:
+   + track mouse coords from mouse motion events
+   + trigger mouseovers
+   + trigger click events
+   + handle other user input
+
+scriptahead (for all fibers from 0 to highest)
+- if PAUSESTATE_PAUSED, exit immediately
+- if PAUSESTATE_SINGLE, do 1 step
+- if PAUSESTATE_NORMAL, do up to 9999 steps
+- keep doing steps as long as FIBERSTATE_NORMAL
+
+renderer
+- build refresh rects from gobs being drawn/removed, also update animations
+- if tickcount > 0 then
+   + effector
+   + textboxer
+- render refresh rects
+
+=======================
+PAUSE: User may pause/unpause at any time by pressing the pause button
+- Change window title to say "paused", otherwise no visual effect
+- While paused, override tickcount with 0 all the time
+- No events are triggered, timers or mouseovers or anything
+- Renderer is not called (or if must be, then with tickcount 0)
+- The metamenu cannot be summoned
+
+SINGLE-STEP: Pressing shift-pause
+- Unpauses the game and sets it to single-step mode instead
+- Runs a single script command, then a single round of mouseovers etc and the
+  renderer, overriding the tickcount with resttime. During the user input
+  processing it would need to specifically check if a mouse button is being
+  held down, and if so, treat that as a click issued during the single step.
+- At the end of the main loop the game is re-paused
+
+METAMENU: User may summon the metamenu by pressing ESC or right-clicking
+- This works at any time except if the game is PAUSED or a METAMENU exists.
+- Jump to the metamenu script, which must push the current textbox state, and
+  sets up its own box
+- Renderer keeps being called, tickcount is not overridden
+- Events are not triggered, timers or mouseovers or anything
+
+Metamenu content:
+Save (Ctrl-S)
+Load (Ctrl-L)
+Transcript (Ctrl-T)
+Skip seen messages (Ctrl-A)
+Fullscreen (Alt-Enter)
+Viewframe (Ctrl-F)
+- - - - - - - -
+Settings
+Return to title
+Quit (Ctrl-Q)
+
+Save:
+Right-click menu, ctrl-S, runscript SAVELOAD
+All have the same effect, running script SAVELOAD.
+Disabled entirely when within the SAVELOAD script.
+
+Load:
+Right-click menu, ctrl-L, runscript SAVELOAD
+All have the same effect, running script SAVELOAD.
+Disabled entirely when within the SAVELOAD script.
+
+Transcript:
+Right-click menu, ctrl-T
+
+Debug console:
+Ctrl-D only.
+
+Skip seen messages:
+Right-click menu, ctrl-A
+Disabled when within SAVELOAD or mainscript. Automatically turned off upon
+a left-click, right-click, esc, enter, entering game states 2..4, or upon
+printing an unseen message.
+
+Fullscreen:
+Right-click menu, alt-enter
+Menu has a tick next to option if in fullscreen mode.
+
+Viewframe:
+Right-click menu
+Menu has a tick next to option if in viewframe mode.
+Removed from menu if frame stuff hasn't been fully defined.
+
+Settings:
+Right-click menu
+Opens a modal settings dialog, freezing the game until dialog closes.
+
+Return to title:
+Right-click menu
+Confirm returning to title.
+Disabled if in mainscript.
+
+Quit:
+Right-click menu, ctrl-Q, alt-F4, close window button, sys.quit command
+Confirm quitting, unless in mainscript or sys.quit issued
+
+Mouse functionality:
+In case mouseover areas have been defined, moving the mouse on or off such
+areas will generate mouseover events for the script.
+
+Left-clicking a defined mouseover area generates a mouseover clicked event.
+Left-clicking while textboxes have been temporarily removed will bring them
+back in. Otherwise, left-clicking while an interrupt callback has been
+defined will generate an interrupt event. Left-clicking while waiting for an
+anykeypress clears the waitkey. If choices are up, left-clicking on a choice
+selects it.
+Otherwise a left-click does nothing.
+
+Right-click and ESC are equivalent. Right-clicking while an interrupt
+callback has been defined will generate an interrupt event. If a verb has
+been selected and subjects are up, right-clicking anywhere or pressing ESC
+cancels the selection and goes back to verb choices. Right-clicking on the
+area of textbox 1 while the textbox's style has a non-void background will
+make all textboxes temporarily pop out. Right-clicking anywhere while
+textboxes have been temporarily removed will bring them back in.
+Otherwise, a right-click will spawn the popup menu.
+
+================
+Settings dialog:
+
+Window size:
+- radio buttons auto, custom
+- 2 edit boxes, X and Y, only take numbers, default current windowsize,
+disabled if radio button auto selected.
+Fullscreen resolution:
+- radio buttons auto, custom
+- 2 edit boxes, X and Y, only take numbers, default current fullsize,
+disabled if radio button auto selected
+Font selection:
+- 2 static texts, Latin font: fontname and Japanese font: fontname
+- 2 buttons with text Change, open a standard font dialog
+Audio settings:
+- checkboxes music, sound
+- trackbars for volume control
+Censorship level:
+- radio buttons?
+
+=========
+Textboxes
+
+- All text is in UTF-8
+- Lots of boxes can be visible at once; any can be flagged interactive, and
+  then user interaction goes to the topmost actively interactive box.
+- Boxes have an autohide flag; clearing the box's contents sets it to
+  despawning; boxes without the flag do not despawn unless explicitly
+  instructed to.
+- Any fiber can print into any box. The box is automatically set to spawning
+  state.
+- Choice definitions are fiber-specific; when choice.go is invoked, that
+  fiber prints choices into a specified or default box, marks that box as
+  actively interactive, then goes into WAITBOX state for this specific box
+- When a choice is made, the appropriate global variable is set, and the
+  engine sets all WAITBOX fibers waiting for this box to RUNNING; if the
+  choice box was the last or only interactive box, then -1 is used for the
+  box number so fibers waiting for all boxes will also resume.
+- When a choice is cancelled by another fiber, that fiber should set the
+  relevant global variable so the choice-expecting thread can react correctly
+  to the cancellation.
+
+Choices:
+Each choice must have one or more strings separated by semi-colons to use as
+the display text of the choice. The choices may have one or more labels
+separated by semi-colons associated, if a direct jump/call is desired. The
+label names can contain variable references. The choices may also have one
+tracking variable associated, whose 0-based value determines how-manieth
+label to go to.
+
+choice.add -var m -choice "Look; Bunny" -label "lookbun1; lookbun2"
+
+$m := (choice.get -box n)
+When the user makes a choice, the 0-based index is placed into the requested
+variable, and execution continues. If cancelled, returns -1.
+
+choice.jump -box n
+choice.call -box n
+When the user makes a choice, this jumps to or calls the associated label. If
+multiple labels are associated, uses the tracking variable to select which to
+use. If the variable is not a number or doesn't exist, or the indicated label
+index doesn't exist, or the label doesn't exist, throws an error and
+continues execution without jumping. If cancelled, also continues execution
+without jumping.
+
+- Escape codes can be used to set font color, weight, and aura; an aura has
+  a color, a radius (for each pixel of the drawn font, a blob of this size is
+  placed), an x and y offset (the blob is shifted by this amount in 32k x/y),
+  and a blur color (the further from a blob's center, the closer the
+  resulting aura color is to the blur color)
+   + the font color, aura color and blur color can be flat or 4-corner
+     gradients, all with alpha
+   + in case of overlapping blob pixels, the pixel with the higher alpha is
+     used
+   + if the font is anti-aliased, any font pixel not fully opaque causes the
+     blob placed there to get an appropriate alpha multiplier
+   + the aura or drop shadow does not affect the calculated font height, so
+     an appropriate leading value per line must be used
+   + all the font and aura characteristics have default values per text cell
+   + multiple auras should be possible, so you can combine a font outline
+     with a drop shadow...
+- A UI size multiplier is available to improve the user experience; it only
+  really needs to multiply all font sizes
+- Font antialiasing should possibly be an option (as a size threshold)
+- A box can contain text and graphics and a highlighted area
+- The text can be plain, dialogue titles, choices, selections
+- Anything printed through the print command gets transcribed in the game log
+  unless -noscribe is added
+- Dialogue titles can be printed via a special title call that prints the
+  same string $title into one or more boxes; depending on viewframe mode, one
+  of those boxes may be disabled so it won't show, but the string will still
+  be correctly displayed in both modes; the "title x" command will be saved
+  as "let $title = x; call special.title"
+
+(1x1 text table)
++---------------+
+| I blinked.    |
++---------------+
+
+(2x1 text table, 1st dyna-x full-y, 2nd full-x full-y)
++---------------+
+| Bob  Huh? Why |
+|      would I? |
++---------------+
+
+(1x2 text table, 1st full-x dyna-y, 2nd full-x full-y)
++---------------+  +---------------+  +---------------+
+| Bob           |  | Bob           |  |   Bob         |
+| Huh? What the |  |  Huh? Whyever |  | Huh? Like, is |
+| heck is that? |  |  shouldn't I? |  | it all wrong? |
++---------------+  +---------------+  +---------------+
+
+(the title box uses aligntobox)
+  +-----+
+  | Bob |
++-+-----+-------+
+| Huh? Whatevs. |
++---------------+
+
+Dialogue title in a separate field in the same box:
+   ,---, 
++-' Bob '-------+
+| Huh? Who, me? |
++---------------+
+
+
+- inviewport
+- aligntobox (0 = only to viewport; can only align to boxes below own)
+- alignpoint (align target's top left = 0, clockwise to 7, 8 center)
+- anchorpoint (my top left = 0, clockwise to 7, 8 center)
+- locx, locy (32k in viewport-scale, anchorpoint loc from align point)
+
+- fontheight (32k in viewport-scale)
+- fontheightp (pixel from above, with UI size multiplier)
+
+- Possible pieces:
+   + Text area (fixed or dynamically sized within min/max bounds, calculated
+     from the font size and contained text)
+   + 
+
+
+- Build a complete RGBA bitmap that is quickly renderable; composed of:
+   + Box graphic
+   + Rendered text
+
+- Box graphic may be:
+   + run-time generated (fast, for resizing graphic every frame)
+   + scaled PNG
+
+Most games in framed mode have a box of 512x64. 16px font, no linespacing.
+Twilight has 496x64. It has a 16px font, with no linespacing.
+Marilyn has 500x100.
+Mayclub is 600x80. It has a 16px font, with 4 pixels extra linespacing.
+Nocturne is 512x80. It has a 16px font, with 4 pixels extra linespacing.
+Eve is 416x57. It has a 16px font, with 3 pixels extra linespacing.
+Angelscollection 2 has 544x64.
+Angelscollection 1 has 592x48. (add a decomp hack to extend height to 64?)
+
+Sakura has viewarea at 80,16; size 480x296. Textbox at 64,328; size 512x64.
+Viewarea 8192,2621; size 49152x48497. Textbox 6554,53740; size 52429x10486.
+
+Box usage:
+The text is kept in TBox[].txta, a dynamic array. The length of the text in
+bytes is in TBox[].txtlength.
+Status is in TBox[].status:
+0 - do not show box; if it is presently visible, remove it from screen
+1 - show box; if it is not presently visible, blit box on screen
+2 - pop in in progress (or, box is already there, but needs redrawing once)
+3 - pop out in progress
+
+BuildBoxBase - Generates the box's base graphic according to its style, and
+puts it in baseimage^.
+
+RenderBox - If the box is at its intended size, draws the box's text on top
+of baseimage^, puts the result in render^. If the box is at less than
+intended size, puts a textless quiki-scaled copy of baseimage^ into render^.
+
+RemoveBox - Blits bkg^ over the box in the outputbuffy^, bkgvalid := FALSE
+
+BlitBox - Copies the textbox's space in outputbuffy^ into bkg^, sets
+bkgvalid := TRUE, then blits render^ into outputbuffy^
+
+Per frame operation:
+- Blitting must be done from 0 to high. Removals from high to 0.
+- If using FXbuffy, don't bother storing the background, since the whole
+  screen is reblitted each frame. Just blit all visible boxes every frame.
+- Whenever a transition is initiated, remove and minimise all textboxes.
+  Once the transition is over, any new text will make the box pop in nicely.
+- Otherwise any little thing can invalidate all textboxes, just to be sure.
+
+==================
+Saving and loading
+
+- Both on same screen, 10 slot buttons, save button and load button
+- Allow only when gamestate is waiting for keypress or user choices
+- sys.allowsaves/allownosaves
+- While on saveload screen, make sure effector suspends all effects except
+  transitions, and make right-click/esc quit the screen
+- Push fxbuffyrefcount, set to 0
+- RunScript SAVELOAD
+   + gfx.pushgobstate : Push current gob state somewhere safe
+   + gfx.stopanims
+   + gfx.screenshotbkg : Clear textboxes from the screen, copy the contents
+     of outputbuffy^ into a new gcache item, attach it to background gob 0
+   + gfx.darkenbkg : Alter every pixel of the background gob to be the
+     average of its color and its greyscale value shr 1
+   + gfx.clearallbutbkg
+   + draw all saveload screen elements as gobs, set up mouseover events
+   + gfx.transition crossfade
+   + @exitsaveload: gfx.popgobstate
+   + gfx.transition crossfade
+
+- When a game is loaded, if the current script is SAVELOAD, then the script
+  is automatically popped off and execution continues in the script from
+  where SAVELOAD was called
+- Also upon loading all events whose owner was the SAVELOAD script will be
+  wiped out, so the saving interface mouseovers and such won't haunt us

@@ -1,0 +1,377 @@
+// Winterquest //
+#############################
+// This is a parser validation script, which deliberately contains
+// errors so the parser's limits can be tested.
+// See doc\notation.txt for the syntax reference.
+
+# -------------------------------------------------------------------
+# Label parsing
+# The longest allowed label is 31 characters. The second below should fail.
+@mysuperlongStartLabelOfDoomBoom:
+@mysuperlongStartLabelOfDoomBoom!:
+
+# The same label can't be used multiple times in the same script.
+@mysuperlongStartLabelOfDoomBoom:
+
+# Labels must end in a colon on the same line.
+@mylittlepony
+
+# Labels can have any characters, except control characters.
+@yeehaa@jeejee@durrr//#//d0ink !:
+@happylabel:
+
+# A script-defined label cannot be empty. An empty label is implicitly
+# already present at the top of the script.
+@:
+
+# -------------------------------------------------------------------
+@ String parsing:
+# Ministrings without quotes are saved directly in the bytecode as
+# string literals, if the context is unambiguous enough.
+# They are saved as a short string if below 256 bytes long, or as long
+# strings if equal to or higher than that.
+
+(pinballfurries)
+(huaaaaarrrggggggggggggggggggggggggggggggggggggggggggggggggggghhhSCREAMhhhuaaaaarrrggggggggggggggggggggggggggggggggggggggggggggggggggggghhhSCREAMMOREhuaaaaarrrggggggggggggggggggggggggggggggggggggggggggggggggggggghhhDRAWBREATHhuaaaaarrrgggggggggggggggggggggh)
+
+# Ministrings are read up to the first control char, whitespace, bracket, or
+# comment marker.
+(
+sausages/wurst//terminated by a double-slash comment
+)(
+xuitlopoctl#terminated by a hash comment
+)
+
+# Ministrings may contain escapes, but control chars are forbidden.
+(
+C:\\My\ Disturbing\ Documents\\"Stevadore's\ Dream"
+)
+
+# Quoted strings may use single- or double-quotes, and also escapes. Unlike
+# ministrings, these spawn implicit tbox.print commands if used outside
+# an explicit word of power context, so the below lines would appear in the
+# default textbox.
+"Wakka-wakka-wakka."
+'Moon Healing Escalation!'
+"Use the 'For\ce', \"Lube\"!"
+'Behold my "mighty" \'Air-\Quotes\''
+
+@ Dupable strings:
+# Strings can be unique or dupable. Often repeated strings should be marked
+# as dupable with a preceding tilde. These are then saved in a global string
+# table, and if the string appears again later, it can reuse the reference.
+# The question mark is used to explicitly mark the following string as
+# unique. This can be done with both quoted and ministrings.
+print ~"Boy1:\n"
+print "Poltergeists make up the primary form of spontaneous manifestation.\n"
+print ~"Boy2:\n"
+print "...\n"
+print ~"Boy1:\n"
+print "Hast thou seen my personal crisis? 'Tis collating against all odds.\n"
+print ~'Boy2:\n'
+print '...\n'
+print ~Boy1:\n
+print ?'When they go low, I get high.\n'
+print ~Boy2:\n
+print ~...\n
+
+# -------------------------------------------------------------------
+@ String fails:
+# Unquoted strings can be confused with words of power, and are an error
+# in the following contexts:
+# First element in a new statement
+disco
+
+# First element in a then/else block
+if 1 then shakeshakeshake end
+if 1 then 2 else shakeyourbooty end
+
+# First element of a new expression on a line after a wop
+print "That's the way"
+uh-huh
+print
+uh-huh
+
+# Control chars are not allowed.
+(creepy\smile)
+"beardlessdwarf"
+'purple\meteor'
+
+# Quoted strings must end on the same line.
+"Dorky McDorkFace
+'Veritable cornuplethora
+
+# -------------------------------------------------------------------
+@ Basic expressions:
+# The shunting-yard algorithm should handle these without trouble.
+1 + 2   3 + 4 * 5  6
+-7
+-8
+6-(7-8)
+8 / (6 % 4)
+8 div (6 mod 4)
+15 & 13 && 11 and 9
+1 or 2 | 4 || 8
+0x5 xor 0xF ^ 3
+1 SHL 2 == 2 << 1
+8 SHR 3 = 7 >> 2
+1+2 != 2+3
+4+5 < 6+7
+(( 128 <= 128 ))
+2+2 <> 5
+4 > -4
+13 >= 13
+
+@ Various valid variable assigns:
+$var := -1
+$var += RND 8
+$ var -= NOT(0=0)
+
+# Numbers can be variable names too, and get an implicit tostring. This does
+# mean preceding zeroes are lost, unless the number is really a string.
+$007 := 3
+$"008" := 004
+
+@ Multiple unaries:
+$$varis := ---1
+$varis := - tonumber tostring $varis
+
+# -------------------------------------------------------------------
+# Basic expression fails...
+@ Missing open bracket:
+1+2=3)
+
+@ Missing closed bracket:
+(1+2=3
+
+@ Expression-spanning brackets:
+(1+2=3 4>5)
+
+@ Repeated binary operator:
+1++2=3
+
+@ Binary operator after unary:
+1+$+bunnies=3
+
+@ Missing thing after binary:
+1+2=
+
+@ Missing thing after unary:
+1+2=-
+
+@ Assign without variable:
+2+2 := 5
+
+# -------------------------------------------------------------------
+@ Strings expressions:
+# Strings can be used in expressions too. Most operations just return the
+# first component unchanged. If either component is a string, the result will
+# be a string.
+$a := "\"buu'"
+$a += 'huu"'
+$b := $a * (1+1) + "!"
+(eight % four == eight)
+(1 div zero == "1")
+
+# String comparisons are case sensitive and done byte by byte. This also
+# allows determining which of two strings would sort before the other.
+("remarkable" > "architecture" == 1)
+
+# The tonumber and tostring unary operators may be useful.
+tostring (tonumber "555" + -500) == "55"
+
+# -------------------------------------------------------------------
+@ Words of power:
+# Simple commands with explicit parameters. Each new wop marks the end of the
+# previous one, unless the new wop is in brackets.
+fiber.yield
+inc var murmeli
+dec var rinkeli by 7
+
+# The parameter names can end in whitespace, a colon, a comma, or an
+# equals-sign. Parameters can be separated by commas or whitespace. Commas
+# are mostly equivalent to whitespace, so you are free to spam them.
+tbox.wait(time 0) box:1 noclear=0
+,,,,,,,,,,,,,,,dec,,,,,,,,,,,,,konkeli,9
+
+# Parameter names can be used as variable names.
+waitforbox time $time box $box noclear $noclear
+
+@ More words of power:
+# Dynamic parameters are fitted to the first undefined matching argument type
+# of their wop, at runtime. Dynamic parameters are only allowed on the same
+# text line as their wop; anything on the next line will be considered a new
+# expression instead of a parameter value. You can list as many dynamic
+# parameters as you can fit on a line, but once the wop's parameters are full
+# at runtime, the remaining parameters are discarded.
+inc pumpuli
+waitbox 1 2 3
+print
+"Miiister Garibaaldiii!"
+print "I got you used Vorlon socks"
+fiber.yield 1, 2, 3, 4, 5, 6, 7, 8, 9
+
+@ Even more wops:
+# All wops return a value, mostly a 0, which goes unused. But a few return
+# useful values that can be directly used as parameters, as long as the child
+# wop elements are strictly in brackets.
+
+$kappeli := (choice.get)
+gfx.setframe gob: mygob frame = (gfx.getframe gob "mygob") + 1
+
+# -------------------------------------------------------------------
+# And wop fails...
+
+@ Parameter without wop:
+time=0
+
+@ Repeated named parameters:
+tbox.wait time=0 time=5 box=1 box=$wut
+
+@ Parameter without value:
+tbox.wait time box=1
+
+@ Parameter not used by this wop:
+tbox.wait gamma=8
+
+@ Parameter with a switch dash:
+tbox.wait -time=4
+
+@ Child wop without brackets:
+tbox.wait time choice.get
+
+# The compiler should probably also check for missing mandatory parameters,
+# but since we've got dynamic ones, the check becomes a little fuzzy...
+# -------------------------------------------------------------------
+@ Conditional tests:
+# Then, else, and do mark the start of statement blocks that can contain
+# many statements. They each must be explicitly terminated.
+if 1 + 1 == 2 then print Nice! end
+if "true dat" then
+  'Verily!'
+else
+  "Blast!"
+end
+while $loopy != 8 do $loopy := 8 end
+while not (1 and 3) do 0 end
+
+@ More conditional tests:
+# If and while can be nested.
+if 1 then if 1 then (yes) else (hellno) end else (wellmaybe) end
+while $loopy <= 10 do
+  if $loopy == 8 then
+    (idunno)
+  end
+  (whateven)
+  $loopy += 1
+end
+
+# These reserved words should be perfectly usable as variables too.
+$if + $then + $else + $end + $while + $do
+
+# -------------------------------------------------------------------
+# There are tons of ways to mess these up...
+
+@ Too much if:
+if if 0 then 1 end
+
+@ Too much while:
+while while 0 do 1 end
+
+@ Too much then:
+if 0 then then 1 end
+
+@ Too much else:
+if 1 then 0 else else 2 end
+
+@ Too much do:
+while 1 do do 0 end
+
+@ Too much end:
+while 1 do 0 end end
+
+@ Missing then:
+if 1
+
+@ Missing do:
+while 1
+
+@ Missing while-end:
+while 1 do 2
+
+@ Missing if-end:
+if 1 then 2
+
+@ Missing else-end:
+if 1 then 2 else
+
+@ Lone then:
+then (what)
+
+@ Lone else:
+else (what)
+
+@ Lone do:
+do (what)
+
+@ Lone end:
+end (this)
+
+@ If and while:
+if 1 while 2 do 3 end
+
+@ While and if:
+while 1 if 2 then 3 end
+
+@ While and then:
+while 1 then 2 end
+
+@ While and else:
+while 1 else 2 end
+
+@ While and end:
+while 1 end
+
+@ If and do:
+if 1 do 2 end
+
+@ If and else:
+if 1 else 2 end
+
+@ If and end:
+if 1 end
+
+@ Stupid brackets:
+(if 0 then 3 end)
+
+@ Silly brackets:
+if (0 then 3) end
+
+@ Too much if expression:
+if 3 == 3 4 == 4 then (mwahaha) end
+
+@ Too much while expression:
+while (2 > 1) (3 < 4) do (mwahaha) end
+
+@ Misplaced operators:
+2 + if + 1 * then * 3 / end
+
+@ More misplaced ops:
+-if 1 + rnd then 2 tonumber else 3 not end
+
+@ Wop param and if:
+wait time=if 1 then 0 end
+
+@ Wop param and while:
+wait time=while 1 do 0 end
+
+@ Wop instead of then:
+if 1 wait then 0 end
+
+@ Wop instead of while:
+while 1 wait do 0 end
+
+@ End of tests:
+wait
+quit
+

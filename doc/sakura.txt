@@ -1,0 +1,2482 @@
+SuperSakura
+===========
+
+SuperSakura is a new engine for running classic eroge games that were
+localised for the English-speaking market:
+    * The Three Sisters' Story (by JAST)
+    * Runaway City (by Tiare)
+    * Season of the Sakura (by Tiare)
+What's more, it can also handle a number of Japanese titles. If you can get
+the files from PC-9801 games, you may be able to convert and run them:
+    * Magyokko Paradice, Twilight Boundary (Tiare)
+    * Shyuukan From H, Scent of Eden, some Angels' Eve titles... (JAST)
+    * Venus, Re-No Stayin' Alive (Parsley)
+
+RPGs are generally outside of SuperSakura's scope. They deserve their own
+engine remake. Nevertheless, some titles of interest:
+    * Super Urutoro Muttin Puripuri Cyborg Maririn DX
+    * Vanishing Point
+    * Knights of Xentar, Dragon Knight 4
+    * Cobra Mission
+
+SuperSakura uses converted game resources from the original games, and lets
+you experience the classics with far-improved visuals and a smoother engine.
+Of particular interest is the reverse dithering filter that can render a fair
+approximation of the original full-color images.
+
+The JAST Memorial Collection, while a commendable effort, falls short in
+some ways. The music was good - the cheap anti-aliasing was not.
+
+Incidentally, JAST and Tiare re-used many backgrounds. The same recognisable
+locations can be found as early as Maririn DX. There is a remake of Transfer
+Student, which was poorly localised into English, which has the best-looking
+versions. The backgrounds are all in true color, instead of in dithered
+16 colors. The color hues are subtly different, but that's nothing a little
+photoshopping won't fix. It may be a good idea to rip those graphics using
+Grapholic, and integrating them into the earlier games.
+
+-----------------------------------------------------------------------------
+  Technical notes
+-----------------------------------------------------------------------------
+
+Sakura's bytecode is not as elegant as in Runaway and 3Sis. However, the
+latter two also seem to have less flexibility regarding sprite functions,
+with apparently identical scripting engines. As far as I can tell, the
+original engine could certainly support animations in closeup images, or even
+basic FMV, they just weren't included for cost or space reasons.
+
+.............................................................................
+How SuperSakura gets rolling:
+
+- Convert the graphics into PNG files
+   * Backgrounds and overlays: 24-bit RGB
+   * Sprites and animations: 32-bit RGBA
+      + While processing, FFFFFF is transparent;
+        natively values only up to 240 appear.
+   * Also grab the animation data
+- Convert the music into MID files
+   * Build and add MoonSynth for exquisite taste
+- Convert the scripts into text files ... then into a bytecode packet.
+- All resources are packed into DAT files.
+.............................................................................
+Random prettification ideas:
+
+- Allow a scale/rotate routine for rendering sprites
+   * Rotated sprites need to be generated as new graphic resources along
+     with the appropriate animation
+   * When Shuji's kissy mother attacks, zoom in on her face!
+      + When she succeeds in her attack, zoom even closer momentarily!
+- Reel the screen elastically when whacked by something (Emi Smash!)
+   * Make the bad 3Sis ending consist of Emi pummeling you making the screen
+     reel, with pauses in between. After a final lull, finish with a sudden
+     *slash* complete with sound effect, cutting the screen in half; the
+     halves fall away...
+- Add spotlights in the 3Sis intro; highlight each part of the image as it
+  is touched by the narration; then very slowly let each spotlight fade off
+  as the text goes on.
+- The HANKO stamp in Sakura bios could be nicely half-transparent.
+   * Try making all edges of sprites have semi-transparency?
+- When Reiko teaches you to swim, make the bottom third of the screen get
+  covered in blue alpha, with geometric distortion - underwater effect!
+- Add new blinking animations in all closeup pictures with people.
+- Add a stun blur effect, horizontal blurring of n pixel width; n scales over
+  time to the desired amount
+
+- Alter the menus to use a sleek raised or sunken look, transparent glass?
+- Change the menu-driven interface into a hotspot-clicking interface?
+   * Add action icons in the interface for the VERB
+   * Assign hotspot areas on the picture for all SUBJECTS
+   * Mouse hover on a hotspot is acted on only if that particular choice
+     combo is active at the time
+   * When hovering over an active hotspot, show the VERB+SUBJECT command in
+     a text bar, SCUMM-style
+   * For abstract things, such as the THINK-command, a pop-up or dropdown
+     list of things may be needed; or, change the scripting so that clicking
+     the THINK-icon automatically keeps track of which choices have been
+     visited already, and gives the next unseen one available...
+- Adjust some parts of the game to be less demanding
+   * Runaway final puzzle (try to give better hinting at least)
+   * 3Sis wandering around school (maybe think command can suggest at where
+     you haven't been yet)
+   * Sakura wandering around looking for Ruri (-''-)
+   * Implement a clickable map where appropriate
+.............................................................................
+-----------------------------------------------------------------------------
+
+JAST/Tiare OVL files
+====================
+
+Throughout this, I use Pascal terminology for variable types. For reference:
+BYTE     : 8-bit unsigned
+SHORTINT : 8-bit signed
+WORD     : 16-bit unsigned
+INTEGER  : 16-bit signed
+DWORD    : 32-bit unsigned
+LONGINT  : 32-bit signed
+Also, unless otherwise specified, character strings are zero-terminated,
+encoded as Shift-JIS, with both single-byte and double-byte characters.
+Shift-JIS incorporates the first 128 bytes of ASCII as single-byte
+characters, so filenames are easily readable. Actual game text and selection
+verbs and subjects, however, are double-byte Shift-JIS in the PC-98 versions.
+
+Words are stored in x86-native, least significant byte first, format.
+
+There are a few engine versions. In general, the older one is what 3sis uses,
+and Sakura uses a more advanced one. Some really old titles may be even more
+primitive, though. There are still some inaccuracies and ambiguities in my
+understanding of the bytecode, but with a few carefully applied hacks,
+implementing these specifications makes the games run nearly perfectly.
+
+Header:
+=======
+
+OVL files begin with word pointers. Each marks the beginning of a new block
+in the header, and the end of the previous block. As the word pointers
+themselves are a block, the address at the first word also marks the end of
+the word pointer block. The amount and meanings of the pointers vary
+depending on the engine version.
+
+The first word in 3sis-era OVL files is $000C, so there are 6 word pointers
+in the block. The first word in Sakura OVL files is $000A, so there are
+5 word pointers in the block. Other older OVL types may begin with $0008 or
+even $0006, and they have different meanings.
+If the first word is none of these values, then most likely the OVL has no
+header at all, and is just plain script bytecode.
+
+  word 1 : pointer to an array - Choice combination results
+  word 2 : pointer to a single-item array - Bytecode script entrypoint
+  word 3 : pointer to an array - Option lists
+  word 4 : pointer to an array - Graphics list
+  remaining words : concluding pointers
+
+Here is a graphic outline of the header's layout:
++---------------------------------+
+|  Word pointers to blocks        | from 0 to value of first word
++---------------------------------+
+|  Data blocks:                   |
+|    choice combinations, option  |
+|    lists, graphics list         |
++---------------------------------+
+|  Script bytecode                | starts at offset pointed to by 2nd word
++---------------------------------+
+
+
+CHOICE COMBINATION RESULTS: first word array
+===========================
+In most OVL files, but not all, each word in the array points to the
+beginning of a variable-size choice record; each record ends where the next
+starts. However, some OVL files only point to the first choice record even
+though multiple records are present, so the decompiler needs to determine for
+itself where each record ends.
+
+If the first word array has a length of 0 words, or if the first offset is
+invalid (for example 0000 or FFFF), then there are 0 valid records, and the
+script does not offer choices to the user.
+
+To read the results correctly, start from the first record and keep reading
+up to the offset where bytecode starts.
+
+Each record consists of:
+  pointer to an ID byte followed by a verb string : word
+  pointer to an ID byte followed by a subject string : word
+  variable number attached to the choice : word
+  jump addresses : array of words
+
+The first two words must point into the header's data section. If either
+points anywhere outside the data section, it must be ignored. The verb must
+be valid, but an invalid subject pointer simply means the verb is selectable
+without need for a subject. The verb and subject texts pointed to are
+preceded by an ID number, which can probably be ignored.
+
+The jump addresses must all point into the bytecode segment, and there must
+be at least one valid address. You should allow for at least 32 jump
+addresses for each verb-subject combination. To determine how many addresses
+each record has, keep reading jump addresses until you come to the start of
+bytecode, or encounter an address that points into the header's data section
+instead of to bytecode. If an address points into the data section, but is
+not zero, it is the first pointer of the next record. If the address is zero,
+it just marks the end of that bunch of addresses.
+
+
+BYTECODE SCRIPT ENTRYPOINT: second word array
+===========================
+After dealing with the entire header, jump to this address and start
+processing the script logic. This address also marks the end of the header's
+data section.
+
+
+OPTION LISTS: third word array
+=============
+Option lists outline the verbs and subjects that are available, and the order
+in which they should appear. Commands to show or hide verbs or subjects to
+the player also use the option list indexes.
+
+Each option list is an array of words, terminating with FFFF:
+  pointer to an ID byte followed by a verb string : word
+  pointer to an ID byte followed by a subject string : array of words
+  terminating FFFF : word
+
+If a pointer to a verb or a subject has an address outside the data section
+of the header, treat it as FFFF and consider that option list concluded.
+Again, the ID byte values before strings can be ignored. The options should
+be stored in memory in the order they were defined, not by their ID values.
+
+Example from Season of the Sakura:
+
+CS101.OVL has the following third array:
+  002C, 0030, 0034, 003A.
+This means there are four verbs, each of which has 0 or more subjects.
+
+At each address we find an option list:
+  002C:  004A, FFFF
+  0030:  0051, FFFF
+  0034:  0062, 006F, FFFF
+  003A:  0068, 006F, 0079, 007F, 0087, 008F, 009F, FFFF
+This means the first two verbs have 0 subjects; the third verb has 1; and the
+fourth verb has 6 subjects.
+
+Fetching the strings resolves to:
+  AVOID
+  DEFEND YOURSELF
+  TALK --> NOBUYUKI
+  THINK --> NOBUYUKI, SELF, MOTHER, FATHER, YAMAGAMI DENKI, HIDEMI
+Now, when in the bytecode the game tells you to disable verbs 3 and 4, you
+hide TALK and THINK. And when it tells you to enable verb 4, subject 3, you
+show THINK --> MOTHER.
+
+
+GRAPHIC LIST: fourth word array
+=============
+This is a list of graphics that the script is going to use. The array points
+to records describing each graphic. If the first record points to a zero
+word, then there are no graphics.
+Each record consists of:
+  transition style : byte
+  graphic type : byte
+  file name : string
+
+The transition style byte tells which transition to use to make the image
+visible whenever it is drawn. A list of transition styles is found below.
+
+The graphic type may be:
+  $50 - a fullscreen background, but black out the screen before showing this
+  $4E - a fullscreen background
+  $42 - a fullscreen image of an older sort?
+  $38 - a sprite image that needs transparency
+  $03 - a fullscreen image that's already there?
+
+3sis-era engines draw graphics by a command that has an index number into
+this graphics list as a data byte. The list indexes are 0-based. Sakura-era
+engines, on the other hand, define the graphic's filename as a part of the
+drawing command, and do not use graphic lists.
+
+Furthermore, in 3sis-era engines, each blinking animation seems to be loaded
+automatically whenever the corresponding body is drawn - the animation has
+the sprite's name plus A0, and almost every sprite has one. If a sprite has
+two people, there could be an A1 as well, likewise automatically loaded.
+There might not be an A0 at all, in which case there is no animation.
+
+
+Deep scripts usually starts with $0008, and have the following header:
+1st word array - the addresses point to variable-length click actions. Each
+  action begins at the given address and continues until the next address.
+  Conveniently the first address of the next array is right after the last
+  action, so you can always read up to the next word address.
+2nd word array - bytecode addresses for jumping. The first address is used
+  when entering the script, and it also terminates the click actions from the
+  first array. This uses 1-based indexing.
+3rd word array - zero?
+4th word array - points to a string of bytes, possibly mapping each click
+  action to specific coordinates given in MAS files... or maybe it's a list
+  of which local variables will be used and should be zeroed out at init?
+  This array terminates at the first address of the first array.
+
+Not sure where the script-specific images are referenced, although something
+is certainly at $1DDAB in DEEP.EXE.
+Battle image names are hardcoded in MAIN.COM.
+
+If the script starts with $0006, then the first word array is skipped, and
+the first present array is actually the scripts array.
+If the script starts with $0000 (for example S40501b), skip the first word
+and read the four array pointers normally from the second word onward.
+
+The game's interface is point-and-click, and the cursor changes to indicate
+action on clickable areas. MS_CUR contains the cursors. The clickable areas
+are probably in the MAS files.
+00:00 - Pointer arrow
+00:01 - Look
+00:02 - Go
+00:03 - Talk
+00:04 - Hit (pink fist)
+00:05 - Push (smacking palm)
+00:06 - Open
+00:07 - xxx touch
+00:08 - xxx tongue
+00:09 - xxx lips
+00:10 - xxx screw?
+
+Example: S30101B.OVL is run when you select the blonde chick, then go in the
+first map square for the second time.
+
+The game will display background DB_01_01, and over that the sprite DT_01_08
+containing two characters who don't blink. It executes code at 003A, and upon
+exit, retains the screen while letting the player click different areas.
+There are two areas to 03-Talk at, and three areas to 01-Look at.
+Right-clicking brings up a menu with one option, return back to the map.
+
+1st word array @ 0008 = 0029 002C 002F 0032 0036
+2nd word array @ 0012 = 003A 00CB 029D 0342 03B1 04E3 053F 05D9
+3rd word array @ 0022 = 0000
+4th word array @ 0024 = 0102030405
+actions = 01-01:02    (look at guy, local var 1, code block 2)
+          01-02:03    (look at chick, local var 2, code block 3)
+          01-03:04    (look at bkg, local var 3, code block 4)
+          03-04:05,06 (talk to guy, local var 4, code blocks 5 then 6)
+          03-05:07,08 (talk to chick, local var 5, code blocks 7 then 8)
+
+Other DEEP stuff:
+OP_xx are the openings, and the original uses timed waits instead of waitkey.
+The character abbreviations are:
+  J for Jesus - the purple-haired magical girl from heaven
+It seems the music files played are different depending on character.
+First script sets v257, v497, v498 = 1; A, B and C are available
+First B script sets v258, v499 = 2; D becomes available
+Third script sets v259, v499 = 1; nothing new becomes available
+Fourth script sets v260, v500 = 1; E becomes available
+Fifth script sets v261, v501, v502 = 1; F and G become available
+Sixth script sets v262, v264 = 1; nothing becomes available
+Seventh script sets v262, v263, v503 = 1; H becomes available
+
+Tasogare no Kyoukai has different code or headers in two files: TA_00DG and
+OP_M2. For details, see Twilight\tasogare.txt.
+
+For Maririn DX engine oddities, see MARIRIN.TXT.
+
+
+SCRIPT BYTECODE:
+================
+The original engine appears to keep a stack of scripts, allowing jumping to
+a new script, and later returning back to the previous one in the same state
+it was left. Probably best implement a script tracker that remembers local
+variables, choice strings and visibility, and script execution offset; but
+graphics need not be remembered.
+
+At the initialisation of a new script, do the following:
+- All local variables 0..255 must be zeroed out. (For more on variables, and
+  an example on choice jumps, see after the bytecode list.)
+- All freshly defined choice verbs and subjects must also be set to be
+  visible by default. Hiding or showing a verb does not change the visibility
+  state of the subjects it contains, although obviously any subjects under
+  a hidden verb will be inaccessible.
+- 3sis-era engines automatically clear all graphics from the screen and draw
+  and transition in the first item on the script's graphics list, which is
+  usually a background picture.
+
+The script itself is a series of command bytes, each followed by 0 or more
+data bytes. The various engine versions have a number of differences in their
+command codes, but some codes also remain constant throughout.
+
+Bytecode list:
+==============
+  00 [00]
+  All
+End of bytecode section. A few different things can happen here:
+- If anything has been printed, wait for a keypress before anything else.
+- If choice verbs have been defined, display those to the user and keep going
+from wherever the choice leads.
+- If verbs have not been defined, return execution to the previous script, to
+the offset just past the most recent runscript command. You must also restore
+the local variables of that previous script, as well as its choice
+definitions if any, and possibly also the return offsets for 03 jump calls.
+
+Since choices are always defined in the header (except in Tasogare), you
+could treat 00 commands in choice-containing scripts as an explicit "display
+choices" command, while in choiceless scripts it has to be a "pop script".
+
+This bytecode often shows up as a pair 00 00, in which case just ignore the
+second 00. In fact, keep skipping until a non-00 byte is encountered. Also,
+if 00 is the last command of the script, and it was preceded by a runscript
+command, you can pretty safely omit the 00 command. Likewise, if 00 is ever
+preceded by an 03 return or an 0B-36 unconditional jump, you may as well omit
+the 00.
+
+  01
+  All
+Wait for a keypress, then clear the textbox.
+In Sakura, no graphics are actually displayed until a transition command is
+encountered. For consistency, you may want to apply the same rule to 3sis,
+and add an implicit transition right before the first waitkey after any
+graphics loading commands, rather than transitioning immediately upon the
+load command.
+
+  02 xx
+  Tenshitachi no Gogo Collection 1, Tenkousei, Snowcat
+Jump to script xx. Scripts have a game-specific name with a number appended.
+
+  02 xx
+  Maririn
+Execute hardcoded command sequence number xx. See MARIRIN.TXT for details.
+
+  02 xx
+  Deep
+Unknown... perhaps unlock movement board squares, or go to h01_xx?
+[E02j] 02-01 close to end of script
+[H01_01] 02-02 just before last exit
+[H01_02] 02-03
+
+  02 xx yy zz
+  Tasogare
+Enters the first-person view dungeon. xx = dungeon file to use (MAP1.DAT or
+MAP2.DAT), yy and zz are entry coordinates with values ranging 1..100.
+yy = y coordinate, zz = x coordinate.
+For more on the dungeon, see Twilight\tasogare.txt.
+
+  03
+  Sakura
+Return from jump command within the same script; set script execution back to
+right after the last place jumped from. Jump/returns must stack a few times.
+Only ever used after 0B-39 case jump.
+Used in: CS502, CS507_1, CSC01_A, CSC01_C, CSC01_F
+
+For compatibility with the other games, it might be best to treat 0B-39 as
+a script call rather than a goto. Then 03 can be a script pop in Sakura too.
+0B-39 is used in CS501_1 and CSC01_B in addition to the above. This hack will
+work correctly in all those script, as long as the choices inited in that
+script are preserved.
+
+  03
+  Deep, Hohoemi, Vanish
+Probably an explicit pop script. Used a lot, sometimes in inaccessible code.
+
+  03
+  Tasogare
+Exit to the previous script, or immediate return to the previous game mode -
+either the clickable map or the dungeon. The engine needs to see if there's
+anything printed in the textbox, in which case wait for a keypress before
+delving further.
+
+  04 string
+  3sis, Eden, FromH, Magic, Runaway, Sakura, Tasogare
+Go to a new script, name follows the code as a zero-terminated string.
+
+  04 xx yy zz
+  Deep
+Probably jump to script xx yy zz?
+
+  05 xx
+  Maririn
+Unknown...
+
+  05 xx yy
+  Deep
+If yy = 0, then run the script "Exx".
+If yy = 1, then run a character-specific script "Exx_", where presumably the
+last letter is either a global variable or hardcoded. Can be J, K, M or S.
+
+  05 string
+  Hohoemi, Parfait
+Run a new script probably, zero-terminated name follows the code.
+
+  05 string
+  Tasogare
+Run a new script, zero-terminated name follows the code. Only used in
+TA_00DG. This seems to indicate to remain in the dungeon view, while
+a regular runscript switches back to the VN interface...
+
+  06 xx
+  Eden, FromH, Magic, Sakura
+Play song number xx, 1-based indexing, or stop playing if xx = 0 or FF.
+
+  06 xx
+  3sis, Runaway, Snowcat, Tenshitachi Collection 1, Tenshitachi Collection 2,
+  Tenkousei, Vanish
+Draw a graphic from the graphics array, index xx. Implicitly draw all its
+existing animations as well. The new graphics are transitioned in immediately
+using the transition number listed for the loaded graphic in the graphics
+array.
+
+Special note: This command has an implicit delayed function. Upon the next
+graphic loading command, 06-xx or 11-02-xx, all sprites should be cleared
+automatically to make room for the new ones.
+
+  06 xx yy
+  Parfait
+Unknown...
+
+  07 xx
+  3sis, Deep, Runaway, Snowcat, Tenshitachi Collection 1
+Play song number xx. Most games have all songs named with a game-specific
+prefix followed by a number. However, in Snowcat the files are not numbered.
+Look in SETU.EXE at address $1466F. The 22 zero-terminated strings found
+there are the songs in the right order.
+If song number is FF, the music fades out.
+
+  07 xx
+  Maririn
+Unknown...
+
+  07 xx
+  FromH, Tasogare
+Prints the value of variable xx.
+
+  08
+  Hohoemi, Magic, Sakura
+Pause in text output until a key is pressed, do not clear the textbox.
+
+  08 xx
+  Deep
+Probably starts a fight against opponent xx.
+xx = 01: generic security guy
+xx = 02: airplane stewardess who kills you dead
+
+  08 xx
+  Snowcat, Tenkousei, Vanish
+Sound effect number xx.
+Tenkousei:
+00 - echoed hi-hat hit
+01 - snare-like bash, stereotypical 8-bit sound for hitting something.
+02 - echoed snare-like bash
+03 - soft snare with comedic "squeeze-squeeze" sound
+Snowcat:
+01 - a feline FM moan
+02 - echoed melodic bass ka-POW
+03 - snare-like bash
+04 - plink! not used
+Vanish:
+00..0F - a variety of sounds, but Anex86 doesn't like the game
+
+  09
+  3sis
+Pause in text output until a key is pressed.
+
+  09
+  Eden
+Single-byte command in the middle of a dialogue title, no discernible effect.
+Ignore it, probably a typo or something.
+
+  09 xx
+  Hohoemi, Magic, Parfait
+Sleep for xx desiseconds, interruptable. In Magic, used to show lyrics for
+a song halfway through the game.
+
+  09 xx
+  Deep
+Unknown, but probably sleep for xx desisecs too.
+
+  09 string
+  FromH
+Very strange, only appears in MT_012. Each is followed by a bunch of
+single-byte ascii symbols, not terminated with zeroes. The occurrences are:
+[09-"B_O" 09-"B_FADE" 09 09-";BLACK"]
+
+  09 xx yy zz
+  Tenkousei
+Jump to script number zzyy. Xx seems to be always zero. This highly redundant
+command is a stopgap measure used only in this engine, since some script
+numbers go above 255, even though the total amount of scripts is below 200.
+
+  0A
+  All
+Print a linebreak in the textbox.
+
+  0B xx ...
+  All
+These are various function calls dealing with local variables and jumps. In
+most games the variables and direct values are all 8-bit.
+In Parfait, and probably other Windows-based games, they are 16-bit.
+
+xx = 01: increase var yy by shortint(zz)
+xx = 02: increase var yy by var zz
+xx = 03: decrease var yy by var zz
+xx = 04: let var yy := var zz
+xx = 05: let var yy := byte(zz)
+xx = 06: let var yy := var zz - var aa
+xx = 07: let var yy := var zz - value aa
+xx = 08: let var yy := var zz AND var aa
+xx = 09: let var yy := var zz OR var aa
+xx = 0A: if var yy = 0, then carry out command 00 00
+xx = 0B: followed by a byte yy, and then yy more bytes.
+         let var zz = var[zz] AND var[aa] AND var[bb] AND ...
+xx = 0C: followed by a byte yy, and then yy more bytes.
+         let var zz = var[zz] OR var[aa] OR var[bb] OR ...
+xx = 14: let var yy = random number from 0 to (zz - 1)
+xx = 15: play song number [var yy], zero-based indexing
+xx = 1D: unknown... seems to do something to vars 30..34? Check which endings
+         have been completed? There are 5 endings in Parfait...
+MS_MAK6.OVL: [0B 1D 0000 001E 0045]
+TITLE.OVL:   [0B 1D 0000 0000 03E7] <-- not valid goto within title.ovl
+             [0B 1D 0000 001E 0045] <-- same
+
+xx = 32: if var yy > 0, jump to @zzaa
+xx = 33: if var yy = 0, jump to @zzaa
+xx = 34: if var yy < 0, jump to @zzaa
+xx = 35: if var yy <> 0, jump to @zzaa
+xx = 36: unconditional jump to @yyzz
+
+xx = 37: Starting from @aazz is a series of word addresses. Jump to
+         the one enumerated by index [var yy].
+         The number of addresses is not given; bytecode may just
+         continue without any ending marker. One of the indexes often
+         points to the first byte after the word array, but not
+         always. Sometimes the first bytecode word after the end of
+         the array will point outside the valid bytecode area, but
+         this is not reliable.
+         Try this: Stick all jump offsets used in the script into
+         a table. Since jump targets must be valid code, you can stop
+         parsing the array once you reach any such offset; or an
+         address outside the valid code area, which also must be
+         bytecode instead of an address. Hack remaining errors.
+xx = 38: possibly, unconditional jump to @yyzz...
+xx = 39: from zz on read an array of addresses terminated by $FFFF. Jump to
+         the address enumerated by value of var yy; when you encounter the
+         exit code 00, or return 03, jump back to the end of this array.
+         It's a case statement. This could even be handled by parsing from
+         the jump address until an 00 or 03, and inserting that into an
+         IF-block right inside the case statement.
+xx = 46: there will be zz word addresses immediately after zz.
+         The addresses after zz each point to a verb string,
+         preceded by a byte ID, terminated by a zero byte. Pop up an
+         immediate choice box with the given strings, and stick the
+         result in var yy.
+xx = 47: @bbaa and on are addresses, pointing to byte IDs followed
+         by zero-terminated strings. There are zz addresses. Store
+         the result, whatever it is, into var yy.
+xx = 49: another multiple choice command. Result goes in var yy. There are zz
+         word addresses pointing to choice strings. Aa and bb are also
+         variables. Bb seems to be a bitflag, where if a choice's bit
+         (counting from lowest) is set, then the option is displayed. Aa is
+         always set to zero before calling this command, and is never
+         referenced afterward. Possibly aa is used for internal accounting?
+xx = 4B: starting at aazz, there are yy pairs of word addresses. The
+         first address points to a byte ID followed by an option
+         string, the second address points to a code jump. Bring up
+         a choice box with the given texts and then jump?
+         Try filling the option strings pointed to with zeroes after
+         processing the command, so the strings don't get
+         misinterpreted as code once you parse that far.
+
+  0C xx yy zz
+  All
+Global variable interaction - see further down for more on variables.
+xx = 01: local var yy = global var zz
+xx = 02: global var yy = local var zz
+xx = 03: global var yy = value zz
+
+  0D xx ...
+  Deep
+Unknown? Tends to be followed by 00-00 exit.
+[S41010b] 0D-01-01-05
+[S40505] 0D-01-02-0A
+[S40307] 0D-01-02-0A
+[H01_01] 0D-01-05-0A, 0D-01-01-06, 0D-01-02-07
+
+  0D xx ...
+  Parfait
+Seems to be a bunch of different commands.
+xx = 02: unknown, four data words?
+xx = 09: unknown, one data byte; maybe an explicit transition command?
+xx = 0A: draw an animating sprite, with following arguments:
+         filename, zero-terminated
+         one word: unknown... animation speed?
+         two words: location x/y, can be FFFF in which case don't draw it?
+         two words: frame size x/y
+         many words: sequence of frame indexes to display, FFFF terminates
+xx = 0B: unknown, no further data bytes; maybe new clearallbutbkg?
+
+EDIT.OVL:    [0D 08 02 00 08 00 EDIT 00]
+TITLE.OVL:   [0D 02 005B 0190 01CA 40 00]
+             [0D 02 005B 0190 01CA 40 00]
+MS_MAK6.OVL: [0D 02 005B 0190 01CA 40 00]
+             [0D 09 01]
+             [0D 09 32]
+             [0D 0A "PUSH2" 00C8 loc -1,-1 size 16x16, frames]
+             [0D 0A "key"   018F loc 551,331 size 85x45, frames]
+
+  0E xx
+  Magic, Tenkousei, Tenshitachi Collection 1, Tenshitachi Collection 2
+Pan across a big image. The data byte describes direction of
+movement. Complicating things, the big image is divided in two
+separate images. Tenkousei and Angels2 display the first image, which
+is marked scrollable by the transition style 2 or 3, then use the $0E
+command to slide the other image with the same style in the gfxlist
+into view.
+  Magic displays one half as a background and the other as a sprite...
+  I just composite the images by manual definition, since there aren't
+that many of them. The data direction means, as best as I can tell:
+1,2 and 3 - hard to say, but all vertical panning...
+4 - pan upward, 5 - pan downward, 6 - pan left, 7 - pan right,
+A - (only once in Magic) pan downward slowly? re-pan upward quickly?
+
+  0E xx
+  Deep
+Unknown... probably image pan.
+
+  0E xxyy
+  Parfait
+Unknown... perhaps a swipe or transition.
+Data values encountered: 0000, 0007, 0009, 000A
+
+  0F
+  3sis, Snowcat, Tenkousei, Vanish
+Jump to an ending script, or just return to the main menu.
+
+  0F xx
+  Sakura
+Move to good ending number xx
+
+  0F [sequence of graphics]
+  Tasogare
+The command is followed by a sequence of special command bytes. At first,
+fade the whole screen to black. All images are faded in for 3 seconds, stay
+for 8 seconds, and fade out for 3 more.
+01 - new viewport-sized image, graphic name follows as a zero-terminated
+     string.
+02 - new full-screen image, graphic name follows as a zero-terminated string;
+     these could be treated as an overlay imposed over the viewport-sized
+     images, since these are mainly credit text.
+03 - display lots of dialogue with interspersed 01 bytes, ends with 00 00.
+     Each 01 is meant to pause for a few seconds to let the text be read,
+     instead of being a waitkey command.
+     If the ending 00 00 is followed by 03, that's the end of the sequence.
+04 - unknown, no extra data after this; possibly indicates that the next 03
+     text segment will not be ending the 0F sequence yet.
+
+  0F [graphic]
+  FromH
+Followed by a zero-terminated string, specifying an ending picture... roll
+credits over it?
+
+  10
+  All?
+Jump to a bad ending
+
+  11 xx
+A wide variety of odd function calls...
+
+  11-02-yy
+  3sis, Runaway
+Display graphic yy, and its animations if they exist. Unlike graphics loaded
+with 06-xx, this does not have the implicit delayed function of clearing all
+loaded sprites upon the next load command. This is used when more than one
+sprite is needed on-screen at the same time. The graphics should only be
+transitioned after a following 06-xx.
+
+  11-02-yy
+  Vanish
+Initiate battle type yy. The types themselves are probably hardcoded, and
+need to be figured out by seeing what exactly the original game does.
+
+  11-03-yy
+  Vanish
+Either a return or jump to a new script. Ending? H-scene? Battle?
+VAN_512 [11-03-03] not reachable? preceded by runscript EB019_02.
+EB033 [11-03-06] only bytecode in the whole file, then verbless exit
+EB032 [11-03-07]
+EB031 [11-03-04]
+EB030 [11-03-05]
+EB029_00 [11-03-01]
+EB019_02 [11-03-03]
+EB011_00 [11-03-02]
+
+  11-04-yy-zz
+  Vanish
+Variable yy interacts with value zz? Check EB027_01, _02, maybe can figure
+out the logic from a decompiled script with dummy 11-04. Those appear to be
+the scripts where the player gets to pick three girls to join his party.
+Var 50 is used to count number of girls chosen. 11-04-yy-zz might then be
+used to tell the engine that party member number [var yy] shall be girl [zz]?
+
+  11-04
+  Tasogare
+Asks the user for a slot, then saves the game!
+
+  11-05
+  FromH, Tasogare
+Bring up a name entry screen, put user's choice into string 001.
+
+  11-05
+  Vanish
+Might be a Quit Game command, dump user right into DOS.
+
+  11-06-yy
+  FromH, Tasogare
+Mark graphic ID yy as seen, for later CG viewing. SuperSakura handles graphic
+memory internally, so this can be dummied.
+
+  11-06-yy
+  Eden
+Launch a mouse-pointable map of the mansion. There are four times in the game
+when the map can be called, and therefore four sets of scripts that the map
+can lead to. The data byte yy defines which set to use. The map used is image
+MAP2, and selectable areas are highlighted upon mouseover. Clickable areas do
+not change between sets, but the target scripts do, as charted below.
+
+Set 1: JO2102x
++---+  +-----------------+  +-----------------+
+| O |  |   | | L | K | G |  | 5 |  2 | 7  | 6 |
++---+  |   | +---+---+---|  |   +-+--+--+-+   |
+       |---+             |  |---+ |  9  | +---|
++---+  | D | +---+---+---|  | 4 | +--+--+ | 3 |
+| P |  |   | | E | F | H |  |   | | R| R| |   |
++---+  |---+ |   |   |   |  |---+ +--+--+ +---|
+       | R | +---+---+---|  | R |         | 8 |
++---+  |   | |     I     |  |   |         |   |
+|   |  |---+ +-------+---|  |---+         +---|
+| N |  | C |         | J |  | Q |         | 1 |
+|   |  |   |    M    |   |  |   |         |   |
++---+  +-----------------+  +-----------------+
+
+Set 2: JO2116x
++---+  +-----------------+  +-----------------+
+| T |  |   | | P | O | J |  | 5 |  2 | 9  | 7 |
++---+  |   | +---+---+---|  |   +-+--+--+-+   |
+       |---+             |  |---+ |  C  | +---|
++---+  | G | +---+---+---|  | 4 | +--+--+ | 3 |
+| U |  |   | | H | I | L |  |   | | B| B| |   |
++---+  |---+ |   |   |   |  |---+ +--+--+ +---|
+       | B | +---+---+---|  | B |         | A |
++---+  |   | |     M     |  |   |         |   |
+|   |  |---+ +-------+---|  |---+         +---|
+| S |  | F |         | N |  | 8 |         | 1 |
+|   |  |   |    R    |   |  |   |         |   |
++---+  +-----------------+  +-----------------+
+
+Set 3: JO3404x
++---+  +-----------------+  +-----------------+
+| T |  |   | | P | O | J |  | 5 |  2 | 9  | 7 |
++---+  |   | +---+---+---|  |   +-+--+--+-+   |
+       |---+             |  |---+ |  C  | +---|
++---+  | G | +---+---+---|  | 4 | +--+--+ | 3 |
+| U |  |   | | H | I | L |  |   | | B| B| |   |
++---+  |---+ |   |   |   |  |---+ +--+--+ +---|
+       | B | +---+---+---|  | B |         | A |
++---+  |   | |     M     |  |   |         |   |
+|   |  |---+ +-------+---|  |---+         +---|
+| S |  | F |         | N |  | 8 |         | 1 |
+|   |  |   |    R    |   |  |   |         |   |
++---+  +-----------------+  +-----------------+
+
+Set 4: JO4102x
++---+  +-----------------+  +-----------------+
+| M |  |   | | J | I | E |  | 5 |  2 | O  | 6 |
++---+  |   | +---+---+---|  |   +-+--+--+-+   |
+       |---+             |  |---+ |  7  | +---|
++---+  | B | +---+---+---|  | 4 | +--+--+ | 3 |
+| N |  |   | | C | D | F |  |   | | R| R| |   |
++---+  |---+ |   |   |   |  |---+ +--+--+ +---|
+       | R | +---+---+---|  | R |         | P |
++---+  |   | |     G     |  |   |         |   |
+|   |  |---+ +-------+---|  |---+         +---|
+| L |  | A |         | H |  | Q |         | 1 |
+|   |  |   |    K    |   |  |   |         |   |
++---+  +-----------------+  +-----------------+
+
+  11-07-yy-zz
+  FromH, Tasogare
+Two data bytes signifying two variables. Only in CG.OVL. Checks if the
+graphic number in variable zz has been marked as seen. If seen, sets variable
+yy to non-zero; if not seen, sets it to zero.
+
+  11-08-yy
+  Tasogare
+Appears six times in TA_00DG. Data byte can be $0A or $14. Seems to be
+a quick fade to black and back. The data byte controls the length of effect?
+
+  11-09-addresses
+  Tasogare
+Launch a mouse-pointable location map. 11-09 is followed by 13 word
+addresses, each pointing to a byte ID + null-terminated string, followed
+immediately by bytecode. If the ID is $FF, then there is a string, but no
+code, and that destination is not available. The string is displayed as
+a mouseover legend, and there is no other mouseover highlighting. Clicking on
+an active destination starts executing the following bytecode. The map
+graphic is CHIZU. The actual map area coordinates are probably hardcoded.
+
+Tasogare map:         1 - stones
++------------------+  2 - big, friendly two-story house
+|      2  B&       |  3 - police station
+|         &        |  4 - walled compound or town? rich guy's home
+|        &  4      |  5 - river-crossing post, roadside chibi-shrine
+| A    9 &8   3    |  6 - windmill-looking shrine
+|    7  &        &&|  7 - tiny church, hospital?
+|  D   5       &&  |  8 - pair of houses; Melanie's home?
+|     &   &&C&&  1 |  9 - big house with a tree, library?
+|   &&&&&&         |  A - lone house, blue-roofed, hay barn
+| &&        6      |  B - stone pillar
++------------------+  C - tiny island in river
+                      D - stone pillar
+
+  11-09-yy-addresses
+  FromH
+Fade to black and launch a mouse-pointable location map. The data byte yy
+defines the main character's costume; the mouse cursor changes to a chibi-guy
+walking in place. The animations are in the image MS_CUR, and are numbered
+0 to 5.
+
+The costume byte is followed by 12 word addresses. Each address is either
+zero, in which case that destination shall not be available, or points to
+a null-terminated location description string followed by the code to execute
+if the player chooses that location.
+
+The map displayed is FROMAP. It has 12 possible destinations and a save
+statue in the bottom corner that is always available; active destinations are
+drawn highlighted from FROMAP2. The location coordinates are probably
+hardcoded.
+
+FromH map:
++------------+
+|          2 |
+|6     4     |
+|   3      B |
+|      5  C  |
+|            |
+| 7  9  A    |
+|8        1 x|
++------------+
+
+  11-0B
+  Tasogare
+Probably a command to clear all current sprites in first-person view. This is
+separate from the normal clearallbutbkg because the first-person view itself
+is rendered inside the viewframe...
+
+  11-0C
+  Tasogare
+Push player back to square they came from?
+Appears 8 times in TA_4831 and 3 times in TA_00DG.
+
+  11-0E-yy
+  Hohoemi, Tasogare
+Marks graphic ID yy as seen. SuperSakura handles the CG memory internally, so
+this can be dummied.
+
+  11-10-yy-zz-aa
+  Tasogare
+Modifies cell zz,yy of the current dungeon map to value aa.
+Appears in TA_00DG, data bytes [08 3F C0] and [46 10 C0]. C0 means a wall.
+
+  11-11-yy-zz-string
+  Tasogare
+Draw a sprite in first-person view mode, viewport size 280x280. Followed by
+two location bytes. YO_21 in TA_1103 gets 5,0, which is drawn at 40,0 in the
+dungeon view. All other pictures are always 0,0. Maybe fix the values to be
+always centered?
+The string is zero-terminated, specifying the YO-file to draw. If the
+filename ends with an X, that means to draw the body (filename without the
+last two letters), then the face (filename with the X replaced by A0).
+
+  11-12-yy-zz-string
+  Tasogare
+Only used 2 times in TA_4848. Looks identical to 11-11, but the original game
+doesn't actually display the graphic or do anything apparent. The sprites in
+question do belong to people who have dialogue at those moments, so might as
+well draw them.
+
+  12 xx yy [zz]
+  All
+xx = 01: make verb yy invalid (1-based indexing)
+xx = 02: make verb yy valid
+xx = 04: make subject yy in verb zz invalid
+xx = 05: make subject yy in verb zz valid
+
+  13 xx
+  3sis
+Flash/smash with xx intensity.
+
+  13 xx [...] 00
+  Eden, FromH, Magic, Sakura
+A set of graphics functions. The command 13 is followed either by 0F, 10, or
+a string of subcommands.
+
+There is a kind of graphic stash, which allows saving the current visible
+graphics, adding more graphics on top, then returning to the saved state.
+Although it looks like the stash can technically persist across scripts, in
+practice it's only ever used briefly in individual scripts.
+
+The easiest way for SuperSakura to handle this is by using gob adoption,
+where every new graphic becomes a child of any graphic it is on top of, so
+animations are owned by their sprites, and the sprites by the topmost
+background. A state save is accomplished by inserting the TB_008 transparent
+graphic as an overlay over everything; following graphics get adopted by the
+overlay; and a restore state just requires removing the overlay's kids.
+
+Explicitly loading a new background image causes the graphic stash to be
+cleared. This usually happens near the top of every script, which is why the
+stash doesn't carry over in practice.
+
+Scripts often request a restore state even without a stash. In these cases,
+remove everything above the normal background at the next transition.
+
+Due to the way animations are handled in the original engine, they have to be
+repeatedly removed and restored, and are not part of the stash system. In
+order to preserve animations across a stash pop, the script has to explicitly
+restart required animations; not every script remembers to do this, which is
+why characters sometimes stop blinking upon a stash pop.
+
+13-10 is the graphic save stash command. It needs to preserve all
+non-animating sprites.
+
+13-0F and 13-04 without a filename are used to restore from the stash. All
+current graphics need to be replaced with the stashed state upon the next
+transition. If the stash is empty, redraw just the background and remove all
+other graphics upon the next transition.
+
+The real stack operations are used only in these scripts:
+Eden: JO1103, JO1106, JO2215, JO2216, JO3101, JO3103, JO3104, JO5103, JO5303
+Tasogare: TA_1105, TA_4252 (not really important here)
+Sakura: CS208, CS211, CS609, CS824, CSA01, CSA10, CSA11
+
+JO3103 may not work with this?
+
+If the byte following 13 is not 10 or 0F, there will instead be a string of
+subcommands, processed one byte at a time, terminating with a 00 byte. The
+string may contain ASCII characters, $20..7E, which form a filename.
+  01 - Load graphic as an overlay over everything currently visible.
+  02 - Load nothing? Maybe just effect a transition of existing graphics?
+  03 - Load graphic as a sprite over everything currently visible. If there
+       is no filename included, remember the other given parameters for when
+       the next graphic is loaded.
+  04 - Load graphic as a background. No effect on any visible sprites; the
+       existing sprites should be redrawn over the new background.
+       As long as a filename IS included, this clears the graphic stash.
+       If a filename is NOT included, this acts as a stash restore, the same
+       as 13-0F. The only difference is that the subcommand string may
+       contain an immediate transition, which 13-0F cannot.
+  0D xx yy - Draw graphic at horizontal offset xxyy*8
+  0E xx - Blitz all new graphics on the screen right after loading this,
+       using transition xx
+  11 - Seems to be a command to draw the first frame of the indicated
+       filename's "A0" animation, as a sprite. Try this: draw the frame in
+       a non-animating state, then when the actual animation is loaded,
+       simply detect if the animation was already loaded as a sprite, and
+       replace it.
+
+Other, less useful subcommands, that can safely be ignored:
+  05 - Draw sprite first, delay a moment, then fill the back with color 8
+  06 - Same as 05?
+  07 - Effect color 8 palette
+  08 - Don't effect color 8 palette
+  09 - Consider color 8 transparent
+  0A - No transparency?
+  0B - unknown? exists in Tenshitachi no Hohoemi and Parfait
+  0C - unknown? found in Hohoemi. Always after stopanims, before 11-0E-xx?
+       And the image given is a special event image.
+       Also in Parfait. Seems to be followed by image size words xx,yy.
+
+  13 xx [...]
+  Parfait
+This resembles the above, but with differences.
+Note that the char sprites are all 440 x 395 (01B8 x 018B).
+Note that the viewframe is at 100,77 (64,4D), and is 440x304 (01B8 x 0130).
+The first bkg drawn is MB_14.
+The first sprite drawn is MT_02, at 100,0 from screen origin, ignoring the
+background viewframe.
+13 0D 0000 0000 0B 0064 0000 0C 018B 018B 0F 00 02
+13 0D 0064 0000              0C 01B8 018B 01 10 00
+13 0D 0000 0000 0B 0064 0000 0C 01B8 018B 0F 00 02
+13 0D 0000 004D 0B 0000 0000 0C 01B8 0130 0F 00 01
+13 0D 0000 0000              0C 0280 01E0 01 12 01 01 01 00
+13 02 10 03 09 MS_OMAK1 00
+13 02 10 02 09 FREFRE 00
+13 02 10 01 09 MB_24 00
+13 02 10 00 MT_07 00
+  xx = 0,1,10: followed by one byte, ends sequence
+  xx = 02: followed by two bytes
+  xx = 09: no data bytes
+  xx = 0B: followed by two words
+  xx = 0C: followed by two words and a byte
+  xx = 0D: followed by two words
+  xx = 12: followed by two bytes
+  xx = 21..7F: it's a filename string, zero-terminated, ends sequence
+
+  14 xx
+  Sakura, Eden, FromH, Magic, Tasogare
+xx = 01: followed by a length byte, then an array[length] of bytes. Quite
+         likely a reset to zero of the listed global variables.
+xx = 03: followed by a style byte. Black out the screen immediately, using
+         transition type yy. A list of transition types is found below. Some
+         transitions are different when used with 14-03 black out.
+         The black-out does not remove any existing graphics; upon the next
+         drawing operation, the black-out is automatically removed and all
+         graphics that it covered become visible again.
+         Try this: display a black overlay, and swipe it into view
+         immediately. Set a flag to remember you've done this. Whenever the
+         next background, overlay, sprite or animation is loaded/shown, check
+         this flag and if it is set, destroy the black overlay before
+         loading/showing the graphic to be loaded/shown. The command to
+         clear all graphics but the background should also clear this.
+
+  14 xx
+  3sis
+Pause for xx desiseconds.
+
+  15 xx
+  Eden, FromH, Magic, Sakura
+Animation handling commands. Animations are slot-based. They are loaded into
+slots, and can later be redrawn just by invoking the slot number. If an
+animation is loaded into a slot that already has a graphic, and the previous
+graphic is visible, the previous graphic must be implicitly removed before
+drawing the new one. For example, Magic does this with blinking animations.
+
+xx = 01: followed by a slot byte, then three bytes, then a zero-terminated
+         filename. Load an animation by that name into slot yy; the three
+         bytes that always follow are 0D nnnn, and the nnnn specifies the
+         X offset of the graphic, divided by eight.
+xx = 02: followed by a slot byte, then a zero-terminated filename. Works just
+         like the previous subcode, only the 0D offset is left out.
+xx = 03: followed by a slot byte. Display the animation from slot yy.
+xx = 04: stop all animations (this occurs often more than once in a row, when
+         several animations are present, so it probably is not intended to
+         stop all animation with just the single command. However, at all
+         occasions stopping all animations seems to be the desired end
+         result, so in effect that is the simplest way to implement this.)
+xx = 05: probably stop all animations, then clear all animation slots.
+
+  16 xx
+  Eden, Hohoemi, Magic, Sakura, Tasogare
+Screen flashes xx times.
+
+  16 xx ...
+  Parfait
+Unknown... something to do with graphics.
+Note that the char sprites are all 440 x 395 (01B8 x 018B).
+Note that the viewframe is at 100,77 (64,4D), and is 440x304 (01B8 x 0130).
+The first bkg drawn is MB_14.
+MS_MAK6.OVL: [16 0A 0000 004D 01B8 0130 01 01 01 0000]
+             [16 0A 0000 004D 01B8 0130 FF FF FF 0000]
+             [16 0A 0000 0000 0280 01E0 FF FF FF 0000]
+TITLE.OVL:   [16 0A 0000 004D 01B8 0130 01 01 01 0000]
+             [16 0A 0000 004D 01B8 0130 FF FF FF 0000]
+             [16 0A 0000 0000 0280 01E0 FF FF FF 0000]
+
+  17 xx
+  Hohoemi, Magic, Sakura, Tasogare
+Pause for xx desiseconds.
+
+  18 xx
+  Magic, Sakura, Tasogare
+Screen shakes vertically xx times.
+
+  19
+  All?
+Clear the textbox immediately.
+
+  1E xx
+  Deep
+Unknown... does something with var xx? Possibly junk code, almost always
+after 0B-0A manipulating var 1E.
+
+  20..EF
+  All
+It's a Shift-JIS character, maybe a string of them! Print it into a textbox!
+Characters $20..$7E are basically ASCII, so you could print those in a latin
+font. But $81..9F and $E0..EF have an extra byte after each. Also, there are
+linebreaks [$0A], waitkeys [$01, Saku $08, 3sis $09] and pauses [Saku $17]
+liberally sprinkled in the middle of the text lines.
+
+  F3 xx
+  Deep
+I have no idea whatsoever.
+
+Transition styles:
+==================
+The transitions used in 3sis (tested with the original engine):
+  0 - Instant (or fill from top down if on a slow computer)
+  1 - Instant, but drawn at 0,0 top corner rather than the game window!
+      No transparency. Could be used to change skins on the fly...
+  2 - Seems to also be instant at 0,0, but draws the following graphic
+      instead! If the graphic in question is the last in the list, crashes...
+  3 - Instant? Or a crash.
+  4 - Box fill inward from edges. No transparency.
+  5 - Spiral fill inward from edges. No transparency.
+  6 - Box fill outward from center.
+  7 - Sweep from left
+  8 - Sweep from center to top and bottom - as if opening your eyes
+  9 - Noisy fade in
+  A - Interlaced sweep from top and bottom
+  B - Ragged uneven sweep from left
+
+Tenshitachi Collection 1 uses much the same as 3sis, except:
+  2 - Current image drops out, new image drops in
+  3 - Current image rises out, new image rises in
+  7 - Sweep from center to left and right
+
+The transitions used in Sakura:
+  32 - instant, no transition
+  33 - no immediate transition, just a weird flash; upon the next transition
+       command, does a horizontal line swipe from top to bottom?
+  36 - square fill from edges to center
+  37 - rectangular spiral swipe
+  38 - square fill from center to edges; except, for 14-03 black out,
+       actually same as 36 - a square fill from edges to center
+  39 - vertical line swipe from mid toward left and right; except, for
+       14-03 black out, a vertical line swipe from left and right to middle.
+  3A - horizontal line swipe from mid toward top and bottom; except, for
+       14-03 black out, from top and bottom to middle.
+  3B - a noisy fade; for 14-03 black out, instant.
+  3C - horizontal interlaced lines swipe in from top and bottom
+  3D - ragged swipe left to right
+
+
+On variables:
+=============
+Variables appear to be 16-bit signed integers. There are local and global
+variables, 256 of each.
+
+$0B handles local variables, which work like asm registers for local
+calculations and forgettable script progression flags. Local variables are
+reset to 0 whenever initialising a new script.
+
+$0C handles global variables, which track the player's misdeeds throughout
+the game. It may make sense to unify both kinds of variables in an engine
+implementation, for example making global variables 256..511 so they don't
+conflict.
+
+The low-number local variables control branching from user choices.
+Each choice combo has a variable by the same ID number; when the action is
+picked, the game jumps to the address specified by the variable. If the
+variable is zero, the first address is picked.
+
+To clarify, an example from The Three Sisters' Story, SK_102.OVL:
+Action combination 3 is Talk + Yuki.
+It has four possible results, found at addresses 031F, 065F, 07C7 and 088A.
+When the player selects Talk + Yuki, local variable 3 starts at zero.
+The engine jumps to code address 031F. At the end of that segment, there is
+a command to set variable 3 to one. At next Talk + Yuki, the engine will jump
+to code address 065F.
+
+Stuff that may need to be fixed manually:
+=========================================
+SK_103 has a result-goto into the middle of a string.
+SK_406 tries to draw a non-existent graphic at script offset $055F. This only
+  appears to happen in the English version.
+CS305 and CS306 have the scene of Seia sleepwalking. The music used is SK_01.
+  However, SK_01.M appears to not exist, and is replaced with SK_20 in all
+  English versions. The Memorial Pack version has the first song as an MP3,
+  and it is apparently meant to be Seia's theme. Now, SK_20 is the scary
+  tune, and while it works for sudden sleepwalking, Seia's theme is used at
+  another moment in the game as well (CS803_4), and replacing that with the
+  scary music is just wrong. So, best rip SK_01 from the PC-98 version.
+[Eden] JO3404x repeat an oddity; ET03 is drawn, then she is removed, and at
+  the next 13-03 command without a filename, she is mysteriously restored.
+  This is not how the other games, and Eden at other points, handle graphic
+  stack pushing and popping...
+[Magic] MP8702, MP8503D and MP8102 have character $14 in the middle of
+  a graphic filename. Doesn't make sense except as a scripting error.
+  Also, MP0001 has graphic file names without a loading command. The context
+  suggests they should be drawn anyway...
+[Transfer.98] TEN_S108 tries to draw graphic index 2, whose definition is in
+  the header, but the graphics list forgets to point to its definition.
+  Moreover, the graphic is TT_06, a palette-squeezed version of TT_02, with
+  an incorrect animation. Best to make the script draw TT_02 instead.
+
+-----------------------------------------------------------------------------
+.GRA files
+==========
+
+These often carry signatures suggesting they are related to the popular
+Maki-chan format, and the header is certainly similar, but in truth most of
+these use a wholly different compression algorithm with run-length encoding
+and adaptive Huffman encoding. The image is also packed into a single stream
+rather than Maki-chan's cumbersome three-stream split.
+
+Japanese specification for Maki version 1 A and B:
+http://www.jisyo.com/viewer/faq/maki_tech.htm
+Japanese specification for MAG version 2:
+http://www.jisyo.com/viewer/faq/mag_tech.htm
+
+In Tenshitachi no Gogo collection 1, there are actually three different
+versions of .GRA files. Most use the enhanced format, some use the proper
+MAG v2 specification, and the remaining few are sad, uncompressed bitmaps.
+The two latter types are actually directly viewable in Irfanview, and
+presumably other advanced image viewer programs.
+
+The MAG v2 files in question are T2_59 to T2_85, T3_67 to T3_74, and A17 to
+A40. The images are all either identical copies or lower quality versions
+of other images already stored in the advanced format. Why are they included
+at all??
+
+
+Each GRA file starts with a meta-data string, which is terminated with the
+byte $1A. The metadata is mostly junk, except for a possible Maki-chan
+signature, and animation data stored there by the more advanced game engine.
+
+All animation data in .GRA files only uses the top nibbles of the bytes, to
+avoid accidentally printing $1A. To put together values in the string:
+read bytes in pairs, shift the second byte right by four bits, and OR them.
+
+The older engines keep animation data hardcoded inside the executable, using
+whole bytes, so no nibble concatenation is needed. For example:
+3sis (DOS) J_ADV1.EXE: look in address $15AD0 for the first, ST01A0.
+Runaway (DOS) MEI.EXE: check out $162B0 for op_013a0.
+Keep reading animation records until you encounter zeroes instead of a proper
+sequence length or file name.
+
+Even older engines may not have easily accessible animation data anywhere.
+Then the frames must be generated automagically or by hand.
+
+
+Animation data in the metadata string of GRA files starts with a skippable
+extra 0-byte, while animation data in EXE files has no such byte.
+
+Offset Datatype              Description
+------ --------------------  -----------
+0 .... word ................ Length of animation sequence,
+                             max 32 [frame number:delay] pairs
+2 .... array[1..36] of char  Zero-padded filename without the .GRA extension,
+                             sometimes incorrectly spelled...
+38 ... word ................ The entire graphic's width divided by eight;
+                             The real width is this * 8.
+40 ... word ................ The entire graphic's height
+42 ... word ................ The animation's screen location, X coordinate,
+                             divided by eight
+44 ... word ................ The animation's screen location, Y coordinate
+46 ... word ................ Width of the animation frames, divided by eight
+48 ... word ................ Height of the animation frames
+50 ... array[0..31] of word  The animation's frame sequence. Frames beyond
+                             sequence length [from $00] are garbage. While
+                             showing the animation, once you reach the
+                             sequence length, loop back to zero.
+114 .. array[0..31] of word  The animation's timing. Each word is the number
+                             of ticks to wait before drawing the
+                             corresponding frame. There are about 80 ticks
+                             to a second.
+------ --------------------  -----------
+Total size: 178 bytes
+
+
+Setsuyuu and Tenkousei have animation data embedded in the executable, but in
+a mildly different way. Instead of a 36-byte file name at offset 2, they have
+string of 32 words, mostly zero. The first word is an offset from a baseline
+address, pointing to a zero-terminated filename. The baseline address is
+a dword of zeroes just before a Borland C++ copyright notice. The filenames
+are all stored after the end of the animation records. You could keep reading
+records until the sequence length gets bigger than $FF or is 0, or the
+filename pointed to is empty; and then read all the filenames sequentially.
+
+In Setsuyuu the animation records start at $15816; there are 52 records.
+In Tenkousei TK.EXE the animation records start at $159CC; about 70 records.
+
+
+All frames are stored beside and on top of each other in the image. The
+sequence pointer indicates which to draw. The frames are usually arranged in
+a vertical sequence, but occasionally there are also frames side by side.
+The correct frame enumeration is:
++-----+-----+-----+    +-----+-----+-----+
+|  0  |  3  |  6  | or |  0  |  1  |  2  |
++-----+-----+-----+    +-----+-----+-----+
+|  1  |  4  |  7  |
++-----+-----+-----+
+|  2  |  5  |  8  |
++-----+-----+-----+
+
+After the byte 1A concludes the metadata string, next is the actual header.
+There is often a zero-terminated string of additional junk between the 1A
+marker and the start of the header block.
+
+To recap: Parse animation data if it exists, up to a 1A marker; then find the
+first 00 that follows, which is the first byte of the header.
+
+Header specifications and decompression instructions for standard Maki-chan
+Graphics are in a separate file, makichan.htm, hopefully available online.
+
+The enhanced GRA or MAGv3 format uses the following header:
+
+Offset Size  Description
+------ ----  -----------
+0      byte  Start of header? Always 00.
+1      byte  Machine-dependent code? 00, signifying the image was saved using
+             PC98-specification, or FF, using Hironon-specification.
+2      byte  Machine-dependent flags? Always 00.
+3      byte  Unknown... always 00.
+4      byte  Screen mode; usually 04, a digital 400-scanline 16-color mode
+5      long  A four-character signature, eg. JAST, Magd, PC98 or "MPS "...
+9      byte  Unknown... always 00?
+10     byte  Unknown... almost always 00, except in [Eden] OP_TT and
+             [Snowcat] SH_26A0. If the byte is not 00, it is followed by that
+             many more bytes of unknown data. Both those files have 05.
+
+11     word  Image width, in reversed byte order (MSB first), [01 E0] = 480
+13     word  Image height, in reversed byte order, [01 28] = 296
+15     48    Palette: 16 byte triplets, RGB. Curiously the original engines
+             seem to always display the colors with an AND $F0.
+63           Compressed image data starts here
+------ ----  -----------
+
+There appears to be no definition of transparency in the .GRA files. Instead,
+graphic loading commands in bytecode specify whether to treat each image as
+transparent or not. Transparent images probably need to be named in the
+decoder by hand, assuming the graphics decoder is kept separate from the
+script decompiler.
+
+If transparency is used, it is nearly always mapped to color 8, sometimes 15.
+[Magic] MT05KF appears to have an unremovable solid background. Floodfill?
+However, it is never actually used in the game, so no one ever noticed.
+A pity, she looks so adorable. ^_^;
+
+
+.GRA files that are miserable bitmaps
+=====================================
+You find some of these in Tenshitachi no Gogo Collection 1, files A1 to A16.
+I'm going to call these SADBMP's because these are worse than MS DIBs.
+
+Offset Size  Description
+------ ----  -----------
+0     dword  Signature, $002A4949
+30    dword  Image width
+42    dword  Image height
+------ ----  -----------
+
+At $F0, there are four dwords of unclear meaning.
+Starting at $100, there is some sort of misbegotten palette, with an entire
+array of 16 words for each color channel, one after the other. That is, first
+16 red values, then 16 green values, then 16 blue values.
+
+At $200 begins a sequence of nibbles that looks like an uncompressed bitmap.
+
+
+Remaining problems:
+===================
+[Deep]
+DB_04_09 image corrupted
+DB_05_03 image corrupted
+DB_05_08 breaks the decoder...
+DB_05_09 image corrupted
+DB_06_05 image corrupted
+DB_06_08 image totally corrupted
+Interestingly, these appear equally broken in Grapholic. A bad rip?
+There seems to be an unreasonably big repetition code which may have special
+significance. A reset of some kind, maybe. To fix, play the game in an emu
+until you find one of those images and see if it's still broken.
+  If it's a bad rip, the long string of 1's may be a bad sector or something.
+In that case, the data will have to be reconstructed with brute force...
+
+-----------------------------------------------------------------------------
+
+How to decompress the advanced .GRA files
+=========================================
+
+The image data is stored as a bitstream using run-length encoding as well as
+a kind of adaptive variable bit-length encoding.
+
+1 = 011111
+2 = 011110
+3 = 011101
+4 = 011100
+5 = 011011
+6 = 011010
+7 = 011001
+8 = 011000
+9 = 01011
+A = 01010
+B = 01001
+C = 01000
+D = 001
+E = 000
+F = 11
+0 = 10
+
+Start with two color codes from the above table. The codes actually signify
+change from the last drawn pixel's color - explained in more detail below.
+
+After the two initial color codes there is a forced repetition, usually
+of the "00" type. The two differences to regular repetition commands is that
+there is no "0" bit preceding the repetition type, and in this special
+occasion the variable bit length of repetition gets decreased by one to allow
+for zero-length repetition.
+
+The system works with pixel pairs. There are two modes of output: color codes
+and repetition. Color codes always come in pairs, and repetition lengths are
+specified in pairs.
+
+After each color code pair, excepting the very first one, there is a bit
+signifying the next action.
+
+[1] means two more color codes.
+[0] means a repetition with following data:
+
+  00___xx
+    If the two previous pixels are the same color, repeat that pair;
+    else repeat the two previous pairs (4 pixel pattern)
+
+  01___xx
+    Copy pixel sequence running directly above, length in pairs
+    (or copy only pair in top left corner, while in top row)
+
+  10___xx
+    Repeat the color sequence running two rows above
+    (except while in the highest or second highest rows, then just repeat the
+     pair in the top left corner)
+
+  110___xxx
+    Copy pixel sequence from above right, length in pairs
+    (or if in top row, repeat only the pair in the top left corner, flipped)
+
+  111___xxx
+    Copy pixel sequence from above left, length in pairs
+    (or if in top row, repeat only the pair in the top left corner, flipped)
+
+
+There the first two or three bits are the repetition type, the underscores
+contain the variable-bit-length repetition length in pairs, and the final two
+or three bits, [xx], contains another repetition type value. If the latter
+value is the same type of repetition as was just carried out, two color codes
+will follow. If the latter value is a different type, then a new repetition
+of that new type is due, with a new VBL length immediately after the type.
+  Example:
+  110 0 00 11010 10 100 10
+Repeat "110" by 1 pair,
+repeat "00" by 6 pairs,
+repeat "10" by 2 pairs,
+end.
+
+
+The bitstream tends to end with four bytes of 00 and maybe one more random
+byte. The original games' decompressor just processes enough bits from memory
+to fill up the desired image size and the rest of the stream is evidently
+discarded, so no extra stuff should be needed after the bitstream's end.
+
+-----------------------------------------------------------------------------
+
+Color codes work thus...
+Each color has a list of deltas like so:
+
+type    deltalist : array[1..16] of byte;
+var     lcolors : array[0..F] of deltalist;
+
+Each DELTALIST[1..16] is initialized with numbers 1..16 respectively.
+
+When color code "c" is used, and previous pixel was color "n",
+refer to LCOLORS[n].DELTALIST[c] to get the delta to the next color.
+Then remove entry [c] from the list, shift everything above it down by one,
+and place the removed entry in DELTALIST[16].
+
+When starting out, consider the previous pixel to be color 0; so even the
+very first pixel affects the color chains.
+
+
+Example sequence from start of datastream:
+  011111 11 00000 10 10 1
+
+1. Code "011111" is 1, so first pixel will be 0+1 = 1.
+   LCOLORS[0].DELTALIST was 123456789ABCDEF0
+            and now becomes 23456789ABCDEF01
+
+2. Code "11" is F, so second pixel will be 1+F = 0.
+   LCOLORS[1].DELTALIST was 123456789ABCDEF0
+            and now becomes 123456789ABCDE0F
+
+3. Initial repetition of type "00", vbl length "0" is 1 except in this first
+   forced appearance it gets -1 and becomes 0. Next repetition type is "00",
+   the same, so move on to more color codes.
+
+4. Code "10" is 0 or G if you will. Previous pixel was color 0...
+   LCOLORS[0].DELTALIST is 23456789ABCDEF01
+   Third pixel will be 0+1 = 1 again.
+   The deltalist does not change.
+
+5. Code "10", previous pixel was color 1...
+   LCOLORS[1].DELTALIST is 123456789ABCDE0F
+   Fourth pixel will be 1+F = 0 again.
+   This deltalist does not change either.
+
+6. Bit "1" means two more color codes will follow. If it was "0", then
+   a repetition type would follow. If you keep just outputting "10" codes,
+   you would get a nice alternating 0/1 pattern, although not checkerboard
+   unless the image width was odd instead of even.
+
+-----------------------------------------------------------------------------
+Repetition variable-bit-lengths
+
+0       = 1      1110101   = 13     111101001   = 25     11111000000 = 32
+100     = 2      1110110   = 14     111101010   = 26     11111000001 = 33
+101     = 3      1110111   = 15     111101011   = 27     11111000010 = 34
+11000   = 4      111100000 = 16     111101100   = 28     11111000011 = 35
+11001   = 5      111100001 = 17     111101101   = 29     11111000100 = 36
+11010   = 6      111100010 = 18     111101110   = 30     11111000101 = 37
+11011   = 7      111100011 = 19     111101111   = 31     11111000110 = 38
+1110000 = 8      111100100 = 20
+1110001 = 9      111100101 = 21     1111110000000       = 64
+1110010 = 10     111100110 = 22     111111100000000     = 128
+1110011 = 11     111100111 = 23     11111111000000000   = 256
+1110100 = 12     111101000 = 24     1111111110000000000 = 512
+
+Consult the source code for a simple function that decodes these.
+
+-----------------------------------------------------------------------------
+Season of the Sakura girl.000 files
+
+These are saved games. The game engine unceremoniously dumps saves at
+C:\ root with the file extension 000. Copy one of these over a saved game and
+load it - and you get straight to the good part. Not much point
+reverse-engineering these, although it would probably be simple enough.
+
+-----------------------------------------------------------------------------
+Music
+=====
+
+I have so far found six kinds of music files:
+.M, .SC5, .O, .HMD, .OPI and .EMI
+
+.M is a Professional Music Driver file, a format developed by Masahiro
+Kajihara; .O and .HMD are something very similar; and .SC5 is a Recomposer
+MIDI file that, for example, the free software midi renderer TiMidity++ is
+able to play without explicit conversion. (However, it does not handle
+asynchronous track looping, such as in some From H songs.)
+
+The Japanese computing scene was more advanced musically than the western
+one, thanks in part to the Roland and Yamaha corporations, and their
+ground-breaking synthesizer devices. They also adapted the General Midi
+standard faster. As a result, many PC-98 games come with original FM music,
+as well as a midi option.
+
+Look at c:\temp\prog\fm\ for PMD docs as well as Delphi sources for FM-PMD.
+
+As western computers were lagging behind, during localisation of some titles,
+like Season of the Sakura or the Three Sisters' Story, the best option for
+converting the games' music was to stick with the lowest common western
+denominator, DOS-based FM. So, the DOS versions come with .M files, likely
+recompiled from the original music macro files to support western sound
+cards, but no option was given for midi music.
+
+As good as FM can sound, unfortunately sound card manufacturers dropped it as
+an ancient technology, and embraced wavetable. Furthermore, the PMD music
+player was written specifically to run in low-level environments like DOS,
+and it hooks itself into an interrupt to run in the background of a normally
+single-tasking operating system. As a result, modern computers cannot even
+load the music player, let alone adequately play back FM sound, except
+through painstaking software emulation.
+
+For those who are interested, there is a PMD98 player for Windows called
+FMPMD2000, though the latest version I could find was unable to handle the
+.M files from the localised JAST games. The player seems to only understand
+those .M files whose instruments match the sound card capabilities of
+Japanese systems, with OPN-family sound chips, whereas the oscillator
+configuration of OPL-based sound cards has a different number of voices and
+so is not understood by the player.
+
+
+PMD .M files
+============
+
+The English Nocturnal Illusion has, for some reason, one .M file, N12.M,
+although its other .M files are really just disguised midi files. The song is
+not reproduced on any new version of the game; it is only in the PC-98
+version, and I am not sure it is ever played in the game. The song is not
+very memorable in any case.
+
+Header:
+=======
+IBM-compatible .M files meant for OPL chips start with the byte 02. Many
+PC-98 .M files start with the byte 00. Dragon Knight 1-3 .M files start with
+the byte 06, and are quite different... The first byte may also be absent,
+such as in Princess Maker 1.
+
+After the first byte follow 13 word offsets. All offsets in the file must be
+increased by one byte, if there was a byte. Each of these offsets points to
+the beginning of each track or channel.
+
+The two last tracks are special. The first tends to be short, and ends with
+four bytes. The first word might point to an array of addresses at the
+end of the file. The third byte might be a version number, and the fourth
+byte is often $FE. The array of addresses at the end points to the
+zero-terminated song title, composer and arranger... or just a couple of
+zeroes, if the fields were never filled in. The last track consists of
+crucial instrument data. More on this below.
+
+Version numbers encountered:
+Eve Burst Error - $48
+3sis, Runaway, Sakura - $45
+
+Tracks:
+=======
+Each track is stored as a series of byte-size commands with possible data
+bytes following. Using the address array at the start of the file, the tracks
+go from [offset + 1] to [next offset].
+
+Tracks make clever use of a repetition feature. A simple bassline can be
+surrounded by a command to repeat it 16 times. Repetition can be nested, at
+least two levels. Each track runs independently of the others, and the songs
+have been carefully constructed so that the repetitions should add up and the
+tracks should end at the exact same time when the end of the song is reached.
+(If they are desynchronised, you're probably reading the file wrong.)
+
+This makes midi rendering a bit harder... keep every track separately in
+memory, then loop them as needed while writing into the midi file so that
+every track ends up mostly the same duration. Tracks also have an intro, and
+a looped part. Once a track reaches its end, it should loop back to where the
+loop marker F6 was on that track. If F6 was not encountered, the track ends.
+
+The notes are stored per-channel, without polyphony. Chords must be split
+across channels or arpeggioed. Tones are notated as bytes, where the top
+nibble means the octave and the lower nibble the note in the octave. There
+are 8 octaves, $00 though $7B.
+$40 = C-4
+$42 = D-4
+$49 = A-4
+$4B = B-4 ($4C to $4F are left out)
+$50 = C-5
+
+Each note command is followed by a duration byte. The note is released when
+the duration runs out. However, if $FE staccato has been enabled, the
+duration is reduced by the amount of staccato, and followed by an implicit
+pause the length of the staccato. Staccato is overridden, if the note command
+and its duration is followed by the code $FB. It causes a rapid pitch slide
+to the next note, without a pause. The note then continues playing for its
+duration. Sometimes $FB is followed by $DA, which is used for explicit pitch
+slides from note xx to note yy over duration zz.
+
+List of commands:
+=================
+
+0F xx - pause of length xx
+80 - new track start marker, ignore (maybe it's a reset channel code?)
+BB xx - Unknown [01]
+C0 - unknown
+C5 xx - unknown
+C6 xx yy aabbccdd ? - unknown. points to last track?
+   [C6 6C 09 00 00 00 00]
+   [C6 48 04 00 00 00 00]
+   [C6 1B 0C 00 00 00 00]
+C8 xx yy zz? - unknown [0C 00 00] [03 00 00]
+C9 xx - unknown [01]
+CA xx - unknown [01]
+CB xx - unknown [00]
+CC xx - unknown [01]
+CD xxyyzzaabb ? - unknown [CD 0A 00 01 06 05]
+CF xx? - unknown [C0] [30]
+D5 xx yy - unknown [CE FF]
+D6 xx yy - unknown [01 01]
+DA xxyyzz - pitch slide (midi portamento) from note xx to yy, duration zz,
+            ignore staccato
+DC xx - unknown
+DD xx - unknown [DD 08] [DD 02]
+DF C0 - at the beginning of the first track, reset all? Could be the
+        resolution definition. $C0 is the highest value mentioned in the
+        PMD MML documentation...
+E2 xx - Channel volume down by xx
+E3 xx - Channel volume up by xx
+E7 xx - Transpose channel by shortint(xx) semitones? cap octave at 1 and 8.
+E8 xx - unknown... [00]
+ED xx - unknown... [3F]
+EE xx - unknown... [04]
+EF - unknown
+F0 xx yy zz aa - unknown... [01 FE 08 01]
+F1 xx - the lowest 2 bits control the vibrato; 0: off, 1: on, 2/3: very on
+F2 xxyyzzaa - set vibrato: begin after xx ticks from noteon, adjust every
+              yy ticks afterward, by zz amount, and aa depth. Just use an
+              approximate for the midi translation.
+              [00 01 88 FF] makes percussion messier...
+F3 - Decrease volume
+F4 - Increase volume
+F5 xx - Transpose channel by shortinx(xx) semitones?
+F6 - track loop begin marker; jump back here automatically from end of track
+F7 xx yy - unknown... points to a loopback F8 code?
+F8 xxyy aabb - repeat xxyy times from @aabb, which points to an F9 command;
+               or maybe repeat xx times? [F8 02 01 01ED] what's yy for?
+               but in SK_09.M on the 8th track is a loop x $CB, which makes
+               the track way longer than the other tracks... a sensible value
+               would be either $0F or $10.
+F9 xxyy - begin a repeat sequence; xxyy is the address of sequence_end + 1
+FA xxyy - detuning by int16 value xxyy. Not really good for midi.
+FB - Swift slide to following new note's pitch
+FC xx - Set the tempo to xx
+        (midi: $30 ticks per quarter note, tempo = 3699092 - 14544 * xx)
+        Could also have different meaning in PC-98 .M files. Normally you get
+        FC xx, but if xx=FE, then it becomes FC FE xx. What does it do?
+FD xx - Set the channel volume to (xx and $7F)
+        Volume seems to be logarithmic, just like on the OPL.
+FE xx - Controls the legato/staccato, 00 is no pause between tones
+FF xx - Select instrument xx
+
+Some tracks are duplicates, sometimes with a slight delay introduced, or
+a bit of detuning. This allows for a fatter sound on FM chips, but it's
+probably best to weed out these duplicate tracks when doing a midi
+translation, unless the song sounds good with multiple instruments playing
+the same melody.
+
+In closing, some analysis of instrument definitions. It would be possible to
+write some fuzzy code to make decent guesses on what instruments should be
+picked for each channel. It would also be a lot easier to just specify each
+instrument by hand, which is what I do.
+
+The PMD MML specs suggest there may be rudimentary instrument definitions
+embedded somewhere:
+0 - standard
+1 - synth type 1
+2 - synth type 2
+3 - synth type 3
+4 - piano type 1
+5 - piano type 2
+6 - glocken/marimba
+7 - strings type
+8 - brass type 1
+9 - brass type 2
+
+In addition to those, there are probably default percussion instruments.
+I would guess at the following assignments:
+$16 - bass drum
+$20 - snare, or a crash cymbal if it has a long duration
+$23 or 0B - open hi-hat
+$24 or 0A - closed hi-hat
+
+The pitch of the note played affects the percussion's pitch as well. While
+translating into midi, probably the most important thing is to map the
+tom-toms into the melodic tom instrument, for proper pitch control.
+
+Consider EVE_05.M:
+On track 1 we find [C6-13-0A-00-00-00-00 CA-01 BB-01 FF-43]. This does
+something strange, then calls up instrument $43. It sounds like a synth bass.
+On track 3 we find [CA-01 BB-01 CF-30 C8-03-00-00 FF-2A]. Instrument $2A
+sounds like a bright bell. Later on the track, there is a switch to
+instrument $3A, which is a kind of synth voice.
+On track 7 we find [C0 FF-10 CC-01 C9-01 CA-01 BB-01 CD-0A-00-01-06-05]. This
+monster grabs instrument $10, and tweaks its settings to use a very slow
+attack and decay. Maybe CC and C9 are the codes that do that...
+
+Here is the entire instrument definition track, rearranged slightly.
+_____________________________________________________________________________
+08|08 04 0A 04 14 00 00 00|1F 1F 1F 1F|1B 10 1B 10|00 00 00 00|F0 F8 F8 F8|35
+0A|0F 00 08 00 13 7F 03 7F|1F 1F 1F 1F|00 00 0F 00|00 00 11 00|00 00 1F 0F|3C
+0B|7F 00 38 00 13 7F 00 7F|1F 1F 1F 1F|00 00 11 00|00 00 0B 00|00 00 4F 0F|3C
+17|0F 00 31 00 00 00 18 00|1F 1F 5F 1F|04 1A 15 00|00 00 04 0C|01 DF 61 0F|3B
+20|0F 02 00 01 07 09 02 00|1F 1F 5F 9F|00 1F 10 0F|00 0F 0F 0F|06 F6 3F 7F|3C
+2C|7F 3F 7A 35 05 00 00 00|12 10 13 13|10 00 11 11|00 00 0E 0E|10 00 18 18|2C
+4C|0F 00 00 01 07 00 00 00|1F 1F 5F 1F|00 17 0F 0F|00 0F 0E 0F|06 C6 2F 0F|3C
+  |                       |           |           |           |           |
+2A|7E 7E 72 72 17 17 00 00|1F 1F 1F 1F|19 19 0F 0F|0A 0A 06 06|30 30 19 19|04
+3A|72 32 34 74 23 23 05 05|1F 1F 11 11|00 00 00 00|00 00 04 04|00 00 0A 0A|04
+43|71 32 72 31 14 1E 00 00|1F 0C 11 11|09 00 00 00|00 00 02 02|40 00 0A 0A|2C
+__|_______________________|___________|___________|___________|___________|__
+ID    FM oscillators            ar          dr          sl         rr?
+
+The first byte is the instrument number. Beyond that, my best guesses after
+a bit of experimentation: the next eight bytes control oscillator frequencies
+and amplitudes using only [00..0F]. The next bytes would seem to form the
+volume envelopes. The last byte likely selects the waveform, or that's what
+the result sounded like.
+
+Here is an instrument definition track from 3sis song SS_12, rearranged.
+Since this is the localised version for IBM-compatibles, the instruments were
+rewritten to target sound cards with an OPL chip. It has fewer oscillators,
+to start with.
+_____________________________________
+ 16 | 00 00 04 00 | F0 E0 00 08 | 06
+ 17 | 01 06 07 03 | F0 F0 0C 04 | 08
+ 20 | 0E 0F 00 84 | F9 F8 11 14 | 0E
+ 23 | 02 05 01 04 | F0 F1 F0 07 | 0E
+ 24 | 0F 0C 0D 06 | FF F7 01 08 | 0E
+    |             |             |
+ 02 | E1 61 16 00 | A5 D7 24 16 | 0A
+ 2F | E2 F4 00 03 | F3 F3 D4 F4 | 01
+ 41 | 62 62 CA 00 | F9 F3 14 55 | 00
+____|_____________|_____________|____
+ ID   Oscillators    Envelopes
+
+The first byte is again the instrument number. It is followed by oscillator
+controls, two bytes of frequency and two of amplitude, as far as I can tell.
+ASDR envelopes follow. The last byte could indicate the waveform.
+
+
+.O files
+========
+These are played by NAX.COM, and the macro language used is apparently
+MUAP98. The official Japanese site can currently be found at:
+http://homepage3.nifty.com/y_ohta/packen/emu/
+Among other things, there is a PDF manual of some sort, and assembler sources
+for an .O player.
+
+The files start with 17 word addresses pointing to tracks. The first track
+often starts with an identifying string, followed by music data as on other
+tracks.
+The tracks evidently are directed to different output modes:
+0, 1, 2, 6, 7, 8, 11..16 are FM-OPN;
+3..5 are SSG (Software-controlled Sound Generator);
+9, 10 are for rhythm and Pulse-Code Modulation (wave output).
+
+List of commands:
+=================
+00..3F xx - Note
+CE - "set last tone, volume, pan"
+CF xx - send channel change
+D0 xx - "SSG/PCM mode"
+D1 - Fade out
+D2 - "Play stack +1"
+D3 xx yy zz aa - "@if exit"
+D4 xx yy zz aa - "PCM address set"
+D5 xx yy - SSG: start vol/attack rate, Rhythm: PCM play
+D6 xx - volume sub
+D7 xx - volume add
+D8 xx - "LFO start(pmd,amd)/stop"
+D9 + 6 bytes - LFO parameter set
+DA xx yy zz - "X value set"
+DB FF 0B xx - followed by a text string of length xx
+DC xx yy zz - "init skip_data"
+DD xx - set comment length
+DE xx - ratio only change
+DF - FM, SSG: "Slur", Rhythm: PCM Repeat
+E0 - Loop counter clear
+E1 - "Tie"
+E2 xx - volume data change
+E3 xx yy zz aa - "@if call"
+E4 xx yy zz aa - "@if jump"
+E5 - "play stack initialize"
+E6 + 26 bytes - "set USR tone parameter"
+E7 xx yy - source line symbolic information
+E8 - "@ret"
+E9 xx yy - "@call"
+EA xx yy - "@jump"
+EB xx - FM: tone number change, SSG: mixer mode chg, Rhythm: PCM tone chg
+EC xx - "key display mask on/off & color"
+ED xx - FM: "3-channel 4-harm mode", SSG: "envelope type"
+EE xx yy - FM: "hard LFO AMD,PMD,AMon", SSG: "env speed", Rhythm: pan/volume
+EF xx - FM: "hard LFO speed", SSG: "envelope mode set, reset", Rhythm: "dump"
+F0 xx - FM, SSG: Global detuning by xx?, Rhythm: Rhythm key on
+F1 xx yy - "register data set"
+F2 xx yy zz - SSG: "start decay data set", Rhythm: "DSP mode, level, delay"
+F3 - "wait all channel"
+F4 xx yy - length/ratio change
+F5 xx yy - timer-A tempo, probably global
+F6 xx - FM: set panning to xx, SSG: noise freq change, Rhythm: PCM pan set
+F7 xx yy zz - loop number of times
+F8 xx yy zz - add frequency
+F9 - FM, SSG: same frequency play, Rhythm: "rhythm command end"
+FA + 8 bytes - "3-channel 4-harm play"
+FB - "wait on '"
+FC - End of track? "this channel skip_play"
+FD - End (break)
+FE - End (loop)
+FF - "Rest music"
+
+START1.O
+
+track0:
+F5 F4 01 - timer-A tempo = 1F4
+EB C8 - FM tone number change to C8
+F4 0C 01 - lengthratio 0C/01
+DE 00 - ratio only change 00
+E2 69 - volume data change 69
+F4 06 00 1B 0B - lengthratio 06/00, note 1B
+F4 0C 00 1B 9E - lengthratio 0C/00, note 1B
+E2 64 - volume data change 64
+F4 60 00 22 B6 - lengthratio 60/00, note 22
+
+track1:
+F4 04 00 FF - lengthratio 04/00, rest
+EB D3 - FM tone D3
+F4 0C 01 - lengthratio 0C/01
+E2 64 - volume 64
+F4 06 00 23 0B - lengthratio 06/00, note 23
+F4 0C 01 23 9E - lengthratio 0C/01, note 23
+E2 5F - volume 5F
+F4 60 0C 2A B6 - lengthratio 60/0C, note 2A
+
+track2:
+F4 08 01 FF - lengthratio 08/01, rest
+EB D5 - FM tone D5
+F4 0C 01 - lengthratio 0C/01
+E2 69 - volume 69
+F4 06 00 1B 0B - lengthratio 06/00, note 1B
+F4 0C 01 1B 9E - lengthratio 0C/01, note 1B
+E2 64 - volume 64
+F4 60 0C 22 B6 - lengthratio 60/0C, note 22
+
+START2.O
+track0:
+F5 C1 03 - tempo 3C1
+EB 9A - FM tone 9A
+F4 30 06
+DE 00 E2 6E - ratio only 00, volume 6E
+F4 90 00 DF 1B 39 - lengthratio 90/00, slur, note 1B
+F4 0C 00 E1 1B 39 - lengthratio 0C/00, tie, note 1B
+F4 30 00 DF 22 6A - lengthratio 30/00, slur, note 22
+F4 C0 00 E1 22 6A - lengthratio C0/00, tie, note 22
+
+track1:
+F4 02 00 FF
+F5 08 02 - tempo 208
+EB 9A - FM tone 9A
+F4 30 06
+DE 00 E2 6E - ratio only 00, volume 6E
+F4 90 00 DF 23 0B - lengthratio 90/00, slur, note 23
+F4 0C 00 E1 23 0B - lengthratio 0C/00, tie, note 23
+F4 30 00 DF 23 0B - lengthratio 30/00, slur, note 23
+F4 C0 00 E1 23 0B - lengthratio C0/00, tie, note 23
+
+track2:
+F4 01 00 FF
+F5 08 02 - tempo 208
+EB 9A - FM tone 9A
+F4 30 06
+DE 00 E2 6E
+F4 9C 00 FF - lengthratio 9C/00, rest
+F4 30 00 DF 23 9E - lengthratio 30/00, slur, note 23
+F4 C0 00 E1 23 9E - lengthratio C0/00, tie, note 23
+FD - break
+
+
+.HMD files
+==========
+Starts with [00 07 C0 00 00] followed by 12 word addresses. The first one
+points to a metadata track. Some may be zeroes, in which case the track does
+not exist.
+
+List of commands:
+FFFF - track end marker
+
+00..7B - notes, followed by duration byte
+0F xx - pause of xx ticks
+F2 xx - unknown
+F4 xx - unknown
+F9 xx yy zz aa - xx yy aa always 18 05 01?
+FA - unknown
+FB - unknown
+FC xx - Volume adjustment by shortint(xx)?
+FD xx yy zz aa - Loop, xx or yy times (always same value?), jump backwards
+                 aazz bytes from the next byte after end of this command.
+
+[F0 E0]
+[FE 1E 00]
+[FE 1F 00]
+[FF 06 01]
+[FF 09 02]
+[FF 09 08]
+[FF 0A]
+[FF 0D 47 C0 49 C0 60]
+
+
+.EMI files
+==========
+Start with a signature, [45 4D 00 06]. Then two bytes of useful data? Then
+word addresses. First address points to a bunch of text. Second address seems
+to point to start of music data. The next two point to end of file?
+In music data, the code FE seems to mean end of track.
+
+
+.SC5 files
+==========
+Recomposer midi files. There are apparently a dozen different extensions for
+these, but I am only looking at SC5 in this. This seems to be a really
+space-wasting file format. I'm glad it's dead.
+
+Starts with a 12 character signature, "RCM-PC98V2.0", followed by a ton of
+text. Skip over to $1C0 for the start of the header. It is 70 bytes long, and
+most of it is useless.
+
+0  byte - probably the low byte of ticks per quarter note
+1  byte - tempo (for midi, set tempo to 60 000 000 divided by this)
+2  word - probably a description of the rhythm type, often 04/04
+4  byte - ?
+5  shortint - global key adjustment
+26 byte - Number of tracks. 18 seems to be a standard number. If this is 0,
+          just use 18 anyway.
+27 byte - probably the high byte of ticks per quarter note
+
+The header is followed at $206 by a number of percussion name strings, even
+if the song doesn't use any percussion. Each entry is 16 bytes long. The
+madness continues from $406: a purposeless in this context series of strings
+proclaiming "USER EXCLUSIVE n". Skip over them to reach the first track's
+header, at $586.
+
+Track header (44 bytes long in length):
+0  word  Track size in bytes, including header
+2  word  unknown...
+4  byte  The low nibble assigns a 0-based midi channel to the track. If the
+         value is $FF, then the track is muted, and can probably be skipped.
+         Midi port in top?
+5  byte  Key adjustment? A signed 7-bit value. The top bit seems to signify
+         to not apply either the track or the global key adjustment.
+8 string Track name, 36 characters, mostly spaces.
+
+Event data follows right after the header. Each event takes at least four
+bytes. The first byte is the event number. The three data bytes I will call
+xx, yy and zz. The data bytes are generally limited to 7-bit values, and hold
+directly midi-compatible values. The first data byte xx is the number of
+ticks to wait before processing the next event; that is, xx is a twisted
+little brother of the midi delta time. If the event is F0..FF, xx has
+a different meaning, and ticks until the next event is always 0.
+
+Events:
+=======
+00..7F - Note on, the event number is the note number (modify it by
+         the global and the track's key adjustment). zz is the velocity.
+         yy is the duration of the note. At the end of the duration, midi
+         conversion needs to add a note off command. If this note is already
+         playing on this track, do not send a new note on, just reset the
+         note's ongoing duration to yy (maybe apply zz as an aftertouch?).
+         If yy or zz are 0, do nothing?
+98 - SysEx? Followed by lots of F7 events. Ignore them all!
+D0..DF - Unnecessary, maybe should ignore xx? SysEx commands?
+E6 - Channel change to yy. The value is 1-based, 0 means muting the track.
+E7 - Tempo change. This calculates an adjustment from the global tempo:
+     tempo * yy / 64. Future adjustments are still done based on the global
+     tempo. Stuff the value 60 000 000 / result into your control track...
+EA - Aftertouch by yy
+EB - Change control yy to zz
+EC - Change instrument to yy
+EE - Pitch bend to yyzz
+F7 - Extra data for a previous event
+F8 - Loop end. Jump back to loop start of the same nesting level, until the
+     loop counter initialised in F9 reaches xx. If xx = 00 or FF, then the
+     loop is infinite. Duration to the next event must be 0 ticks.
+F9 - Loop start, with potential nesting. The loop counter is initially set
+     to 1. Duration to the next event must be 0 ticks.
+FC - Goto yyzz! The address yyzz is an offset from the first byte of the
+     track's header. Jump over and continue processing commands starting from
+     the given address. Once you encounter an FD command, or another FC, jump
+     back to where you started. Also, make a backup of the F9-loop nesting
+     level counter at the time of the jump, and restore the level upon return
+     from the jump. Some jumps have F9 with F8, some without F8. Any loops
+     that happen in a jump, stay in the jump.
+FD - Return from goto: jump back to the offset where the FC command was, and
+     continue processing from the dword after it. If no FC jump has been
+     issued, there's nowhere to return to, in which case ignore this command.
+FE - End of track
+
+
+The final nail on top of the cake: after the last track, there may be one
+more string of unnecessary text. The file size could be cut in half just by
+using variable- instead of constant-length strings...
+
+Infinite loop entrypoints should be marked in the midi conversion, so the
+player can loop the song correctly. Some songs also have tracks looping
+separately, which again requires explicit rolling out to make a good midi
+conversion. Some older games don't have music loop markers in the midi data
+at all, so those probably need to be added by hand.
+- Angel Collection 1
+- Deep
+
+-----------------------------------------------------------------------------
+MUCHIMUCHI SEXY PARFAIT for oneesan
+=======================
+
+Game resources are stored in DATA.DAT, and DATA.HED is an index for it.
+DATA.HED begins with what looks like a short header of 17 bytes. It has the
+data file's name, zero-terminated, plus 8 more useless bytes.
+  data.dat [00] [02 8B 00 10] [FE 12 2C 03]
+(it's not the data file's size, and it's not the header file's size. Is it
+the count of items in the header?)
+
+That is followed by lots of 20-byte entries. The first 13 bytes are
+a filename, zero-terminated, plus junk bytes if the file name is less than
+12 characters. This is followed by three bytes that appear to always be
+[21 EB 77], and are probably also junk to pad the filename to 4 DWORDs. The
+final dword is the file's offset in the data file. The file continues until
+the next file's offset. The final file in the list is virtual, "end", and
+simply gives the final closing offset.
+
+  BADEND.PIC [            00 00 DC 21 EB 77 00 00 00 00]
+  BGM.OVL    [   00 49 43 00 00 DC 21 EB 77 A2 4A 01 00]
+  BUG.OVL    [   00 49 43 00 00 DC 21 EB 77 07 4F 01 00]
+  CG.OVL     [00 00 49 43 00 00 DC 21 EB 77 24 59 01 00]
+  CG_NEW.OVL [            00 00 DC 21 EB 77 C6 74 01 00]
+  DATA.OVL   [      00 4C 00 00 DC 21 EB 77 74 79 01 00]
+  EDIT.OVL   [      00 4C 00 00 DC 21 EB 77 BF 7B 01 00]
+  MK_01C.PIC [            00 4C 00 21 EB 77 3E 05 CB 00]
+  MT_08G.PIC [            00 00 00 21 EB 77 A1 BF B0 01]
+  MT_08I.PIC [            00 00 00 21 EB 77 B0 07 B1 01]
+  SIN_EA1.PIC [              00 00 21 EB 77 CF 16 F3 01]
+  YUM_IBE2.OVL [                00 21 EB 77 C0 92 F9 01]
+  end        [junk                          7D A7 F9 01]
+
+-----------------------------------------------------------------------------
+NOCTURNAL ILLUSION
+==================
+
+Game resources are stored in MUG0.DAT, and MUG0.LST is an index thereof.
+The .G images are pared down versions of .GRA images, and are easily
+converted. Scripts are stored in .S files, with basic obfuscation. There are
+also SAVEx.DAT files, which are most likely empty savegames. This suggests
+that the game engine looks for files first outside the .DAT, and if they are
+not found, then grabs one from the .DAT. This allows easy patching just by
+throwing a modified file into the game's directory, and the empty savegames
+are overridden by real saves.
+
+In addition, music and sound effects are stored outside the .DAT file, as
+normal files. Music is stored in normal midi files, just renamed to .M files.
+Except, N12.M, which for some reason is a PMD .M file.
+Sound effects are in plain wave files.
+
+The .G images start with two words, MSB first: width and height. Most are
+480x304, or 01E0 0130. This is directly followed by the palette, 16 RGB
+triplets, followed by the MAGv3 bitstream.
+
+The PC98 version uses different storage, with resources stuffed in CAT files,
+and offsets in LIB files. Much of the files are compressed using what appears
+to be LZ77 Softdisk Library compression.
+
+The CAT files start with the signature "Catl". This is followed by a word,
+probably signifying the number of resources? Next is the LZ77 stream. When
+decompressed, you have an array of 22-byte entries:
+  resource name : 12 chars, padded with spaces
+  compression type : word, 0 for MAGv3, 1 for LZ77
+  resource byte size, compressed : dword
+  resource start offset from 6th byte in lib : dword
+
+The LIB files start with the signature "Lib0". This is followed by a word,
+again maybe the number of resources? This word should be equal to the word in
+the related cat file. The resource files start from offset 6 onward. Each
+resource with compression 0 (magv3) is a direct file, and can be dumped as
+is. Each resource with compression 1 (LZ77) begins with a dword that probably
+signifies roughly how much memory the unpacked file will take, although every
+unpacked file should fit in 64k. This is followed by the file's LZ77 stream,
+which can be uncompressed the same way as the CAT file was.
+
+
+LZ77 decompression
+==================
+See wiki for SoftDisk Library LZ77. In these, assume an output buffer size of
+65536 for everything. The algorithm:
+- Read flag byte from input, then from lowest bit upward:
+- if bit set, copy literal byte from input to output
+- if bit not set, read codeword word from input; if codeword is 0, quit; else
+  Number of bytes to copy = (codeword and $F) + 3;
+  copy from output offset = codeword shr 4 + (current_out_ofs and $FFFFF000),
+  but if the result is >= current_out_ofs, then subtract $1000 from result;
+  copy the indicated bytes from output to output.
+
+Nocturnal Illusion Renewal
+==========================
+There was a remake in Japan: Nocturnal Illusion Renewal "Voice Version"!
+It has beautifully improved graphics, remixed music, and voice acting.
+However, the graphics are mosaiced at key points.
+
+BGW: music
+GRP: contains an index and .GGD graphics
+OTHERS: cursors
+SE: sfx
+SNR: scripts
+V1 and V2: voice (only on second cd)
+
+MAYCLUB
+=======
+Resource storage in the English version seems to be the same as for Nocturnal
+Illusion. The files are MAY0.LST and MAY0.DAT.
+
+The .DAT contains many graphics whose filenames have no suffix. Just treat
+them as .G files. There are a few suffixless files also outside the .DAT;
+except for SVS and SVX that I see no point for, they appear to be identical
+to the graphics inside the .DAT, and could be ignored.
+
+The PC98 version has some .grp and .gld files, which I suppose are also
+graphics, but I don't recognise the compression method, nor does Grapholic.
+
+Three graphics are not regular .G files. They are MAGv3 files instead, and
+can be identified by a "PiUser" signature.
+
+G_MUGEN.G might be an animated icon for "press any key"...
+
+Mayclub on PC98 uses cat and lib again.
+
+
+MAYCLUB DX
+==========
+There was a remake in Japan: VR May Club DX. It has improved graphics, music,
+and voice acting, as well as an extra character and some script changes.
+
+Graphics are in GRAPHIC.PAK, which contains an index table of resources,
+followed by concatenated .BET files. .BET files appear to use SZDD
+compression. TEXTURE.PAK seems to have more graphics, perhaps animations?
+
+Sound effects are in SE.PAK, same index format, standard RIFF waves. Voice is
+found in VOICE.PAK, same index. Terribly wasteful.
+
+Game script is in SCENARIO.PAK, again with an index first. S21-files follow.
+The script files appear to be unobfuscated, uncompressed bytecode. Commands
+seem to appear as zero-terminated ascii strings...
+
+
+Yuugiri - Ningiyushi no Isan
+============================
+DL.000 starts with an array of filenames and filesizes: array[0..11] of char,
+padded with zeroes, and a dword size. The array is terminated with a filename
+and size of only zeroes. The file extensions found in DL.000 are
+.DPC, .DPN, .DSR and .OPI. To extract each file, start from right after the
+end of the index array, and grab size bytes per file.
+
+.DPC are image files. In DL.000 the first image starts right after the array,
+from $08C0. There remaining four are at 1F5D, 7F34, 8E85, and 9F43.
+
+Header: (size 9 dwords + 2 words image size)
+  [08C0]         [1F5D]         [7F34]         [8E85]         [9F43]
+08 31 94 62    08 31 94 62    00 00 00 00    01 00 01 00    01 00 01 00
+A4 A4 30 D6    A4 A4 30 D6    00 00 00 00    01 00 01 00    01 00 01 00
+01 00 01 00    01 00 01 00    00 00 88 14    00 00 88 14    00 00 88 14
+01 00 01 00    01 00 01 00    AC A4 A8 62    AC A4 A8 62    AC A4 A8 62
+01 00 01 00    01 00 01 00    00 00 88 13    01 00 01 00    01 00 01 00
+01 00 01 00    01 00 01 00    0C 25 90 36    01 00 01 00    01 00 01 00
+01 00 01 00    01 00 01 00    01 00 01 00    01 00 01 00    01 00 01 00
+01 00 01 00    01 00 01 00    01 00 BC F7    01 00 BC F7    01 00 BC F7
+00 00 00 00    00 00 00 00    00 00 00 00    00 00 31 01    58 02 52 01
+80 02 90 01    80 02 90 01    80 02 90 01    80 02 5F 00    20 00 26 00
+word : image width
+word : image height
+Followed by image data?
+
+At the end of the file, there is a text string! FMCi, and some Japanese text,
+then "for YM2203" and "Composed ?.?akami". YM2203 is one of Yamaha's FM chips
+from way back. So .OPI is probably a music file for the YM2203 "OPN" chip.
+
+-----------------------------------------------------------------------------
+.LST index
+==========
+
+Header:
+Signature - 11 bytes: 44 5F 4C 69 62 20 2D 30 32 2D 20, or "D_Lib -02- "
+Word value: 03FF in Nocturne, 015C in Mayclub. Number of resources? Junk?
+Header end - 3 bytes: 20 0D 0A
+
+The list index itself is a series of:
+File name - a string of 12 characters: zero-terminated name, padded with
+  spaces. If the filename uses all 12 characters, the resource extractor must
+  add its own zero at the end. The filename may have a subdirectory embedded,
+  for example "END\1A.G".
+Data offset - unsigned 32-bit value, offset of this resource in .DAT file.
+
+Each resource is considered to go from the given offset up to the next
+resource's starting offset minus one byte. The list ends with a virtual
+resource called "[[End]]     " with a concluding offset value. The .LST ends
+with the byte value 1A, the ASCII end-of-file marker.
+
+-----------------------------------------------------------------------------
+.G image files
+==============
+
+The content of each .G file is simple:
+bytes [0..1] = image pixel width, in reversed byte order
+bytes [2..3] = image pixel height, in reversed byte order
+bytes [4..31] = palette, 16 RGB values
+bytes [32..end] = image data, same compression algorithm as for .GRA files
+
+-----------------------------------------------------------------------------
+.S script files
+===============
+
+These have basic obfuscation; to convert them, decrease even bytes' value by
+one, and increase odd bytes' value by one.
+
+
+-----------------------------------------------------------------------------
+EVE BURST ERROR
+===============
+
+.GDT files
+==========
+Header:
+0    dword  Signature [44 41 31 00]
+4    dword  File size
+8    word   ? [08 40] [0B 13] [1E 13] [00 50]
+10   word   width? [08 00] [54 00] [00 00]
+12   word   height? [20 01] [84 00] [88 01]
+14   ...    Start of image data?
+
+.CC files
+=========
+Signature [4C 43 5A 01]
+Bytecode script?
+
+-----------------------------------------------------------------------------
+PARSLEY games
+=============
+
+RE-NO Stayin' Alive
+===================
+.CGA files start with dword offsets... add $200 to each, then they point to
+section starting with the signature FGC [0F]. This is followed by what looks
+like the size, X and Y as word values. Then another word, value $10. Number
+of colors?
+.APB files start with a series of dword offsets... each points to an array
+of 16 byte triplets. Looks like a palette, though each byte must be shifted
+left by four bits for a good 8-bit value.
+.TXB and .FMB files start with dword offsets... each section pointed to
+starts with the signature FLZ0. So probably some form of LZ compression.
+Game text?
+.APP files start with dword value $8, followed by an array of offsets.
+Add $24 to each offset, and the pointed address contains three word values
+followed by probably image frames for animation. The first word is always $4,
+the second often $A but sometimes $32, and the last could be $50 or $88...
+
+-----------------------------------------------------------------------------
+About the companies
+===================
+
+Apparently, Jast Corporation was a veteran in the adult game industry,
+established in 1985 already. They have distributed games under several
+brands: Jast - Crest, Tiare, and Angel Hearts. They went bankrupt in 2001,
+after the founder and owner died, and apparently are now run under the new
+brand Purple Software.
+
+JAST USA is a separate entity, handling English localisation and distribution
+for a number of different Japanese companies.
+
+The following games, published under each brand, may be of interest:
+(the ones in quotation marks are poor translations from Japanese)
+(www.sogame8.com has a bunch of stuff available)
+
+JAST:
+-----
+  Monmon Gakuen Tenkousei / Transfer Student remake (1998)
+  "Yeah I have Pomupomupuri Puff (for children)" (1998)
++ Shyukan FROM H / "H Weekly Magazine" (1997)
+  "Memories of a cluster amaryllis" (1996)
++ Shin Tenshitachi no Gogo: Tenshitachi no Hohoemi / True Angels' Afternoon:
+  Angels' Smile - 10th commemorative episode (1996)
++ Eden no Kaori / Scent of Eden (1996)
++ Sanshimai - The Three Sisters' Story (1996)
++ Tenshitachi no Gogo Collection 2 (1995)
++ Setsujyuu - Yuganda Kioku / "Snow Cat distorted memories" (1995)
++ Tenshitachi no Gogo Collection (1995)
++ Shin Tenshitachi no Gogo - Tenkousei / Transfer Student (1995)
++ Deep (1994)
++ Super Ultra Mucchin Puripuri Cyborg Marilyn DX (1994)
+  Tenshitachi no gogo Special 2 (1993)
++ Tenshitachi no Gogo 6: My Fair Teacher (1993)
++ Tenshitachi no Gogo 5: Nerawareta Tenshi (1992)
+  Tenshitachi no Gogo Special: Gomen ne Angel - Yokohama Monogatari (1992)
+  Tenshitachi no Gogo 4: Yuhko (1991)
+  Dennou Shougi - Noboru Ryou 2 (1991)
+  Tenshitachi no Gogo 3: Bangai-hen (1990)
+  Tokyo After Five (1990)
+  Tenshitachi no Gogo 3: Ribbon (1989)
+  ... and so on...
+
+Tiare: (look at comshop.ne.jp, some of these are available there...)
+------
+  Justice Slave "Become the Star! Evil organization" (1999)
+  You & I (1999)
+  Tenshi Ningyou / "Angel Doll" (1998, win)
+  Izayoi - "60 days" (1998)
++ Muchimuchisekushiipafe / "Whip whip sexy parfait for oneesan" (1998)
+  Tales Nights: Yume Kagami no Fujo / "Dream Mirror's Shrine Maiden"
+  (1997, first native Windows game?)
++ Tasogare no Kyoukai / "Twilight Boundary" (1997)
++ Magyokko Paradice / Magic Paradise (1996)
++ Sakura no Kisetsu/Season of the Sakura (1996)
++ Meisou Toshi/Runaway City (1995)
++ Vanishing Point - Tenshi no Kie ta Machi (1995)
+
+
+Excellents was another notable producer. Some of their sub-brands were
+Apricot, Desire, Four-Nine, and Pearl Soft.
+
++ Mugen Yasoukyoku / Nocturnal Illusion (1997)
+  Heart no Hahen (1997)
++ VR Date - May Club Gogatsu Kuchibi / May Club (1996)
++ Yuugiri - Ningiyushi no Isan / "Evening Fog - Humane Legacy" (1996)
+  Waku Waku Mahjong Panic! 2 - Kokusimusou / Legend of Fairies (1998)
+  Waku Waku Mahjong Panic! 1 - Sikigami Denshou / Fairy Nights (1997)
+  GaoGao! 4th Canaan - Yakusoku no Daichi (1997)
+  Angel Night - Yamiyo wo Kakeru Tenshitachi no Monogatari (1996)
+  GaoGao! 3rd Wild Force (1994)
+  GaoGao! 2nd Pandora Wood (1994)
+  GaoGao! 1st Radical Sequence (1994)
+
+
+Square (but not that Square) had sub-brands Parsley and Ume Soft.
+
++ RE-NO - Stayin' Alive (1996)
++ True Love / Jun'Ai Monogatari (1995)
++ Venus (1994)
+  Bonnou Yobikou 3 / Preparatory School Troubles 3 (1992)
+  Bonnou Yobikou 2 / Preparatory School Troubles 2 (1991)
+  Bonnou Yobikou 1 / Preparatory School Troubles 1 (1990)

@@ -1,0 +1,47 @@
+language English
+
+file MAINBOXFRAME
+res 1280x790
+file MAINBOXDECORLEFT
+res 1280x790
+file MAINBOXDECORRIGHT
+res 1280x790
+
+file NEWLOGO2
+ofs 280,192
+res 1280x800
+
+file TCHOICE1
+res 1280x800
+framecount 4
+sequence 0:0,stop; 1:1,70; 2:2,70; 3:3,stop; 4:2,80; 5:1,80; 6:jump 0;
+
+file TCHOICE2
+res 1280x800
+framecount 5
+sequence 0:0,stop; 1:1,70; 2:2,70; 3:3,stop; 4:2,80; 5:1,80; 6:jump 0;
+
+file TCHOICE3
+res 1280x800
+framecount 4
+sequence 0:0,stop; 1:1,70; 2:2,70; 3:3,stop; 4:2,80; 5:1,80; 6:jump 0;
+
+file TCHOICE4
+res 1280x800
+framecount 4
+sequence 0:0,stop; 1:1,70; 2:2,70; 3:3,stop; 4:2,80; 5:1,80; 6:jump 0;
+
+file TCHOICE5
+res 1280x800
+framecount 4
+sequence 0:0,stop; 1:1,70; 2:2,70; 3:3,stop; 4:2,80; 5:1,80; 6:jump 0;
+
+file SNOW1
+res 1024x768
+framecount 3
+sequence 0:r3,stop;
+
+file SNOW2
+res 1024x768
+framecount 3
+sequence 0:r3,stop;

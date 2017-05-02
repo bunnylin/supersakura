@@ -1,0 +1,37 @@
+[optimisation: jump index should be built using only numbers that are
+multiples of four, makes it easier to jump]
+
+gob actual a = inherited gob nominal a from all parents, multiplied 
+together
+graphic pixels get premultiplied by px alpha
+accumulated value starts at 0
+available a starts at 100%
+
+for each output pixel where gob's actual a < 100% (DrawRGBA32Alpha):
+inc(accumulated value, gob px value * gob actual a * available a)
+dec(available a, px alpha * gob actual a * available a)
+
+if available a = 0 then skip to post-processing special effects
+if there are no gob actual a < 100% elements below this, and px a = 100%; 
+skip the rest of the elements, go straight to post-processing special 
+effects
+if there are gob actual a < 100% elements below this, and px a = 100%; 
+skip to the next non-descendant of this element's parent
+
+
+for each output pixel where px alpha may be < 100% (DrawRGBA32):
+inc(accumulated value, gob px value * available a)
+dec(available a, px alpha * available a)
+if available a = 0 then skip to post-processing special effects
+
+for each output pixel otherwise (DrawRGB24):
+inc(accumulated value, gob px value * available a)
+available a := 0
+skip to post-processing special effects
+
+
+   sprite: actual a=60%, nominal a=100%, px a=100%, child of
+  sprite: actual a=60%, nominal a=100%, px a=100%, child of
+ sprite: actual a=60%, nominal a=60%, px a=100%, child of
+bkg: actual a=100%, nominal a=100%, px a=100%
+

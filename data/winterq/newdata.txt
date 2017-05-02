@@ -1,0 +1,84 @@
+language English
+baseres 640x480
+
+file FRAME
+res 800x600
+
+file TEXTBOX1
+res 1024x768
+
+file TEXTBOX2
+res 2048x1536
+integerscaling
+
+file TEXTBOX3
+res 1024 x 768
+
+file KURSORI
+dontresize
+
+file EMO
+dontresize
+framecount 4
+sequence 0:0,stop; 1:1,stop; 2:2,stop; 3:3,stop
+sequence 4:1,500; 5:2,500; 6:r4,500; 7:jump -3
+
+file NUM
+res 1024x768
+framecount 6
+
+file BKG1
+res 32x24
+
+file SNOW1
+res 1024x768
+framecount 3
+sequence 0:r3,stop
+
+file SNOW2
+res 1024x768
+framecount 3
+sequence 0:r3,stop
+
+file HERALDBLINK
+ofs 301,174
+framecount 3
+sequence 0:0,r3000; 1:1,55; 2:2,100; 3:1,42; 4:0,100
+
+file CUBERT1
+ofs 0,28
+
+file CUBERTA1
+ofs 116,130
+framecount 3
+sequence 0:0,500; 1:0,r3200; 2:1,50; 3:2,40; 4:2,r120; 5:1,50
+
+file CUBERT2
+ofs 14,28
+
+file CUBERTSM
+ofs 114,186
+
+file ELDER1
+ofs 0,60
+
+file ELDER2
+ofs 0,60
+
+file ELDERA1
+ofs 139,144
+framecount 2
+sequence 0:0,500; 1:0,r3000; 2:1,60; 3:1,r140
+
+file ELDERA2
+ofs 63,144
+framecount 2
+sequence 0:0,500; 1:0,r3000; 2:1,60; 3:1,r140
+
+file BIGMACK1
+ofs 0,20
+
+file BIGMACA1
+ofs 70,122
+framecount 3
+sequence 0:0,r3500; 1:1,60; 2:2,90

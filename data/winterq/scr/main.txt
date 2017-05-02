@@ -1,0 +1,168 @@
+// Winterquest MAIN script
+
+#sys.allownosaves
+sys.setcursor kursori
+sys.settitle "Winterquest"
+
+// ==================================================================
+// Viewport setup
+
+// Viewport 0 is hardcoded to be the user's entire program window.
+// Winterquest's graphics are designed to use an 800x600 pixel frame
+// (viewport 1) containing a 640x480 view (viewport 2). The left and right
+// margins are 80 pixels each, and 16 pixels at the top. So the coordinates
+// of the game view are 80,16 to 720,496, for a size of 640x480.
+//
+// Since we want the game to be scaled to the user's preferred screen size,
+// we request the biggest viewport of aspect ratio 800:600 (that is 4:3) that
+// fits in the program window, and define the game view as a fraction of that
+// viewport. Converting the pixel location and size of viewport 2 to 32k:
+// 80 / 800 * 32768 = 3277
+// 16 / 600 * 32768 = 874
+// 640 / 800 * 32768 = 26214
+// 480 / 600 * 32768 = 26214
+// 
+// viewport.setparams viewport:2 locx=3277 locy=874, sizex=26214 sizey=26214
+// That command is used in CALLS.TXT to turn on the viewframe.
+// Of course, we don't need a viewframe yet in the main menu!
+// So for now, viewport 2 can cover the entire viewport 1.
+
+viewport.setparams viewport:1 parent = 0, ratiox = 4, ratioy = 3
+viewport.setparams viewport:2 parent:1 locx=0,locy=0 sizex=32768,sizey=32768
+
+viewport.setdefault 2 // all game graphics will go in viewport 2
+viewport.setbkgindex viewport:1 index 0
+viewport.setbkgindex viewport:2 index 1
+
+#gfx.show "FRAME" bkg viewport 1
+
+// ==================================================================
+// Textbox setup
+
+// 5: bark box
+// 4: current selection box
+// 3: choice list box
+// 2: title text box
+// 1: game text box
+tbox.setnumboxes 6
+choice.setchoicebox 3
+choice.setpartbox 3
+choice.sethighlightbox 4
+choice.columns 1
+
+// Game text box
+// (Default fontheight is 1280, and we want 4 rows in this, which gives 5120
+// height; add 384x2 for top/bottom margins and round up a bit = 6000)
+
+// 1: Game text box
+tbox.setparam 1 minrows 4
+tbox.setparam 1 maxrows 4
+tbox.setparam 1 margintop 768
+tbox.setparam 1 marginbottom 768
+tbox.setparam 1 basecolor 0x47E8
+tbox.setparam 1 basefill 0
+tbox.settexture 1 TEXTBOX1 normal normal
+tbox.setparam 1 texleftedge 40
+tbox.setparam 1 texrightedge 40
+tbox.setparam 1 textopedge 40
+tbox.setparam 1 texbottomedge 40
+tbox.setparam 1 autowaitkey 1
+tbox.setparam 1 bevel 0
+
+// 2: Dialogue title box
+tbox.setparam 2 minrows 1
+tbox.setparam 2 maxrows 1
+tbox.setparam 2 mincols 8
+tbox.setparam 2 lx 7680
+tbox.setparam 2 ly 27000
+tbox.setparam 2 margintop 256
+tbox.setparam 2 marginbottom 256
+tbox.setparam 2 marginleft 512
+tbox.setparam 2 marginright 512
+tbox.setparam 2 snaptobox 1
+tbox.setparam 2 basecolor 0x47E8
+tbox.setparam 2 basefill 0
+tbox.settexture 2 TEXTBOX2 normal normal
+tbox.setparam 2 texleftedge 16
+tbox.setparam 2 texrightedge 16
+tbox.setparam 2 textopedge 16
+tbox.setparam 2 texbottomedge 16
+tbox.setparam 2 bevel 0
+
+// 3: Choice box
+tbox.setparam 3 minrows 1
+tbox.setparam 3 maxrows 10
+tbox.setparam 3 mincols 6
+tbox.setparam 3 textalign 1
+tbox.setparam 3 lx 640
+tbox.setparam 3 ly 19000
+tbox.setparam 3 ay 4800
+tbox.setparam 3 margintop 512
+tbox.setparam 3 marginbottom 512
+tbox.setparam 3 marginleft 350
+tbox.setparam 3 marginright 300
+tbox.setparam 3 basecolor0 0x479D
+tbox.setparam 3 basecolor1 0x477A
+tbox.setparam 3 basecolor2 0x487B
+tbox.setparam 3 basecolor3 0x2778
+
+// 4: Highlight box
+tbox.setparam 4 marginleft 320
+tbox.setparam 4 marginright 320
+tbox.setparam 4 margintop 80
+tbox.setparam 4 marginbottom 80
+tbox.setparam 4 bevel 1
+tbox.setparam 4 basecolor 0xFFF7
+
+// Bark box
+#tbox.style.copy 6, 2
+#tbox.style.set 6: basetype 4
+#tbox.style.set 6: bkgcolor = 0000C0FF, 1020A0FF, 0000B0FF, 103080FF
+#tbox.style.set 6: loc = 10000, 10000; fontheight = 2100
+#tbox.style.set 6: autofit 1; alwaysrebuild 1; transition 1
+
+// Verb selection box
+#tbox.style.set 5: reset; basetype 8; textcolor 0; margins = 160, 200, 64, 80
+#tbox.style.set 5: bkgcolor = 1028B0B0, 00000000, 1018A0A0, 00000000
+#tbox.style.set 5: autofit 1 alwaysrebuild 1 alphalighten 1 hidable 1
+
+// ==================================================================
+// Title screen
+
+gfx.show TITLE bkg
+sleep 250
+gfx.transition 10
+//fx.precipitate.init SNOW1; SNOW2; snow; 20
+sleep
+
+// ==================================================================
+// Main menu
+
+choice.clear
+choice.set "New Game" newgame
+choice.set "Load Game" loadgame
+choice.set "Test Suite" testscript
+choice.set "Quit" quitgame
+choice.go
+
+@newgame:
+// Play!
+//fx.precipitate.end
+gfx.clearkids
+gfx.remove TITLE
+gfx.transition 10
+sleep
+sleep 500 // dramatic delay before the first scene
+call INTRO.
+goto MAIN.
+
+@loadgame:
+//sys.load
+choice.go
+
+@testscript:
+call TEST.
+goto MAIN.
+
+@quitgame:
+quit

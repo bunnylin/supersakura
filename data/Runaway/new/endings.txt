@@ -1,0 +1,237 @@
+// Runaway City - Endings
+
+sys.allownosaves
+tbox.clear 0
+tbox.clear 1
+tbox.clear 2
+tbox.hide 2
+
+if v512 = 255 then goto badend
+
+// Adjust textbox styles for credit rendering
+style.reset 2
+style.set 2: fontheight = 1400; autofit = 1
+style.set 2: basetype = 0; bkgcolor = 0, 0, 0, 0; margins = 0, 127, 0, 255
+style.copy 3, 2
+style.set 3: fontheight = 1800; boldfont = 1
+
+// fx.precipitate SNOW
+sleep 1600
+let v900 := 2000 // transition delay 2 sec
+gfx.clearallbutbkg
+gfx.show bkg TB_000
+let v10 := $000000FF
+gfx.solidblit MEIF; v10
+gfx.transition 9
+sleep
+sys.framemode disabled
+let v10 := 0
+// gfx.solidblit MEIF; v10
+
+let v900 := 900 // transitions 0.9 sec
+let v907 := 2222 // credit speed in 32k units per second
+let v513 := 0 // image counter
+event.create SLIDES; timed; 4200; NEWSLIDE
+gfx.precache ED_002
+goto creditroll
+
+@newslide:
+  inc v513
+  case v513; s2; s2; s3; s4; s5; s6; s7; s8; s9; s10; s11; s12; s13; s14
+  event.remove SLIDES
+  gfx.clearallbutbkg
+  gfx.show bkg ED_014
+  gfx.transition 0
+exit
+@s2:
+  gfx.clearallbutbkg
+  gfx.show overlay ED_002
+  gfx.transition 0
+  fx.gobslidealpha ED_002; 255; 0
+  fx.gobslidealpha ED_002; 0; 1000
+  gfx.precache ED_003
+exit
+@s3:
+  gfx.clearallbutbkg
+  gfx.show bkg ED_002
+  gfx.show overlay ED_003
+  gfx.transition 0
+  fx.gobslidealpha ED_003; 255; 0
+  fx.gobslidealpha ED_003; 0; 1000
+  gfx.precache ED_004
+exit
+@s4:
+  gfx.clearallbutbkg
+  gfx.show bkg ED_003
+  gfx.show overlay ED_004
+  gfx.transition 0
+  fx.gobslidealpha ED_004; 255; 0
+  fx.gobslidealpha ED_004; 0; 1000
+  gfx.precache ED_005
+exit
+@s5:
+  gfx.clearallbutbkg
+  gfx.show bkg ED_004
+  gfx.show overlay ED_005
+  gfx.transition 0
+  fx.gobslidealpha ED_005; 255; 0
+  fx.gobslidealpha ED_005; 0; 1000
+  gfx.precache ED_006
+exit
+@s6:
+  gfx.clearallbutbkg
+  gfx.show bkg ED_005
+  gfx.show overlay ED_006
+  gfx.transition 0
+  fx.gobslidealpha ED_006; 255; 0
+  fx.gobslidealpha ED_006; 0; 1000
+  gfx.precache ED_007
+exit
+@s7:
+  gfx.clearallbutbkg
+  gfx.show bkg ED_006
+  gfx.show overlay ED_007
+  gfx.transition 0
+  fx.gobslidealpha ED_007; 255; 0
+  fx.gobslidealpha ED_007; 0; 1000
+  gfx.precache ED_008
+exit
+@s8:
+  gfx.clearallbutbkg
+  gfx.show bkg ED_007
+  gfx.show overlay ED_008
+  gfx.transition 0
+  fx.gobslidealpha ED_008; 255; 0
+  fx.gobslidealpha ED_008; 0; 1000
+  gfx.precache ED_009
+exit
+@s9:
+  gfx.clearallbutbkg
+  gfx.show bkg ED_008
+  gfx.show overlay ED_009
+  gfx.transition 0
+  fx.gobslidealpha ED_009; 255; 0
+  fx.gobslidealpha ED_009; 0; 1000
+  gfx.precache ED_010
+exit
+@s10:
+  gfx.clearallbutbkg
+  gfx.show bkg ED_009
+  gfx.show overlay ED_010
+  gfx.transition 0
+  fx.gobslidealpha ED_010; 255; 0
+  fx.gobslidealpha ED_010; 0; 1000
+  gfx.precache ED_011
+exit
+@s11:
+  gfx.clearallbutbkg
+  gfx.show bkg ED_010
+  gfx.show overlay ED_011
+  gfx.transition 0
+  fx.gobslidealpha ED_011; 255; 0
+  fx.gobslidealpha ED_011; 0; 1000
+  gfx.precache ED_012
+exit
+@s12:
+  gfx.clearallbutbkg
+  gfx.show bkg ED_011
+  gfx.show overlay ED_012
+  gfx.transition 0
+  fx.gobslidealpha ED_012; 255; 0
+  fx.gobslidealpha ED_012; 0; 1000
+  gfx.precache ED_013
+exit
+@s13:
+  gfx.clearallbutbkg
+  gfx.show bkg ED_012
+  gfx.show overlay ED_013
+  gfx.transition 0
+  fx.gobslidealpha ED_013; 255; 0
+  fx.gobslidealpha ED_013; 0; 1000
+  gfx.precache ED_014
+exit
+@s14:
+  gfx.clearallbutbkg
+  gfx.show bkg ED_013
+  gfx.show overlay ED_014
+  gfx.transition 0
+  fx.gobslidealpha ED_014; 255; 0
+  fx.gobslidealpha ED_014; 0; 1000
+exit
+
+@creditroll:
+credit 3; \c58CF;Runaway City>>
+credit 2; \cCDFF;DIRECTOR
+credit 2; Professor Compression>
+credit 2; \cCDFF;ORIGINAL ARTWORK
+credit 2; Ishiki Ryotaro>
+credit 2; \cCDFF;OPENING ARTWORK
+credit 2; Sanagi Oshima
+credit 2; Melmo-chan>
+credit 2; \cCDFF;ARTISTS
+credit 2; Usa Usagi
+credit 2; Yumirin
+credit 2; Tom Yan Kimosabe
+credit 2; Saya Izawa
+credit 2; Curly-kun>
+credit 2; \cCDFF;ASSISTANT
+credit 2; Oguro>
+credit 2; \cCDFF;SCENARIO
+credit 2; Daikoku>
+credit 2; \cCDFF;MUSIC
+credit 2; Takanori Nakaigawa>
+credit 2; \cCDFF;PROGRAM
+credit 2; Lord of Destruction>
+credit 2; \cCDFF;THANKS TO
+credit 2; Eiwa Technical Service>>
+credit 2; \cCDFF;ENGLISH TRANSLATION
+credit 2; Totoro Hunter Leto II>
+credit 2; \cCDFF;BETA OVERLORD
+credit 2; Devil Hunter Matt
+credit 2; George H
+credit 2; Quentin
+credit 2; Ranma
+credit 2; Deloura
+credit 2; and more>>
+credit 2; \cCDFF;PLANNING
+credit 3; \cE02F;JAST>>>
+credit 2; \cCDFF;Adapted for the SuperSakura engine by
+credit 2; Mimu Bunnylin / MoonCore
+sleep
+sleep 800
+
+style.set 2: transition = 2; boldfont = 1; fontheight = 3333; autofit = 0
+style.set 2: loc = 8192, 14718; size = 16384, 4000; textalign = center
+px 2; The End
+sleep 1800
+waitkey
+gfx.clearallbutbkg
+gfx.show bkg TB_000
+gfx.transition 9
+sleep
+tbox.popout 2
+sleep 2000
+runscript MAIN
+
+// ------------------------------------------------------------------
+@badend:
+let v900 := 1500 // transition delay 1.5 sec
+style.reset 2
+style.set 2: basetype = 0; bkgcolor = 0, 0, 0, 0; margins = 0, 127, 0, 255
+style.set 2: transition = 2; boldfont = 1; fontheight = 3333; autofit = 0
+style.set 2: loc = 8192, 14718; size = 16384, 4000; textalign = center
+px 2; GAME OVER
+sleep 1800
+waitkey
+gfx.clearallbutbkg
+let v10 := $000000FF
+gfx.solidblit MEIF; v10
+gfx.show bkg TB_000
+gfx.transition 9
+sleep
+tbox.popout 2
+sleep 2000
+sys.framemode disabled
+let v10 := 0
+//gfx.solidblit MEIF; 0
+runscript MAIN

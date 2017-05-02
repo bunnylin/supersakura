@@ -1,0 +1,5 @@
+// basic ending script
+
+print GAME OVER
+waitkey
+runscript MAIN

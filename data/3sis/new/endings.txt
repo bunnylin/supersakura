@@ -1,0 +1,182 @@
+// The Three Sisters' Story - Endings
+
+sys.allownosaves
+let v900 := 1500 // transition delay 1.5 sec
+tbox.clear 0
+tbox.clear 1
+tbox.clear 2
+tbox.hide 2
+
+// Adjust the textbox styles for credit rendering
+tbox.style.set 2: reset; fontheight = 1400; autofit = 1
+tbox.style.set 2: basetype = 0; bkgcolor = 0, 0, 0, 0; margins = 0, 127, 0, 255
+tbox.style.copy 3, 2
+tbox.style.set 3: fontheight = 1800; boldfont = 1
+
+case v512; SK743; SK738; SK737
+
+// ------------------------------------------------------------------
+// Game over, man
+
+mus.play SS_05
+goto gameoverstyle
+px 2; GAME OVER
+sleep 2000
+gfx.clearallabovebkg
+gfx.show bkg TB_000
+gfx.transition 9
+sleep
+waitkey
+tbox.popout 2
+sleep 2000 // wait for textbox to be gone
+runscript MAIN
+
+@gameoverstyle:
+tbox.style.set 2: transition = 2; boldfont = 1; fontheight = 3333; autofit = 0
+tbox.style.set 2: loc = 8192, 14718; size = 16384, 4000; textalign = center
+return
+
+// ------------------------------------------------------------------
+@SK743:
+goto credits
+print .......
+waitkey
+print I got back what was lost, and everything's alright now.
+waitkey
+print ... I've never known such happiness.
+waitkey
+goto gameoverstyle
+px 2; The End
+sleep 2000
+waitkey
+gfx.clearallabovebkg
+gfx.show bkg TB_000
+gfx.transition 9
+sleep
+tbox.popout 2
+sleep 2000
+runscript MAIN
+
+@SK738:
+goto credits
+title Emi
+print ... You know what's coming. Are you ready for some pain?
+waitkey
+title \s1;
+print Eiichi, my brother. I'll be joining you in a few minutes...
+waitkey
+
+goto gameoverstyle
+px 2; GAME OVER // fades in as the punishment commences
+
+fx.flash 1, 1
+fx.bash 9800, 5000; 20; 12; SE_086
+sleep 500
+fx.flash 1, 1
+fx.bash 8000, -9500; 20; 12; SE_086
+sleep 400
+fx.flash 1, 1
+fx.bash 6600, 8400; 15; 14; SE_086
+sleep 700
+fx.flash 2, 1
+fx.bash 12000, 3000; 15; 14; SE_086
+
+gfx.clearallabovebkg
+gfx.show bkg TB_000
+gfx.transition 0
+sleep
+
+title \s1;
+print This isn't the way it's supposed to end!
+waitkey
+sleep 600
+tbox.popout 2
+sleep 2000
+runscript MAIN
+
+@SK737:
+goto credits
+title Emi
+print I've had it with you, \s1;!
+waitkey
+title Emi
+print I can't believe you'd sleep with both my sisters!
+waitkey
+title Emi
+print Well, you can have them. I'm going to find someone who loves only me!
+waitkey
+title Emi
+print Goodbye. \s1;.
+waitkey
+title \s1;
+print Ah, wait, Emi! Please, come back!
+waitkey
+title \s1;
+print ....... This isn't the way I wanted it to end.
+waitkey
+title \s1;
+print I was just one step away from being with Emi forever.
+waitkey
+print My dreams come to an end with an audible shatter.
+
+gfx.clearallabovebkg
+gfx.show bkg TB_000
+gfx.transition 0
+fx.gammaslide 256, 256, 256; 0; 1
+goto gameoverstyle
+px 2; The End
+sleep 200
+fx.gammaslide 0, 0, 0; 300; 1
+sleep
+
+waitkey
+sleep 1200
+tbox.popout 2
+sleep 2800
+runscript MAIN
+
+// ------------------------------------------------------------------
+@credits:
+credit 3; \cDE9F;The Three Sisters' Story>>
+credit 2; \cCDFF;DIRECTOR
+credit 2; Crazy Jun> // should maybe be "Crusher Jun"
+credit 2; \cCDFF;ORIGINAL SCRIPT
+credit 2; No. 3327>
+credit 2; \cCDFF;ORIGINAL ARTWORK
+credit 2; Artmic>
+credit 2; \cCDFF;ART DIRECTOR
+credit 2; Sanagi Oshima>
+credit 2; \cCDFF;ARTISTS
+credit 2; Usa Usagi
+credit 2; Inu Satsuki Ikimaaasu!
+credit 2; Yumirin>
+// at this point the Japanese credits have something about "Necrosis"???
+credit 2; \cCDFF;ANIMATION
+credit 2; Miyabi>
+credit 2; \cCDFF;ASSISTANT ARTIST
+credit 2; Oguro>
+credit 2; \cCDFF;MACHINE LANGUAGE ASSEMBLY
+credit 2; Crazy Jun> // "Crusher Jun"?
+credit 2; \cCDFF;MUSIC
+credit 2; 'Kyan' Nakaigawa Naofumi>
+// in the Japanese credits: PUBLIC RELATIONS
+// Worldwide Beef Tongue Association (Taiwan only)
+credit 2; \cCDFF;THANKS TO
+credit 2; Eiwa Technical Service>
+credit 2; \cCDFF;BIG THANKS TO
+credit 2; Professor Compression>>
+credit 2; \cCDFF;ENGLISH TRANSLATION
+credit 2; Totoro Hunter>
+credit 2; \cCDFF;ENGLISH PRODUCER
+credit 2; Operator 7G>
+credit 2; \cCDFF;ENGLISH CHECKER
+credit 2; Obakasan>
+credit 2; \cCDFF;THANKS TO
+credit 2; Maebashi Shiyakusho>>
+credit 2; \cCDFF;CREATED BY
+credit 3; \cE02F;JAST>>>
+credit 2; \cCDFF;Adapted for the SuperSakura engine by
+credit 2; Kirinn Bunnylin / MoonCore
+sleep
+sleep 800
+return
