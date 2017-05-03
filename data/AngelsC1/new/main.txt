@@ -1,0 +1,95 @@
+// Tenshitachi no Gogo Collection 1
+// Main menu and game definitions
+
+sys.settitle "Tenshitachi no Gogo collection 1"
+
+// 480x296 view in 640x400 frame @ 80,16
+viewport.setparams viewport:1 parent:0, ratiox = 16, ratioy = 10
+viewport.setparams viewport:2 parent:1, locx 0 locy 0 sizex 32768 sizey 32768
+
+viewport.setdefault 2 // all game graphics will go in viewport 2
+viewport.setbkgindex viewport:1 index 0
+viewport.setbkgindex viewport:2 index 2
+
+#gfx.show TENFRE bkg viewport 1
+#gfx.show TENGO_NO viewport 1
+
+// Textbox setup
+tbox.setnumboxes 4
+choice.setchoicebox 1
+choice.setpartbox 2
+choice.sethighlightbox 3
+
+// 1: Game text & choice box
+tbox.setparam 1 minrows 4
+tbox.setparam 1 maxrows 4
+tbox.setparam 1 minsizex 23000
+tbox.setparam 1 maxsizex 23000
+tbox.setparam 1 ax 16384
+tbox.setparam 1 ay 32768
+tbox.setparam 1 lx 16384
+tbox.setparam 1 ly 32000
+tbox.setparam 1 autowaitkey 1
+
+// 2: Dialogue title box
+tbox.setparam 2 minrows 1
+tbox.setparam 2 maxrows 1
+tbox.setparam 2 mincols 8
+tbox.setparam 2 lx 4800
+tbox.setparam 2 ly 25000
+tbox.setparam 2 margintop 256
+tbox.setparam 2 marginbottom 256
+tbox.setparam 2 marginleft 512
+tbox.setparam 2 marginright 512
+tbox.setparam 2 snaptobox 1
+
+// 3: Highlight box
+tbox.setparam 3 marginleft 320
+tbox.setparam 3 marginright 320
+tbox.setparam 3 margintop 80
+tbox.setparam 3 marginbottom 80
+tbox.setparam 3 bevel 1
+tbox.setparam 3 basecolor 0xFFF7
+
+
+// ===== title =====
+@mainmenu:
+gfx.clearall
+gfx.show TP_00 bkg
+gfx.transition 14
+sleep
+
+// ===== main menu =====
+choice.clear
+choice.set "Tenshitachi no Gogo"
+choice.set "Tenshitachi no Gogo 2 - Minako"
+choice.set "Tenshitachi no Gogo 3 - Ribbon"
+choice.set "Quit Game"
+$v1 := (choice.get)
+
+gfx.clearall
+#gfx.setframe TENGO_NO $v1
+case $v1 "game1:game2:game3:nogame"
+
+// ===== Angels' Eve 1 =====
+@game1:
+call SCA00.
+goto mainmenu
+
+// ===== Angels' Eve 2: Minako =====
+@game2:
+call SCB00. // title screen
+gfx.clearall
+call SCB01. // game start
+goto mainmenu
+
+// ===== Angels' Eve 3: Ribbon =====
+@game3:
+call SCM00. // title screen
+gfx.clearall
+call SCM01. // game start
+goto mainmenu
+
+// ===== Quit Game =====
+@nogame:
+sys.quit
