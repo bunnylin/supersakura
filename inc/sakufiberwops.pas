@@ -465,7 +465,37 @@ begin
  end;
 end;
 
-procedure Invoke_GFX_MOVE; inline; begin end;
+procedure Invoke_GFX_MOVE; inline;
+var gobnum, newx, newy, time : longint;
+begin
+ if FetchParam(WOPP_GOB) = FALSE then fibererror('gfx.move without gob')
+ else begin
+  strvalue[0] := upcase(strvalue[0]);
+  gobnum := GetGob(strvalue[0]);
+  if IsGobValid(gobnum) = FALSE then
+   fibererror('gfx.move invalid gob: ' + strdec(gobnum))
+  else begin
+   newx := gob[gobnum].locx;
+   newy := gob[gobnum].locy;
+   if FetchParam(WOPP_LOCX) then newx := numvalue;
+   if FetchParam(WOPP_LOCY) then newy := numvalue;
+   numvalue := 0;
+   FetchParam(WOPP_TIME);
+   time := numvalue;
+   if time < 0 then time := 0;
+   strvalue[0] := '';
+   FetchParam(WOPP_STYLE);
+   numvalue2 := MOVETYPE_INSTANT;
+   case lowercase(strvalue[0]) of
+     'linear': numvalue2 := MOVETYPE_LINEAR;
+     'cosine','coscos','cos': numvalue2 := MOVETYPE_COSCOS;
+     'halfcos': numvalue2 := MOVETYPE_HALFCOS;
+     else numvalue2 := MOVETYPE_INSTANT;
+   end;
+   AddGobMoveEffect(gobnum, fiberid, newx, newy, time, numvalue2);
+  end;
+ end;
+end;
 
 procedure Invoke_GFX_PRECACHE; inline;
 var x, y : dword;
@@ -497,7 +527,7 @@ begin
   strvalue[0] := upcase(strvalue[0]);
   for ivar := length(gob) - 1 downto 0 do
    if gob[ivar].gobnamu = strvalue[0]
-   then gob[ivar].drawstate := (gob[ivar].drawstate and $1F) or $80;
+   then gob[ivar].drawstate := (gob[ivar].drawstate and $3F) or $80;
  end;
 end;
 

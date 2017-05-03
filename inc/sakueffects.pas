@@ -82,6 +82,8 @@ begin
       contentbufparamvalid := FALSE;
      end;
     end;
+
+    FX_GOBMOVE: MoveGob(fxgob, x2 - gob[fxgob].locx, y2 - gob[fxgob].locy);
   end;
 
   // Zero out the effect data.
@@ -211,29 +213,38 @@ begin
  addFlashEffect := fxvar;
 end;
 
-function addGobMoveEffect(gobnum : byte; tox, toy : longint; msecs : dword; style : byte) : byte;
-var fxvar : byte;
+procedure addGobMoveEffect(gobnum : dword; fibernum, tox, toy, msecs: longint; style : byte);
+var fxvar : dword;
 begin
- {$note Re-implement gob move effect}
- // Any existing move effect on this same gob can be scrapped
- for fxvar := high(fx) downto 0 do
-  if (fx[fxvar].kind = 8) and (fx[fxvar].fxgob = gobnum) then begin
-   fx[fxvar].kind := 0; break;
-  end;
- // an instant move can't be handled here since a move needs to refresh two
- // screen regions, and that's easiest done in the effector/renderer code.
- if style = 0 then msecs := 0;
- fxvar := NewFx(0);
- fx[fxvar].kind := 8;
- fx[fxvar].fxgob := gobnum;
- fx[fxvar].x1 := gob[gobnum].locx; // source location
- fx[fxvar].y1 := gob[gobnum].locy;
- fx[fxvar].x2 := tox; // target location
- fx[fxvar].y2 := toy;
- fx[fxvar].time := msecs; // remaining msecs
- fx[fxvar].time2 := msecs; // full msecs
- fx[fxvar].data := style; // 0: instant, 1: linear, 2: coscos, 3: halfcos
- addGobMoveEffect := fxvar;
+ if IsGobValid(gobnum) = FALSE then exit;
+
+ if style = MOVETYPE_INSTANT then msecs := 0;
+ // If a move effect on this box is already live, co-opt it.
+ fxvar := 0;
+ while fxvar < fxcount do begin
+  if (fx[fxvar].kind = FX_GOBMOVE) and (fx[fxvar].fxgob = gobnum) then break;
+  inc(fxvar);
+ end;
+ if fxvar >= fxcount then fxvar := NewFx(-1);
+
+ // Set up the effect.
+ with fx[fxvar] do begin
+  kind := FX_GOBMOVE;
+  fxgob := gobnum;
+  // source location
+  x1 := gob[gobnum].locx;
+  y1 := gob[gobnum].locy;
+  // target location
+  x2 := tox;
+  y2 := toy;
+
+  time := msecs; // remaining msecs
+  time2 := msecs; // full msecs
+  data2 := style;
+
+  // End the effect immediately if time is 0.
+  if msecs = 0 then DeleteFx(fxvar);
+ end;
 end;
 
 procedure addBoxMoveEffect(boxnum : dword; fibernum, tox, toy, ankhx, ankhy, msecs : longint; style : byte);
@@ -521,6 +532,25 @@ begin
        contentwinminsizeyp := (contentwinminsizey * viewport[inviewport].viewportsizeyp + 16384) shr 15;
        contentwinmaxsizeyp := contentwinminsizeyp;
        TBox[fxbox].contentbuftextvalid := FALSE;
+      end;
+     end;
+    end;
+
+    FX_GOBMOVE: begin
+     if tickcount >= fx[fxi].time then DeleteFx(fxi)
+     else with fx[fxi] do begin
+      dec(time, tickcount);
+      case data2 of
+        MOVETYPE_LINEAR: ;
+        MOVETYPE_COSCOS:;
+        MOVETYPE_HALFCOS: begin
+         ivar := dword(high(coscos) shr 1) * time div time2;
+         jvar := $FFFF - coscos[ivar];
+         ivar := jvar xor $7FFF;
+         MoveGob(fxgob,
+           (x2 * ivar + x1 * jvar) div $7FFF - gob[fxgob].locx,
+           (y2 * ivar + y1 * jvar) div $7FFF - gob[fxgob].locy);
+        end;
       end;
      end;
     end;

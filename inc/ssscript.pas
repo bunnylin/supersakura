@@ -555,7 +555,7 @@ begin
  // default: noclear = 0, box is cleared
  ss_rwopparams[WOP_FIBER_WAITKEY][WOPP_NOCLEAR] := ss_rwoppargtype[WOPP_NOCLEAR];
 
- // === Graphics commands === (wopp_gob defaults to empty, gamevar.bkggob)
+ // === Graphics commands === (wopp_gob defaults to empty, fail)
  // default: empty string, gfx.adopt fails
  ss_rwopparams[WOP_GFX_ADOPT][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB] or $F0;
  // default: empty string, gob is orphaned
