@@ -823,9 +823,8 @@ begin
   FetchParam(WOPP_TIME);
   time := numvalue;
   if time < 0 then time := 0;
-  strvalue[0] := '';
-  FetchParam(WOPP_STYLE);
-  numvalue2 := MOVETYPE_INSTANT;
+  numvalue2 := MOVETYPE_LINEAR;
+  if FetchParam(WOPP_STYLE) then
   case lowercase(strvalue[0]) of
     'linear': numvalue2 := MOVETYPE_LINEAR;
     'cosine','coscos','cos': numvalue2 := MOVETYPE_COSCOS;
@@ -877,13 +876,13 @@ begin
   FetchParam(WOPP_TIME);
   time := numvalue;
   if time < 0 then time := 0;
-  strvalue[0] := '';
-  FetchParam(WOPP_STYLE);
-  numvalue2 := MOVETYPE_INSTANT;
+  numvalue2 := MOVETYPE_LINEAR;
+  if FetchParam(WOPP_STYLE) then
   case lowercase(strvalue[0]) of
     'linear': numvalue2 := MOVETYPE_LINEAR;
     'cosine','coscos','cos': numvalue2 := MOVETYPE_COSCOS;
     'halfcos': numvalue2 := MOVETYPE_HALFCOS;
+    else numvalue2 := MOVETYPE_INSTANT;
   end;
   AddBoxSizeEffect(boxnum, fiberid, newx, newy, time, numvalue2);
  end;

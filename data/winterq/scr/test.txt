@@ -49,64 +49,69 @@ choice.set "No" .testclasses
 choice.go
 
 @testboxes2:
-#tbox.style.set 6: reset; basetype 0; bkgcolor = 0,0,0,0; textcolor = EEFFFFFF
-#tbox.style.set 6: loc = 1000, 10200; size = 30768 x 6200; margins = 0, 0, 0, 0
-#tbox.style.set 6: fontheight = 2000; autofit 0 alwaysrebuild 0 textalign center
-#tbox.hide 1
-#tbox.hide 6
+tbox.setparam 6 lx 16384
+tbox.setparam 6 ly 10200
+tbox.setparam 6 minsizex 28000
+tbox.setparam 6 maxsizex 28000
+tbox.setparam 6 ax 16384
+tbox.setparam 6 minsizey 6400
+tbox.setparam 6 maxsizey 8000
+tbox.setparam 6 fontheight 2000
+
 waitkey
-#tbox.style.set 1: transition = 1
-#tbox.style.set 6: transition = 1
-#tbox.style.set 7: transition = 1
+
+tbox.setparam 1 poptype 1
+tbox.setparam 6 poptype 1
+tbox.setparam 6 textalign 1
 print "Transition 1, pop in/out"
 print 6 '"Just popping by," he intoned in an intense tone.'
-waitkey noclear=1
-#tbox.popout 1
-#tbox.popout 6
 waitkey
-#tbox.style.set 1: transition = 2
-#tbox.style.set 6: transition = 2; textalign right
-#tbox.style.set 7: transition = 2
+waitkey
+
+tbox.setparam 1 poptype 2
+tbox.setparam 6 poptype 2
+tbox.setparam 6 textalign 2
 print "Transition 2, fade in/out"
 print 6 "Those who would know themselves . . .\nmust first know arithmetics."
-waitkey noclear=1
-#tbox.popout 1
-#tbox.popout 6
 waitkey
-#tbox.style.set 1: transition = 3
-#tbox.style.set 6: transition = 3; textalign center
-#tbox.style.set 7: transition = 3
+waitkey
+
+tbox.setparam 1 poptype 3
+tbox.setparam 6 poptype 3
+tbox.setparam 6 textalign 1
+
 print "Transition 3, sweep in/out"
 print 6 "Look into your heart\n\nyou KNOW this to be true!"
-waitkey noclear=1
-#tbox.popout 1
-#tbox.popout 6
 waitkey
-#tbox.style.set 1: transition = 0
-#tbox.style.set 7: transition = 0
+waitkey
+
+tbox.setparam 1 poptype 0
+tbox.setparam 6 poptype 0
 print "Transition 0, instant. With movement and sizing!\n"
 print "Instant, linear, coscos and halfcos."
 waitkey noclear=1
 
-tbox.setloc 1 locx 6000 locy 4000 time 4000 style=instant
-tbox.setsize 1 sizex 14000 sizey 8000
+print 6 "Box McBoxFace"
+tbox.setloc 6 locx 16000 locy 4000 time 4000 style=instant
+tbox.setsize 6 sizex 14000 sizey 8000 time 4000 style=instant
 waitkey noclear=1
 
-tbox.setloc 1 locx 4384 locy 26000 time 4000 style=linear
+tbox.setloc 6 locx 17000 locy 26000 time 4000 style=linear
+tbox.setsize 6 sizex 12000 sizey 6000 time 4000 style=linear
 waitkey noclear=1
 
-tbox.setloc 1 locx 6000 locy 4000 time 4000 style=cosine
+tbox.setloc 6 locx 16000 locy 4000 time 4000 style=cosine
+tbox.setsize 6 sizex 14000 sizey 8000 time 4000 style=cosine
 waitkey noclear=1
 
-tbox.setloc 1 locx 4384 locy 26000 time 4000 style=halfcos
+tbox.setloc 6 locx 15000 locy 26000 time 4000 style=halfcos
+tbox.setsize 6 sizex 12000 sizey 6000 time 4000 style=halfcos
 sleep
 
-tbox.clear 1
+tbox.clear
 print "Done!"
 waitkey
 
-#tbox.style.set 1: transition = 1
-#tbox.style.set 7: transition = 1
 goto testboxesback
 
 // ------------------------------------------------------------------
@@ -564,13 +569,13 @@ gfx.show CUBERT1 locx 132
 gfx.transition
 gfx.show CUBERTa1 locx 132
 print "Press enter to test: instant, linear, cos, and halfcos."
-waitkey
+waitkey noclear=1
 gfx.move CUBERT1 instant 18000 0 2000
-waitkey
+waitkey noclear=1
 gfx.move CUBERT1 linear 132 0 2000
-waitkey
+waitkey noclear=1
 gfx.move CUBERT1 cos 18000 0 4000
-waitkey
+waitkey noclear=1
 gfx.move CUBERT1 halfcos 132 0 4000
 waitkey
 gfx.clearkids

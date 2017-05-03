@@ -420,6 +420,10 @@ begin
  // default: current size or 0,0
  ss_rwopparams[WOP_TBOX_SETSIZE][WOPP_SIZEX] := ss_rwoppargtype[WOPP_SIZEX] or $E0;
  ss_rwopparams[WOP_TBOX_SETSIZE][WOPP_SIZEY] := ss_rwoppargtype[WOPP_SIZEY] or $D0;
+ // default: 0 msec
+ ss_rwopparams[WOP_TBOX_SETSIZE][WOPP_TIME] := ss_rwoppargtype[WOPP_TIME] or $A0;
+ // default: "linear"
+ ss_rwopparams[WOP_TBOX_SETSIZE][WOPP_STYLE] := ss_rwoppargtype[WOPP_STYLE];
  ss_rwopparams[WOP_TBOX_SETTEXTURE][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
  // default: empty texture graphic name
  ss_rwopparams[WOP_TBOX_SETTEXTURE][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB];

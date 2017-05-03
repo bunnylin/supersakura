@@ -419,6 +419,8 @@ var bufp, runp : pointer;
   var srcp, destp : pointer;
       srcw, destw, y : dword;
   begin
+   // safety
+   if (destx2 <= destx1) or (desty2 <= desty1) then exit;
    // Get the source rectangle into tempbmp.
    tempbmp.sizex := srcx2 - srcx1;
    tempbmp.sizey := srcy2 - srcy1;

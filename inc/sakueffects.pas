@@ -476,8 +476,28 @@ begin
      else with fx[fxi] do begin
       dec(time, tickcount);
       case data2 of
-        MOVETYPE_LINEAR: ;
-        MOVETYPE_COSCOS:;
+        MOVETYPE_LINEAR: begin
+         ivar := time2 - time;
+         with TBox[fxbox] do begin
+          boxlocx := (x2 * ivar + x1 * time) div time2;
+          boxlocy := (y2 * ivar + y1 * time) div time2;
+          anchorx := (longint((poku + 8)^) * ivar + longint((poku + 0)^) * time) div time2;
+          anchory := (longint((poku + 12)^) * ivar + longint((poku + 4)^) * time) div time2;
+         end;
+        end;
+
+        MOVETYPE_COSCOS: begin
+         ivar := dword(high(coscos)) * time div time2;
+         jvar := coscos[high(coscos) - ivar];
+         ivar := jvar xor $FFFF;
+         with TBox[fxbox] do begin
+          boxlocx := (x2 * ivar + x1 * jvar) div $FFFF;
+          boxlocy := (y2 * ivar + y1 * jvar) div $FFFF;
+          anchorx := (longint((poku + 8)^) * ivar + longint((poku + 0)^) * jvar) div $FFFF;
+          anchory := (longint((poku + 12)^) * ivar + longint((poku + 4)^) * jvar) div $FFFF;
+         end;
+        end;
+
         MOVETYPE_HALFCOS: begin
          ivar := dword(high(coscos) shr 1) * time div time2;
          jvar := $FFFF - coscos[ivar];
@@ -511,8 +531,24 @@ begin
      else with fx[fxi] do begin
       dec(fx[fxi].time, tickcount);
       case data2 of
-        MOVETYPE_LINEAR: ;
-        MOVETYPE_COSCOS:;
+        MOVETYPE_LINEAR: begin
+         ivar := time2 - time;
+         with TBox[fxbox] do begin
+          contentwinminsizex := (x2 * ivar + x1 * time) div time2;
+          contentwinminsizey := (y2 * ivar + y1 * time) div time2;
+         end;
+        end;
+
+        MOVETYPE_COSCOS: begin
+         ivar := dword(high(coscos)) * time div time2;
+         jvar := coscos[high(coscos) - ivar];
+         ivar := jvar xor $FFFF;
+         with TBox[fxbox] do begin
+          contentwinminsizex := (x2 * ivar + x1 * jvar) div $FFFF;
+          contentwinminsizey := (y2 * ivar + y1 * jvar) div $FFFF;
+         end;
+        end;
+
         MOVETYPE_HALFCOS: begin
          ivar := dword(high(coscos) shr 1) * time div time2;
          jvar := $FFFF - coscos[ivar];
@@ -541,8 +577,22 @@ begin
      else with fx[fxi] do begin
       dec(time, tickcount);
       case data2 of
-        MOVETYPE_LINEAR: ;
-        MOVETYPE_COSCOS:;
+        MOVETYPE_LINEAR: begin
+         ivar := time2 - time;
+         MoveGob(fxgob,
+           (x2 * ivar + x1 * time) div time2 - gob[fxgob].locx,
+           (y2 * ivar + y1 * time) div time2 - gob[fxgob].locy);
+        end;
+
+        MOVETYPE_COSCOS: begin
+         ivar := dword(high(coscos)) * time div time2;
+         jvar := coscos[high(coscos) - ivar];
+         ivar := jvar xor $FFFF;
+         MoveGob(fxgob,
+          (x2 * ivar + x1 * jvar) div $FFFF - gob[fxgob].locx,
+          (y2 * ivar + y1 * jvar) div $FFFF - gob[fxgob].locy);
+        end;
+
         MOVETYPE_HALFCOS: begin
          ivar := dword(high(coscos) shr 1) * time div time2;
          jvar := $FFFF - coscos[ivar];
@@ -680,65 +730,6 @@ end;
          AddRefresh(viewportx1p, viewporty1p, viewportx2p, viewporty2p);
        end;
        //write(tickcount,';');
-      end;
-   // Gob movement effect
-   8: begin
-       inc(fx[ivar].time2, tickcount);
-       if IsGobValid(fx[ivar].gob)
-       then begin
-        if fx[ivar].time2 >= fx[ivar].time then begin
-         // time's up, move gob directly to end goal
-         xvar1 := fx[ivar].x2;
-         xvar2 := fx[ivar].y2;
-        end else
-        case fx[ivar].data of
-         2: begin // coscos style
-             // Calculate the current progress from x1,y1 to x2,y2
-             jvar := (fx[ivar].time2 * dword(high(coscos)) + fx[ivar].time shr 1) div fx[ivar].time;
-             xvar0 := coscos[high(coscos) - jvar];
-             jvar := xvar0 xor $FFFF;
-             // Interpolate the current 32k coordinates
-             xvar1 := fx[ivar].x1 * longint(jvar) + fx[ivar].x2 * xvar0;
-             if xvar1 < 0
-             then xvar1 := (xvar1 - 32768) div $FFFF
-             else xvar1 := (xvar1 + 32768) div $FFFF;
-             xvar2 := fx[ivar].y1 * longint(jvar) + fx[ivar].y2 * xvar0;
-             if xvar2 < 0
-             then xvar2 := (xvar2 - 32768) div $FFFF
-             else xvar2 := (xvar2 + 32768) div $FFFF;
-            end;
-         3: begin // halfcos
-             // Calculate the current progress from x1,y1 to x2,y2
-             jvar := ((fx[ivar].time2 shr 1) * dword(high(coscos)) + fx[ivar].time shr 1) div fx[ivar].time;
-             xvar0 := coscos[high(coscos) shr 1 - jvar] - $8000;
-             jvar := xvar0 xor $7FFF;
-             // Interpolate the current 32k coordinates
-             xvar1 := fx[ivar].x1 * longint(jvar) + fx[ivar].x2 * xvar0;
-             if xvar1 < 0
-             then xvar1 := (xvar1 - 16384) div $7FFF
-             else xvar1 := (xvar1 + 16384) div $7FFF;
-             xvar2 := fx[ivar].y1 * longint(jvar) + fx[ivar].y2 * xvar0;
-             if xvar2 < 0
-             then xvar2 := (xvar2 - 16384) div $7FFF
-             else xvar2 := (xvar2 + 16384) div $7FFF;
-            end;
-         else begin // linear movement
-               jvar := fx[ivar].time - fx[ivar].time2;
-               xvar1 := fx[ivar].x1 * longint(jvar) + fx[ivar].x2 * longint(fx[ivar].time2);
-               if xvar1 < 0
-               then xvar1 := (xvar1 - fx[ivar].time shr 1) div fx[ivar].time
-               else xvar1 := (dword(xvar1) + fx[ivar].time shr 1) div fx[ivar].time;
-               xvar2 := fx[ivar].y1 * longint(jvar) + fx[ivar].y2 * longint(fx[ivar].time2);
-               if xvar2 < 0
-               then xvar2 := (xvar2 - fx[ivar].time shr 1) div fx[ivar].time
-               else xvar2 := (dword(xvar2) + fx[ivar].time shr 1) div fx[ivar].time;
-              end;
-        end;
-        // Move the gob (and its kids) by a 32k delta
-        MoveGob(fx[ivar].gob, xvar1 - gob[fx[ivar].gob].locx, xvar2 - gob[fx[ivar].gob].locy);
-       end;
-       // Conclude if time out
-       if fx[ivar].time2 >= fx[ivar].time then fx[ivar].kind := 0;
       end;
    else begin
          LogError('Unknown effect ' + strdec(fx[ivar].kind));
