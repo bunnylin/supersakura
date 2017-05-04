@@ -1,0 +1,6 @@
+// basic ending script
+
+gfx.clearall
+print GAME OVER
+waitkey
+runscript MAIN
