@@ -1359,7 +1359,7 @@ begin
   gid_TASOGARE: if scriptname = 'OP_M2' then begin
    lvar := 0;
    writebufln('mus.play TK_19');
-   writebufln('event.create.interrupt movingon');
+   writebufln('#event.create.interrupt');
    writebufln('sleep 1000');
    while lofs < loadersize do begin
     ivar := byte((loader + lofs)^);
@@ -1375,7 +1375,7 @@ begin
      2: if lvar = 0 then writebufln('gfx.clearall')
         else begin
          lvar := 0;
-         writebufln('tbox.popout 0');
+         writebufln('tbox.clear');
         end;
      3: begin
          jvar := byte((loader + lofs)^);
@@ -1397,10 +1397,10 @@ begin
           inc(lofs, dword(length(txt) + 1));
           if gutan < length(txt) then gutan := length(txt);
           if jvar <> 0 then txt := txt + '\n';
-          writebufln('px 0;' + txt);
+          writebufln('print ' + txt);
          end;
          if gutan > 63 then gutan := 63;
-         writebufln('tbox.move 0; ' + strdec(dword(16384 - gutan shl 8)) + ', 12000');
+         writebufln('tbox.move 1 ' + strdec(dword(16384 - gutan shl 8)) + ' 12000');
          lvar := 1;
         end;
      6: begin
@@ -1413,22 +1413,22 @@ begin
           if (txt[1] = chr($81)) and (txt[2] = chr($40))
            then txt := copy(txt, 3, $FF); // cut initial whitespace
           if jvar <> 0 then txt := txt + '\n';
-          writebufln('print 1 "' + txt + '"');
+          writebufln('print 2 "' + txt + '"');
          end;
-         writebufln('sleep v901 + 1500');
-         writebufln('tbox.popout 1');
-         writebufln('sleep v901 + 500');
+         writebufln('sleep 1500');
+         writebufln('tbox.clear 2');
+         writebufln('sleep 500');
         end;
      7: begin
          txt := upcase(GetLoaderString(lofs));
          inc(lofs, dword(length(txt) + 1));
          writebufln('gfx.show ' + txt);
-         writebufln('gfx.solidblit ' + txt + '; $FFFFFFFF');
+         writebufln('#gfx.solidblit ' + txt + '; $FFFFFFFF');
          writebufln('gfx.transition 0');
          writebufln('sleep 50');
-         writebufln('gfx.solidblit ' + txt + '; 0');
+         writebufln('#gfx.solidblit ' + txt + '; 0');
          writebufln('gfx.transition 9');
-         writebufln('sleep v900');
+         writebufln('sleep');
         end;
      10: begin
           writebufln('gfx.flash 4 1');
@@ -1436,11 +1436,11 @@ begin
           writebufln('@movingon: event.remove.interrupt');
           writebufln('//event.exit');
           writebufln('gfx.clearall');
-          writebufln('//exit');
+          writebufln('return');
          end;
     end;
    end;
-   exit;
+   lofs := loadersize;
   end;
  end;
 

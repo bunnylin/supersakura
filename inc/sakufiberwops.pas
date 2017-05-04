@@ -533,7 +533,22 @@ end;
 
 procedure Invoke_GFX_SETALPHA; inline; begin end;
 
-procedure Invoke_GFX_SETFRAME; inline; begin end;
+procedure Invoke_GFX_SETFRAME; inline;
+begin
+ if FetchParam(WOPP_GOB) = FALSE then fibererror('gfx.setframe without gob') else begin
+  strvalue[0] := upcase(strvalue[0]);
+  numvalue2 := GetGob(strvalue[0]);
+  if IsGobValid(numvalue2) = FALSE then fibererror('gfx.setframe bad gob: ' + strvalue[0])
+  else with gob[numvalue2] do begin
+   numvalue := 0;
+   FetchParam(WOPP_FRAME);
+   drawframe := abs(numvalue);
+   // Redraw the gob, if it is supposed to be visible.
+   if drawstate and 2 <> 0 then drawstate := drawstate or 1;
+  end;
+ end;
+end;
+
 procedure Invoke_GFX_SETSEQUENCE; inline; begin end;
 procedure Invoke_GFX_SETSOLIDBLIT; inline; begin end;
 
