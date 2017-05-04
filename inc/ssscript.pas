@@ -17,7 +17,7 @@
 { along with SuperSakura.  If not, see <https://www.gnu.org/licenses/>.     }
 {                                                                           }
 
-// SuperSakuraScript
+// SakuraScript
 // Defines and a function for converting a UTF-8 buffer into bytecode.
 
 // Define this to get various debug output as standard output
@@ -205,7 +205,7 @@ WOP_SYS_SETTITLE = 252;
 // Reserved words of power
 // Table mapping word of power strings to bytecode values
 // Must be arranged in ascending ascii order!
-var ss_rwoplist : array[0..120] of record
+var ss_rwoplist : array[0..121] of record
   namu : string[22];
   code : byte;
 end = (
@@ -291,10 +291,10 @@ end = (
 (namu : 'goto'; code : WOP_GOTO),
 (namu : 'inc'; code : WOP_INC),
 (namu : 'jump'; code : WOP_GOTO),
-(namu : 'mus.play'; code : WOP_NOP),
-(namu : 'mus.stop'; code : WOP_NOP),
+(namu : 'mus.play'; code : WOP_MUS_PLAY),
+(namu : 'mus.stop'; code : WOP_MUS_STOP),
 (namu : 'nop'; code : WOP_NOP),
-(namu : 'print'; code : WOP_SYS_PAUSE),
+(namu : 'pause'; code : WOP_SYS_PAUSE),
 (namu : 'print'; code : WOP_TBOX_PRINT),
 (namu : 'quit'; code : WOP_SYS_QUIT),
 (namu : 'return'; code : WOP_RETURN),
@@ -308,6 +308,7 @@ end = (
 (namu : 'tbox.addoutline'; code : WOP_TBOX_OUTLINE),
 (namu : 'tbox.clear'; code : WOP_TBOX_CLEAR),
 (namu : 'tbox.decorate'; code : WOP_TBOX_DECORATE),
+(namu : 'tbox.move'; code : WOP_TBOX_SETLOC),
 (namu : 'tbox.outline'; code : WOP_TBOX_OUTLINE),
 (namu : 'tbox.print'; code : WOP_TBOX_PRINT),
 (namu : 'tbox.removedecor'; code : WOP_TBOX_REMOVEDECOR),
