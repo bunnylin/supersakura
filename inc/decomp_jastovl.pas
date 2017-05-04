@@ -683,6 +683,8 @@ begin
   end;
 
   gid_ANGELSCOLLECTION2: begin
+   // Hack: change weird 8757 Shift-JIS to a visually similar double-slash
+   if scriptname = 'S2_007' then word((loader + $349)^) := $2F2F;
    // Hack: clip unreachable code
    if scriptname = 'S4_016' then loadersize := $61D;
    if scriptname = 'S4_021' then loadersize := $C4;
