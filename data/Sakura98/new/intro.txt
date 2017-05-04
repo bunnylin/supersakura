@@ -1,0 +1,8 @@
+// Season of the Sakura PC-98
+// Introduction shown at the start of a new game
+
+gfx.clearall
+
+// Start the game!
+call CS101.
+
