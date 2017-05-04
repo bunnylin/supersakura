@@ -36,7 +36,7 @@ begin
   fxbox := $FFFFFFFF;
  end;
 
- if (fibernum >= 0) and (fibernum < longint(fibercount)) then
+ if (fibernum >= 0) and (dword(fibernum) < fibercount) then
   inc(fiber[fibernum].fxrefcount);
 end;
 
@@ -225,7 +225,7 @@ begin
   if (fx[fxvar].kind = FX_GOBMOVE) and (fx[fxvar].fxgob = gobnum) then break;
   inc(fxvar);
  end;
- if fxvar >= fxcount then fxvar := NewFx(-1);
+ if fxvar >= fxcount then fxvar := NewFx(fibernum);
 
  // Set up the effect.
  with fx[fxvar] do begin
@@ -262,7 +262,7 @@ begin
   inc(fxvar);
  end;
  if fxvar >= fxcount then begin
-  fxvar := NewFx(-1);
+  fxvar := NewFx(fibernum);
   getmem(fx[fxvar].poku, 16);
  end;
 
@@ -305,7 +305,7 @@ begin
   if (fx[fxvar].kind = FX_BOXSIZE) and (fx[fxvar].fxbox = boxnum) then break;
   inc(fxvar);
  end;
- if fxvar >= fxcount then fxvar := NewFx(-1);
+ if fxvar >= fxcount then fxvar := NewFx(fibernum);
 
  // Set up the effect.
  with fx[fxvar] do begin
