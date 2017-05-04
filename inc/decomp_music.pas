@@ -715,6 +715,8 @@ begin
  // Load the input file into loader^.
  Decomp_SC5 := LoadFile(srcfile);
  if Decomp_SC5 <> '' then exit;
+ Decomp_SC5 := '.SC5 file support is offline';
+ exit;
 
  livenotes[0].note := $FF; // just to remove a compiler warning
  loopstarttime[0] := 0;
