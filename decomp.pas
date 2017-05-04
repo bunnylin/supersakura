@@ -3,7 +3,7 @@ program SuperSakura_Decompiler;
 { SuperSakura Decompiler tool                                               }
 { Copyright 2009-2017 :: Kirinn Bunnylin / Mooncore                         }
 { https://mooncore.eu/ssakura                                               }
-{ https://github.com/something                                              }
+{ https://github.com/bunnylin/supersakura                                   }
 {                                                                           }
 { This file is part of SuperSakura.                                         }
 {                                                                           }
@@ -25,7 +25,7 @@ program SuperSakura_Decompiler;
 {                                                                           }
 { Compilation dependencies:                                                 }
 { - Various moonlibs                                                        }
-{   https://github.com/something                                            }
+{   https://github.com/bunnylin/moonlibs                                    }
 {                                                                           }
 
 // This program takes a variety of resources from classic VN games, and

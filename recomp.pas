@@ -3,7 +3,7 @@ program Recompiler;
 { Mooncore Super Resource Recompiler tool                                   }
 { Copyright 2009-2017 :: Kirinn Bunnylin / Mooncore                         }
 { https://mooncore.eu/ssakura                                               }
-{ https://github.com/something                                              }
+{ https://github.com/bunnylin/supersakura                                   }
 {                                                                           }
 { This file is part of SuperSakura.                                         }
 {                                                                           }
@@ -25,7 +25,7 @@ program Recompiler;
 {                                                                           }
 { Compilation dependencies:                                                 }
 { - Various moonlibs                                                        }
-{   https://github.com/something                                            }
+{   https://github.com/bunnylin/moonlibs                                    }
 {                                                                           }
 
 // Output DAT-file specs (words stored x86-style LSB first):

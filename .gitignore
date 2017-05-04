@@ -3,6 +3,8 @@
 !*/
 
 test*
+fp.*
+fp___.*
 *.exe
 *.log
 *.o
