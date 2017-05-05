@@ -1427,7 +1427,7 @@ begin
          writebufln('gfx.transition 0');
          writebufln('sleep 50');
          writebufln('#gfx.solidblit ' + txt + '; 0');
-         writebufln('gfx.transition 9');
+         writebufln('gfx.transition 4');
          writebufln('sleep');
         end;
      10: begin
@@ -1451,11 +1451,18 @@ begin
   and (gfxlist[0].gfxname <> 'TB_000') then begin
    // graphic type $50, if not instantly drawn, is preceded by a black-out
    writebufln('gfx.show TB_000 bkg');
-   writebufln('gfx.transition 10');
+   writebufln('gfx.transition 3');
    writebufln('sleep');
   end;
   writebufln('gfx.show ' + gfxlist[0].gfxname + ' bkg');
-  writebufln('gfx.transition ' + strdec(gfxlist[0].data1));
+  writebuf('gfx.transition ');
+  case gfxlist[0].data1 of
+    6,7: writebufln('1'); // wipe from left
+    11: writebufln('2'); // ragged wipe
+    4,5,8,10: writebufln('3'); // interlaced wipe from top and bottom
+    9: writebufln('4'); // crossfade
+    else writebufln('0'); // instant
+  end;
   writebufln('sleep');
   if game in [gid_SETSUJUU] then AutoLoadAnims(gfxlist[0].gfxname);
   persistence := TRUE;
@@ -1526,7 +1533,7 @@ begin
     end;
     // Hack: Insert a missing swipe
     if (scriptname = 'CSA01') and (lofs = $EC) then begin
-     writebufln('gfx.transition 10');
+     writebufln('gfx.transition 3');
      writebufln('sleep');
     end;
    end;
@@ -1679,7 +1686,7 @@ begin
          and (gfxlist[jvar].gfxname <> 'TB_000') and (blackedout = FALSE)
          then begin
           writebufln('gfx.show TB_000 bkg');
-          writebufln('gfx.transition 10');
+          writebufln('gfx.transition 3');
           writebufln('sleep');
          end;
         end;
@@ -1687,10 +1694,16 @@ begin
         writebuf('gfx.show ' + gfxlist[jvar].gfxname);
         if gfxlist[jvar].data2 = $38 then begin
          //writebuf(' sprite');
-         waitkeyswipe := 9;
+         waitkeyswipe := 4;
         end else begin
          writebuf(' bkg');
-         if waitkeyswipe <> 9 then waitkeyswipe := gfxlist[jvar].data1;
+         if waitkeyswipe <> 4 then case gfxlist[jvar].data1 of
+           6,7: waitkeyswipe := 1;
+           11: waitkeyswipe := 2;
+           4,5,8,10: waitkeyswipe := 3;
+           9: waitkeyswipe := 4;
+           else waitkeyswipe := 0;
+         end;
         end;
         writebufln(' // $' + strhex(gfxlist[jvar].data2));
         if gfxlist[jvar].gfxname = 'TB_000' then blackedout := TRUE else blackedout := FALSE;
@@ -2219,7 +2232,7 @@ begin
           inc(lofs, dword(length(txt) + 1));
           writebufln('gfx.clearkids');
           writebufln('gfx.show ' + txt + ' bkg');
-          writebufln('gfx.transition 9');
+          writebufln('gfx.transition 4');
           writebufln('sleep');
           writebufln('call ENDINGS.');
          end;
@@ -2245,7 +2258,7 @@ begin
            txt := GetLoaderString(lofs);
            inc(lofs, dword(length(txt) + 1));
            writebufln(txt);
-           writebufln('gfx.transition 9');
+           writebufln('gfx.transition 4');
            writebufln('sleep 7000');
           until lofs >= loadersize;
          end;
@@ -2277,18 +2290,24 @@ begin
                  and (gfxlist[lvar].gfxname <> 'TB_000') and (blackedout = FALSE)
                  then begin
                   writebufln('gfx.show TB_000 bkg');
-                  writebufln('gfx.transition 10');
+                  writebufln('gfx.transition 3');
                   writebufln('sleep');
                  end;
                  writebuf('gfx.show ');
                  case gfxlist[lvar].data2 of // image type
                   $38: begin
                         //writebuf('type sprite');
-                        waitkeyswipe := 9; // all sprites get a crossfade
+                        waitkeyswipe := 4; // all sprites get a crossfade
                        end;
                   else begin // $50, $03, $42, $4E
                         writebuf('type bkg');
-                        if waitkeyswipe <> 9 then waitkeyswipe := gfxlist[lvar].data1;
+                        if waitkeyswipe <> 4 then case gfxlist[lvar].data1 of
+                          6,7: waitkeyswipe := 1;
+                          11: waitkeyswipe := 2;
+                          4,5,8,10: waitkeyswipe := 3;
+                          9: waitkeyswipe := 4;
+                          else waitkeyswipe := 0;
+                        end;
                        end;
                  end;
                  writebufln(' ' + gfxlist[lvar].gfxname);
@@ -2620,7 +2639,14 @@ begin
             if (nextgra.style and 8 <> 0)
             and (nextgra.transition = 10)
             then nextgra.transition := 9;
-            writebufln('gfx.transition ' + strdec(nextgra.transition));
+            writebuf('gfx.transition ');
+            case nextgra.transition of
+              6,7: writebufln('1'); // wipe from left
+              11: writebufln('2'); // ragged wipe from left
+              4,5,8,10: writebufln('3'); // interlaced wipe from top/bottom
+              9: writebufln('4'); // crossfade
+              else writebufln('0'); // instant
+            end;
             writebufln('sleep');
             nextgra.transition := $FF; nextgra.unswiped := 0;
            end
@@ -2707,10 +2733,10 @@ begin
                writebufln('gfx.show TB_000');
                jvar := byte((loader + lofs)^); inc(lofs);
                case jvar of // some black-out transitions are not standard
-                $32,$36,$37,$3B,$3C,$3D: dec(jvar, $32);
-                $38: jvar := 4;
-                $39: jvar := 13;
-                $3A: jvar := 14;
+                $32,$3B: jvar := 0;
+                $39: jvar := 1;
+                $3D: jvar := 2;
+                $36,$37,$38,$3A,$3C: jvar := 3;
                 else PrintError('Encountered transition $' + strhex(jvar) + ' @ $' + strhex(lofs));
                end;
                writebufln('gfx.transition ' + strdec(jvar));
@@ -2771,7 +2797,7 @@ begin
                if animslot[lvar].displayed then begin // draw over existing anim
                 // Just switching an animation merits a crossfade
                 if game = gid_MAJOKKO then begin
-                 writebufln('gfx.transition 9');
+                 writebufln('gfx.transition 4');
                  writebufln('sleep');
                 end;
                end;

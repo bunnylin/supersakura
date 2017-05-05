@@ -351,25 +351,8 @@ begin
 
    TRANSITION_INSTANT: ;
 
-   TRANSITION_CROSSFADE: begin
-    jvar := myfx^.time2 - myfx^.time; // = time elapsed by this render
-    ivar := (targety * sysvar.mv_WinSizeX + targetx) * 4;
-    srcp := stashbuffy + ivar;
-    destp := mv_OutputBuffy + ivar;
-    for y := targetsizey - 1 downto 0 do begin
-     for x := targetsizex - 1 downto 0 do begin
-      {$note optimise: turn jvar/.time to 32k fractions}
-      byte(destp^) := (byte(destp^) * jvar + byte(srcp^) * myfx^.time) div myfx^.time2;
-      inc(srcp); inc(destp);
-      byte(destp^) := (byte(destp^) * jvar + byte(srcp^) * myfx^.time) div myfx^.time2;
-      inc(srcp); inc(destp);
-      byte(destp^) := (byte(destp^) * jvar + byte(srcp^) * myfx^.time) div myfx^.time2;
-      inc(srcp, 2); inc(destp, 2);
-     end;
-     inc(srcp, rowendskipbytes);
-     inc(destp, rowendskipbytes);
-    end;
-   end;
+   TRANSITION_WIPEFROMLEFT:;
+   TRANSITION_RAGGEDWIPE:;
 
    TRANSITION_INTERLACED: begin
     ivar := dword(high(coscos)) * myfx^.time div myfx^.time2;
@@ -390,6 +373,26 @@ begin
      //end;
      inc(srcp, sysvar.mv_WinSizeX * 4);
      inc(destp, sysvar.mv_WinSizeX * 4);
+    end;
+   end;
+
+   TRANSITION_CROSSFADE: begin
+    jvar := myfx^.time2 - myfx^.time; // = time elapsed by this render
+    ivar := (targety * sysvar.mv_WinSizeX + targetx) * 4;
+    srcp := stashbuffy + ivar;
+    destp := mv_OutputBuffy + ivar;
+    for y := targetsizey - 1 downto 0 do begin
+     for x := targetsizex - 1 downto 0 do begin
+      {$note optimise: turn jvar/.time to 32k fractions}
+      byte(destp^) := (byte(destp^) * jvar + byte(srcp^) * myfx^.time) div myfx^.time2;
+      inc(srcp); inc(destp);
+      byte(destp^) := (byte(destp^) * jvar + byte(srcp^) * myfx^.time) div myfx^.time2;
+      inc(srcp); inc(destp);
+      byte(destp^) := (byte(destp^) * jvar + byte(srcp^) * myfx^.time) div myfx^.time2;
+      inc(srcp, 2); inc(destp, 2);
+     end;
+     inc(srcp, rowendskipbytes);
+     inc(destp, rowendskipbytes);
     end;
    end;
 

@@ -435,7 +435,6 @@ begin
  end;
  transitionactive := fxi;
  // End the effect immediately if time is 0.
- log('transition time!');
  if msecs = 0 then DeleteFx(fxi)
  else StashRender;
 end;
