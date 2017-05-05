@@ -542,7 +542,7 @@ begin
   // How long has it been since the last frame?
   tickcount := tickmark;
   tickmark := SDL_GetTicks;
-  tickcount := tickmark - tickcount;
+  tickcount := (tickmark - tickcount) and $FFFF;
   // If we are paused, then override elapsed time with 0.
   if pausestate = PAUSESTATE_PAUSED then tickcount := 0;
 
