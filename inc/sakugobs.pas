@@ -168,6 +168,9 @@ begin
      // (award +2 to fuzziness to allow for rounding error)
      if (parx1 - 2 <= kidx1) and (parx2 + 2 >= kidx2)
      and (pary1 - 2 <= kidy1) and (pary2 + 2 >= kidy2)
+     // or, if this gob is a full-viewport bkg/overlay, that's also fine.
+     or (parx1 <= 0) and (parx2 >= 32768)
+     and (pary1 <= 0) and (pary2 >= 32768)
      then break;
     end;
    end;
