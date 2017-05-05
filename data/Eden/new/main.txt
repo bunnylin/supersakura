@@ -64,7 +64,7 @@ waitkey
 
 // ===== new game =====
 gfx.clearall
-#sys.framemode auto
+gfx.transition 0
 
 goto JO0101.
 
