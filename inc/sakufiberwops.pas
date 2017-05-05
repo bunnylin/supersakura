@@ -434,7 +434,6 @@ begin
   numvalue := GetGob(strvalue[0]);
   if numvalue = 0 then fibererror('gfx.clearkids no such gob: ' + strvalue[0]);
  end;
- if IsGobValid(numvalue) = FALSE then exit;
 
  for ivar := numvalue + 1 to length(gob) - 1 do
   if (IsGobValid(ivar)) and (gob[ivar].parent = dword(numvalue))
