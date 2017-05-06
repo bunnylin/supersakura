@@ -52,6 +52,7 @@ begin
    log('Box ' + strdec(boxnum) + ' (' + languagelist[TBox[boxnum].boxlanguage] + '): ' + facenamu + ' ' + strdec(fontheightp) + 'px/' + strdec(fontwidthp));
    facenamu := '';
   end;
+  reqfontheightp := heightp;
  end;
 end;
 

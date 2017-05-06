@@ -188,7 +188,7 @@ type boxtype = record
        // defined in the box style, lineheightp is increased by
        // outlinemargintopp/bottomp to allow the biggest outline
        // thickness/offset to fit.
-       fontheightp, fontwidthp, lineheightp : dword;
+       reqfontheightp, fontheightp, fontwidthp, lineheightp : dword;
 
        {$ifndef sakucon}
        // Font handle used by SDL. Nominally PTTF_Font, but the structure

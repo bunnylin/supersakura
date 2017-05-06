@@ -664,10 +664,9 @@ var boxnum : dword;
   begin
    with TBox[boxnum] do begin
     // Calculate the font height.
-    //fontheight := (origfontheight * sysvar.uimagnification + 16384) shr 15;
-    fontheight := origfontheight;
+    fontheight := (origfontheight * sysvar.uimagnification + 16384) shr 15;
     ivar := (fontheight * viewport[inviewport].viewportsizeyp + 16384) shr 15;
-    if ivar <> fontheightp then GetNewFont(boxnum, ivar);
+    if ivar <> reqfontheightp then GetNewFont(boxnum, ivar);
     // Calculate the pixel location.
     if boxlocx >= 0
     then boxlocxp := (boxlocx * longint(viewport[inviewport].viewportsizexp) + 16384) shr 15
