@@ -317,11 +317,10 @@ procedure RenderTransition;
 // called to retain a view to transition from.
 var myfx : ^fxtype;
     srcp, destp : pointer;
+    ivar, jvar, kvar, lvar : dword;
+    targetx, targety, targetsizex, targetsizey : word;
     x, y, tox, toy : dword;
     rowendskipbytes : dword;
-
-    ivar, jvar, kvar : dword;
-    targetx, targety, targetsizex, targetsizey : word;
 begin
  if transitionactive >= fxcount then begin
   LogError('RenderTransition: bad fx index: ' + strdec(transitionactive)); exit;
@@ -343,52 +342,89 @@ begin
  targety := viewport[myfx^.inviewport].viewporty1p;
  targetsizex := viewport[myfx^.inviewport].viewportsizexp;
  targetsizey := viewport[myfx^.inviewport].viewportsizeyp;
- tox := targetx + targetsizex - 1;
- toy := targety + targetsizey - 1;
- rowendskipbytes := (sysvar.mv_WinSizeX - targetsizex) * 4;
+ //tox := targetx + targetsizex - 1;
+ //toy := targety + targetsizey - 1;
+
+ // Set up stream pointers.
+ ivar := (targety * sysvar.mv_WinSizeX + targetx) * 4;
+ srcp := stashbuffy + ivar;
+ destp := mv_OutputBuffy + ivar;
 
  case myfx^.data of
 
    TRANSITION_INSTANT: ;
 
-   TRANSITION_WIPEFROMLEFT:;
+   TRANSITION_WIPEFROMLEFT: begin
+    // Calculate soft edge width.
+    tox := targetsizex shr 4 + 1;
+    // Calculate completion amount: runs from 0 to targetsizex + edge size.
+    // This is the leading edge of the soft edge.
+    ivar := dword(high(coscos)) * myfx^.time div myfx^.time2;
+    jvar := (coscos[ivar] * (targetsizex + tox)) shr 16;
+    // Get the width of the completed area behind the soft edge.
+    rowendskipbytes := 0;
+    if jvar > tox then rowendskipbytes := (jvar - tox) * 4;
+    // Get the width of the pending area ahead of the soft edge.
+    kvar := 0;
+    if jvar < targetsizex then kvar := (targetsizex - jvar) * 4;
+    // Clip the soft edge.
+    if jvar < tox then tox := jvar
+    else if jvar > targetsizex then dec(tox, jvar - targetsizex);
+
+    for y := targetsizey - 1 downto 0 do begin
+     // Skip the completed wipe area behind the soft edge.
+     inc(srcp, rowendskipbytes);
+     inc(destp, rowendskipbytes);
+     // Do the soft edge.
+     if tox <> 0 then for x := tox - 1 downto 0 do begin
+      lvar := tox - x;
+      byte(destp^) := (byte(destp^) * x + byte(srcp^) * lvar) div tox;
+      inc(srcp); inc(destp);
+      byte(destp^) := (byte(destp^) * x + byte(srcp^) * lvar) div tox;
+      inc(srcp); inc(destp);
+      byte(destp^) := (byte(destp^) * x + byte(srcp^) * lvar) div tox;
+      inc(srcp, 2); inc(destp, 2);
+     end;
+     // Fill the pending area ahead of the soft edge.
+     if kvar <> 0 then begin
+      move(srcp^, destp^, kvar);
+      inc(srcp, kvar);
+      inc(destp, kvar);
+     end;
+    end;
+   end;
+
    TRANSITION_RAGGEDWIPE:;
 
    TRANSITION_INTERLACED: begin
-    ivar := dword(high(coscos)) * myfx^.time div myfx^.time2;
     // Calculate completion amount: runs from 0 to targetsizey-1.
+    ivar := dword(high(coscos)) * myfx^.time div myfx^.time2;
     jvar := (coscos[ivar] * targetsizey) shr 16;
     kvar := targetsizey - 1 - jvar; // inverse
-    // Set up stream pointers.
-    ivar := (targety * sysvar.mv_WinSizeX + targetx) * 4;
-    srcp := stashbuffy + ivar;
-    destp := mv_OutputBuffy + ivar;
-    {$note add faded edge in interlaced transition}
+    rowendskipbytes := sysvar.mv_WinSizeX * 4;
+
     for y := targetsizey - 1 downto 0 do begin
      if (y and 1 = 0) and (y > jvar)
      or (y and 1 <> 0) and (y < kvar) then begin
       move(srcp^, destp^, targetsizex * 4);
      end;
-     //for x := targetsizex - 1 downto 0 do begin
-     //end;
-     inc(srcp, sysvar.mv_WinSizeX * 4);
-     inc(destp, sysvar.mv_WinSizeX * 4);
+     inc(srcp, rowendskipbytes);
+     inc(destp, rowendskipbytes);
     end;
    end;
 
    TRANSITION_CROSSFADE: begin
-    jvar := myfx^.time2 - myfx^.time; // = time elapsed by this render
-    ivar := (targety * sysvar.mv_WinSizeX + targetx) * 4;
-    srcp := stashbuffy + ivar;
-    destp := mv_OutputBuffy + ivar;
+    jvar := myfx^.time shl 15 div myfx^.time2; // 32k time left
+    kvar := 32768 - jvar; // 32k time elapsed
+    rowendskipbytes := (sysvar.mv_WinSizeX - targetsizex) * 4;
+
     for y := targetsizey - 1 downto 0 do begin
      for x := targetsizex - 1 downto 0 do begin
-      {$note optimise: turn jvar/.time to 32k fractions}
-      byte(destp^) := (byte(destp^) * jvar + byte(srcp^) * myfx^.time) div myfx^.time2;
+      byte(destp^) := (byte(destp^) * kvar + byte(srcp^) * jvar) shr 15;
       inc(srcp); inc(destp);
-      byte(destp^) := (byte(destp^) * jvar + byte(srcp^) * myfx^.time) div myfx^.time2;
+      byte(destp^) := (byte(destp^) * kvar + byte(srcp^) * jvar) shr 15;
       inc(srcp); inc(destp);
-      byte(destp^) := (byte(destp^) * jvar + byte(srcp^) * myfx^.time) div myfx^.time2;
+      byte(destp^) := (byte(destp^) * kvar + byte(srcp^) * jvar) shr 15;
       inc(srcp, 2); inc(destp, 2);
      end;
      inc(srcp, rowendskipbytes);
