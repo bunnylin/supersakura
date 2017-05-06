@@ -56,7 +56,7 @@ tbox.setparam 3 basecolor 0xFFF7
 @mainmenu:
 gfx.clearall
 gfx.show TP_00 bkg
-gfx.transition 14
+gfx.transition 4
 sleep
 
 // ===== main menu =====
@@ -80,6 +80,7 @@ goto mainmenu
 @game2:
 call SCB00. // title screen
 gfx.clearall
+gfx.transition
 call SCB01. // game start
 goto mainmenu
 
@@ -87,6 +88,7 @@ goto mainmenu
 @game3:
 call SCM00. // title screen
 gfx.clearall
+gfx.transition
 call SCM01. // game start
 goto mainmenu
 

@@ -53,10 +53,10 @@ tbox.setparam 3 basecolor 0xFFF7
 
 // ===== title screen =====
 gfx.show OP_00 bkg
-gfx.transition 9
+gfx.transition 4
 sleep
 gfx.show y 10 OP_TT
-gfx.transition 9
+gfx.transition 4
 sleep
 
 // ===== main menu =====
@@ -64,7 +64,7 @@ waitkey
 
 // ===== new game =====
 gfx.clearall
-gfx.transition 0
+gfx.transition
 
 goto JO0101.
 

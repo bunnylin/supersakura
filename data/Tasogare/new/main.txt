@@ -72,20 +72,20 @@ goto titleanimend
 
 @titleanim:
 gfx.show OP_00 bkg
-gfx.transition 9
+gfx.transition 4
 sleep
 sleep 500
 gfx.show OP_XXA
 sleep 2000
 gfx.show OP_MOJI ofsx 14336 ofsy 1024
-gfx.transition 9
+gfx.transition 4
 sleep
 sleep 1000
 #fx.flash 1
 gfx.setframe OP_MOJI 1
 sleep 250
 gfx.setframe OP_MOJI 2
-sleep 1000
+sleep 250
 
 @skipahead:
 signal MAIN

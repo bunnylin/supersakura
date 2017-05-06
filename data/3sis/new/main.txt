@@ -1,7 +1,6 @@
 // The Three Sisters' Story
 // Main menu and game definitions
 
-#sys.allownosaves
 sys.settitle "The Three Sisters' Story"
 $s1 := "Koichi"
 
@@ -120,40 +119,27 @@ tbox.setparam 4 bevel 1
 tbox.setparam 4 basecolor 0xFFF7
 
 
-// Game text box in framed mode
-// 512x64 pixels at 64,328
-#tbox.style.set 5: basetype 0; bkgcolor = 0, 0, 0, 0; textcolor = FFFFFFFF
-#tbox.style.set 5: loc = 3600, 26980; size = 25564 x 5210; fontheight = 1300
-#tbox.style.set 5: margins = 0, 0, 0, 0; transition 0; noshadow 1
-
-// Framed title box, completely invisible
-#tbox.style.copy 6, 1
-#tbox.style.set 6: basetype 0; bkgcolor = 0, 0, 0, 0; textcolor = 0
-
-
 // ===== Title Screen =====
 gfx.clearall
-gfx.transition 0
+gfx.transition
 event.create.interrupt skiptitle
 
 gfx.show SANSI bkg
 gfx.show NEWLOGO
-$v900 := 1200
-gfx.transition 15
+gfx.transition 4 time 1200
 sleep
-$v900 := 500
 gfx.show ofsx 24576 ofsy 13517 TCHOICE1
-gfx.transition 9
+gfx.transition 4 time 500
 sleep 100
 gfx.show ofsx 24346 ofsy 16138 TCHOICE2
-gfx.setframe TCHOICE2; 4
-gfx.transition 9
+gfx.setframe TCHOICE2 4
+gfx.transition 4 time 500
 sleep 100
 gfx.show ofsx 26931 ofsy 18964 TCHOICE3
-gfx.transition 9
+gfx.transition 4 time 500
 sleep 100
 gfx.show ofsx 28723 ofsy 21340 TCHOICE4
-gfx.transition 9
+gfx.transition 4 time 500
 sleep
 goto mainmenu
 
@@ -164,7 +150,7 @@ gfx.show ofsx 24576 ofsy 13517 TCHOICE1
 gfx.show ofsx 24346 ofsy 16138 TCHOICE2
 gfx.show ofsx 26931 ofsy 18964 TCHOICE3
 gfx.show ofsx 28723 ofsy 21340 TCHOICE4
-gfx.setframe TCHOICE2; 4
+gfx.setframe TCHOICE2 4
 gfx.transition 0
 sleep 100
 
@@ -175,7 +161,6 @@ event.clear
 waitkey
 call SK_101.
 
-$v900 := 750
 // clickable areas in 948x592 resolution:
 // 717,245; 924,282
 // 706,294; 924,330
@@ -225,9 +210,10 @@ event.clear
 gfx.clearall
 call INTRO.
 gfx.clearall
+gfx.transition 4
+sleep
 
 #gfx.show FLERIN bkg viewport 1
-#sys.allowsaves
 
 call SK_101.
 

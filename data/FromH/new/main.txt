@@ -58,14 +58,14 @@ tbox.setparam 3 basecolor 0xFFF7
 
 // ===== title screen =====
 gfx.show OP_001 bkg // playing board
-gfx.transition 9
+gfx.transition 4
 sleep
 gfx.show OP_001A0 // cherub squishes mascot with die
 sleep 6400
 
 gfx.clearkids
 gfx.show OP_002 bkg // playing board with From H logo
-gfx.transition 9
+gfx.transition 4
 sleep
 gfx.show OP_002A0 // wink
 
@@ -74,6 +74,8 @@ waitkey
 
 // ===== New Game =====
 gfx.clearall
+gfx.transition 3
+sleep
 
 // runscript OP_000
 // gfx.clearall

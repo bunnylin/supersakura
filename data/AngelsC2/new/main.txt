@@ -55,7 +55,7 @@ tbox.setparam 3 basecolor 0xFFF7
 // ===== title screen =====
 @mainmenu:
 gfx.show TCL2_OP bkg
-gfx.transition 9
+gfx.transition 4
 sleep
 
 // ===== main menu =====
@@ -67,6 +67,7 @@ choice.set "Quit game"
 $v1 := (choice.get)
 
 gfx.clearall
+gfx.transition
 case $v1 "game1:game2:game3:nogame"
 
 // ===== Angels' Eve 2: side-story =====

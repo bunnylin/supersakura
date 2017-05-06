@@ -50,12 +50,12 @@ tbox.setparam 3 basecolor 0xFFF7
 
 // ===== title screen =====
 gfx.show VOP_002 bkg y -32768
-gfx.transition 9
+gfx.transition 4
 sleep
 gfx.move VOP_002 0 0 time 3000 style cos
 sleep
 gfx.show V_LOGO2 ofsx 30 ofsy 10
-gfx.transition 9
+gfx.transition 4
 waitkey
 
 gfx.clearall

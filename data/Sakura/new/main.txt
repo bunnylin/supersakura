@@ -74,21 +74,6 @@ tbox.setparam 3 marginbottom 80
 tbox.setparam 3 bevel 1
 tbox.setparam 3 basecolor 0xFFF7
 
-// choice selection box
-#style.set 2: margins = 200, 300, 72, 108
-
-// framed game text & choice list
-// 512x64 pixels at 64,328
-#style.set 3: basetype 0; bkgcolor = 0, 0, 0, 0; textcolor = FFFFFFFF
-#style.set 3: loc = 3600, 26980; size = 25564 x 5210; fontheight = 1300
-#style.set 3: margins = 0, 0, 0, 0; transition 0; noshadow 1
-
-// framed choice highlighting box
-#style.copy 5, 2
-#style.set 5: basetype 0; bkgcolor = 0,0,0,0
-#style.set 5: transition 0 alwaysrebuild 0 negatebkg 1
-#style.set 5: margins = 80, 80, 32, 32
-
 
 // ===== the title screen =====
 gfx.clearall
@@ -96,18 +81,18 @@ gfx.transition 0
 #event.create SKIPIT; interrupt; skiptitle
 
 gfx.show SAKU_P bkg
-gfx.transition 9
+gfx.transition 4
 sleep
 gfx.show NEWLOGO2
-gfx.transition 9
+gfx.transition 4
 sleep
 //fx.precipitate.init SAKURA; SAKURA; snow; 12
 gfx.show ofsx 11904 ofsy 21504 TCHOICE1
 gfx.show ofsx 11904 ofsy 24166 TCHOICE2
 gfx.show ofsx 13440 ofsy 26993 TCHOICE4
 gfx.show ofsx 14336 ofsy 29450 TCHOICE5
-gfx.setframe TCHOICE2; 4
-gfx.transition 9
+gfx.setframe TCHOICE2 4
+gfx.transition 4
 sleep
 goto mainmenu
 
@@ -118,14 +103,15 @@ gfx.show ofsx 11904 ofsy 21504 TCHOICE1
 gfx.show ofsx 11904 ofsy 24166 TCHOICE2
 gfx.show ofsx 13440 ofsy 26993 TCHOICE4
 gfx.show ofsx 14336 ofsy 29450 TCHOICE5
-gfx.setframe TCHOICE2; 4
-gfx.transition 0
+gfx.setframe TCHOICE2 4
+gfx.transition
 sleep 100
 
 
 // ===== the main menu =====
 @mainmenu:
 event.clear
+waitkey
 goto ngclick
 
 // Clickable areas in a 948 x 592 view
@@ -173,9 +159,10 @@ exit
 @ngclick:
 event.clear
 //fx.precipitate.end
-gfx.clearall
 call INTRO.
 gfx.clearall
+gfx.transition 4
+sleep
 
 call CS101.
 

@@ -1,6 +1,5 @@
 // Winterquest MAIN script
 
-#sys.allownosaves
 sys.setcursor kursori
 sys.settitle "Winterquest"
 
@@ -131,7 +130,7 @@ tbox.setparam 4 basecolor 0xFFF7
 
 gfx.show TITLE bkg
 sleep 250
-gfx.transition 10
+gfx.transition 3
 //fx.precipitate.init SNOW1; SNOW2; snow; 20
 sleep
 
@@ -150,7 +149,7 @@ choice.go
 //fx.precipitate.end
 gfx.clearkids
 gfx.remove TITLE
-gfx.transition 10
+gfx.transition 3
 sleep
 sleep 500 // dramatic delay before the first scene
 call INTRO.

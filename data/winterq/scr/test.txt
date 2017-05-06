@@ -533,21 +533,10 @@ gfx.transition
 
 choice.reset
 choice.set "0 - instant"
-choice.set "1 - not implemented"
-choice.set "2 - sweep from top"
-choice.set "3 - sweep from left"
-choice.set "4 - tilting rectangle"
-choice.set "5 - radial pinwheel"
-choice.set "6 - box fill from center"
-choice.set "7 - horizontal parting"
-choice.set "8 - vertical parting"
-choice.set "9 - crossfade"
-choice.set "10 - interlaced sweep"
-choice.set "11 - blurred push from left"
-choice.set "12 - blurred push from right"
-choice.set "13 - horizontal closing"
-choice.set "14 - vertical closing"
-choice.set "15 - pop-in"
+choice.set "1 - wipe from left"
+choice.set "2 - ragged wipe"
+choice.set "3 - interlaced wipe"
+choice.set "4 - crossfade"
 choice.set "Back"
 $v1 := (choice.get)
 if $v1 = 16 then goto byetransu end
@@ -719,14 +708,14 @@ goto printgamma
   $v302 := 1
   #gfx.solidblit "FRAME" $v301 // should turn viewframe commodore blue
   #gfx.solidblit TITLE $v302 // should turn viewport black
-  gfx.transition 10
+  gfx.transition 3
   sleep
   waitkey
   #gfx.solidblit TITLE $v0 // back to normal
   #gfx.solidblit "FRAME" $v0
   gfx.show CUBERT1 locx 6000
   gfx.show CUBERTA1 locx 6000
-  gfx.transition 10 // restores view, now with Cubert
+  gfx.transition 3 // restores view, now with Cubert
   sleep
   waitkey
   $v303 := 0xFFFFFFFF
@@ -734,20 +723,20 @@ goto printgamma
   gfx.transition
   sleep 100
   #gfx.solidblit CUBERT1 $v0 // fade to normal
-  gfx.transition 10
+  gfx.transition 3
   sleep $v900 + 500 // wait until transition done, plus .5 seconds
   #gfx.solidblit CUBERT1 $v303
   gfx.transition
   sleep 100
   #gfx.solidblit CUBERT1 $v0
-  gfx.transition 10
+  gfx.transition 3
   sleep $v900 + 500
   $v303 := 0x900090FF
   #gfx.solidblit CUBERT1 $v303 // flash to purple
-  gfx.transition 10 time 256
+  gfx.transition 3 time 256
   sleep 100
   gfx.remove CUBERT1 // and take it away
-  gfx.transition 10
+  gfx.transition 3
   sleep
   waitkey
 goto effys

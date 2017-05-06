@@ -2,8 +2,7 @@
 // Main menu and game definitions
 
 sys.settitle "Tenshitachi no Gogo - Tenkousei"
-$s1 := "Hayato"
-$s1 := "隼人"
+$s1 := "隼人" // Hayato
 
 viewport.setparams viewport:1 parent:0, ratiox = 16, ratioy = 10
 viewport.setparams viewport:2 parent:1, locx 0 locy 0 sizex 32768 sizey 32768
@@ -51,10 +50,18 @@ tbox.setparam 3 textopedge 14
 tbox.setparam 3 texbottomedge 13
 tbox.setparam 3 bevel 0
 
+// 4: Highlight box
+tbox.setparam 4 marginleft 320
+tbox.setparam 4 marginright 320
+tbox.setparam 4 margintop 80
+tbox.setparam 4 marginbottom 80
+tbox.setparam 4 bevel 1
+tbox.setparam 4 basecolor 0xFFF7
+
 
 // ===== Title screen =====
 gfx.show ."0001_A" bkg
-gfx.transition 9
+gfx.transition 4
 sleep
 waitkey
 gfx.clearall
@@ -63,7 +70,6 @@ gfx.clearall
 // runscript INTRO
 
 // Start the game
-#sys.allowsaves
 call TEN_S003.
 
 // ===== Quit Game =====

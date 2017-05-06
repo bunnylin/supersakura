@@ -56,9 +56,9 @@ tbox.setparam 3 basecolor 0xFFF7
 // Title screen
 
 gfx.show TITLE_BK bkg
-gfx.transition 9
+gfx.transition 4
 gfx.show NEKOMOJI
-gfx.transition 9
+gfx.transition 4
 
 waitkey
 gfx.clearall

@@ -50,7 +50,7 @@ tbox.setparam 3 bevel 1
 tbox.setparam 3 basecolor 0xFFF7
 
 gfx.show OP_013 bkg
-gfx.transition 9
+gfx.transition 4
 gfx.show OP_013A0
 
 waitkey

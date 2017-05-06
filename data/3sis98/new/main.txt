@@ -51,7 +51,7 @@ tbox.setparam 3 basecolor 0xFFF7
 
 // ===== the title screen =====
 gfx.show SANSI bkg
-gfx.transition 9
+gfx.transition 4
 waitkey
 
 // ===== the main menu =====

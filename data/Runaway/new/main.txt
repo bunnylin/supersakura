@@ -91,24 +91,12 @@ tbox.setparam 4 bevel 1
 tbox.setparam 4 basecolor 0xFFF7
 
 
-// Framed game text box, plain white text without decorations
-// 512x64 pixels at 64,328
-#style.reset 5
-#style.set 5: basetype 0; bkgcolor = 0, 0, 0, 0; textcolor = FFFFFFFF
-#style.set 5: loc = 3600, 26980; size = 25564 x 5210; fontheight = 1300
-#style.set 5: margins = 0, 0, 0, 0; transition 0 noshadow 1
-
-// Framed title box, completely invisible
-#style.copy 6, 1
-#style.set 6: basetype 0; bkgcolor = 0, 0, 0, 0; textcolor = 0
-
-
 // ===== Opening Animation =====
 // skip the animation if it's already been shown once?
 
 // ===== Title Screen =====
 gfx.show OP_013 bkg
-gfx.transition 15
+gfx.transition 4
 sleep
 gfx.show OP_013A0 anim
 
@@ -116,7 +104,7 @@ gfx.show TCHOICE1
 gfx.show TCHOICE2
 gfx.show TCHOICE3
 gfx.show TCHOICE4
-gfx.setframe TCHOICE2; 4
+gfx.setframe TCHOICE2 4
 gfx.transition 0 // instantly transitioned in
 #fx.gobslidealpha TCHOICE1; 0; 0 // instantly fully transparent
 #fx.gobslidealpha TCHOICE2; 0; 0
@@ -124,11 +112,11 @@ gfx.transition 0 // instantly transitioned in
 #fx.gobslidealpha TCHOICE4; 0; 0
 // fade choices to full visibility one at a time
 #fx.gobslidealpha TCHOICE1; 255; 500
-sleep 100
+#sleep 100
 #fx.gobslidealpha TCHOICE2; 255; 500
-sleep 100
+#sleep 100
 #fx.gobslidealpha TCHOICE3; 255; 500
-sleep 100
+#sleep 100
 #fx.gobslidealpha TCHOICE4; 255; 500
 sleep
 
@@ -184,6 +172,7 @@ return
 @ngclick:
 event.clear
 gfx.clearall
+gfx.transition
 
 #gfx.show MEIF bkg viewport 1
 
