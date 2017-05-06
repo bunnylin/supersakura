@@ -320,7 +320,7 @@ var myfx : ^fxtype;
     ivar, jvar, kvar, lvar : dword;
     targetx, targety, targetsizex, targetsizey : word;
     x, y, tox, toy : dword;
-    rowendskipbytes : dword;
+    rowstartskipbytes, rowendskipbytes : dword;
 begin
  if transitionactive >= fxcount then begin
   LogError('RenderTransition: bad fx index: ' + strdec(transitionactive)); exit;
@@ -344,6 +344,7 @@ begin
  targetsizey := viewport[myfx^.inviewport].viewportsizeyp;
  //tox := targetx + targetsizex - 1;
  //toy := targety + targetsizey - 1;
+ rowendskipbytes := (sysvar.mv_WinSizeX - targetsizex) * 4;
 
  // Set up stream pointers.
  ivar := (targety * sysvar.mv_WinSizeX + targetx) * 4;
@@ -362,8 +363,8 @@ begin
     ivar := dword(high(coscos)) * myfx^.time div myfx^.time2;
     jvar := (coscos[ivar] * (targetsizex + tox)) shr 16;
     // Get the width of the completed area behind the soft edge.
-    rowendskipbytes := 0;
-    if jvar > tox then rowendskipbytes := (jvar - tox) * 4;
+    rowstartskipbytes := 0;
+    if jvar > tox then rowstartskipbytes := (jvar - tox) * 4;
     // Get the width of the pending area ahead of the soft edge.
     kvar := 0;
     if jvar < targetsizex then kvar := (targetsizex - jvar) * 4;
@@ -373,8 +374,8 @@ begin
 
     for y := targetsizey - 1 downto 0 do begin
      // Skip the completed wipe area behind the soft edge.
-     inc(srcp, rowendskipbytes);
-     inc(destp, rowendskipbytes);
+     inc(srcp, rowstartskipbytes);
+     inc(destp, rowstartskipbytes);
      // Do the soft edge.
      if tox <> 0 then for x := tox - 1 downto 0 do begin
       lvar := tox - x;
@@ -391,6 +392,9 @@ begin
       inc(srcp, kvar);
       inc(destp, kvar);
      end;
+     // Skip to next row.
+     inc(srcp, rowendskipbytes);
+     inc(destp, rowendskipbytes);
     end;
    end;
 
@@ -425,11 +429,11 @@ begin
      // Get the soft edge width for this row.
      tox := dword((myfx^.poku + y * 4)^);
      // Get the width of the completed area behind the soft edge.
-     rowendskipbytes := 0;
+     rowstartskipbytes := 0;
      if jvar > tox then begin
-      rowendskipbytes := (jvar - tox);
-      if rowendskipbytes > targetsizex then rowendskipbytes := targetsizex;
-      rowendskipbytes := rowendskipbytes * 4;
+      rowstartskipbytes := (jvar - tox);
+      if rowstartskipbytes > targetsizex then rowstartskipbytes := targetsizex;
+      rowstartskipbytes := rowstartskipbytes * 4;
      end;
      // Clip the soft edge.
      if jvar < tox then tox := jvar
@@ -437,8 +441,8 @@ begin
      if jvar >= tox + targetsizex then tox := 0
      else dec(tox, jvar - targetsizex);
      // Skip the completed wipe area behind the soft edge.
-     inc(srcp, rowendskipbytes);
-     inc(destp, rowendskipbytes);
+     inc(srcp, rowstartskipbytes);
+     inc(destp, rowstartskipbytes);
      // Do the soft edge.
      if tox <> 0 then for x := tox - 1 downto 0 do begin
       lvar := tox - x;
@@ -455,6 +459,9 @@ begin
       inc(srcp, kvar);
       inc(destp, kvar);
      end;
+     // Skip to next row.
+     inc(srcp, rowendskipbytes);
+     inc(destp, rowendskipbytes);
     end;
    end;
 
@@ -463,12 +470,13 @@ begin
     ivar := dword(high(coscos)) * myfx^.time div myfx^.time2;
     jvar := (coscos[ivar] * targetsizey) shr 16;
     kvar := targetsizey - 1 - jvar; // inverse
+    lvar := targetsizex * 4;
     rowendskipbytes := sysvar.mv_WinSizeX * 4;
 
     for y := targetsizey - 1 downto 0 do begin
      if (y and 1 = 0) and (y > jvar)
      or (y and 1 <> 0) and (y < kvar) then begin
-      move(srcp^, destp^, targetsizex * 4);
+      move(srcp^, destp^, lvar);
      end;
      inc(srcp, rowendskipbytes);
      inc(destp, rowendskipbytes);
@@ -478,7 +486,6 @@ begin
    TRANSITION_CROSSFADE: begin
     jvar := myfx^.time shl 15 div myfx^.time2; // 32k time left
     kvar := 32768 - jvar; // 32k time elapsed
-    rowendskipbytes := (sysvar.mv_WinSizeX - targetsizex) * 4;
 
     for y := targetsizey - 1 downto 0 do begin
      for x := targetsizex - 1 downto 0 do begin

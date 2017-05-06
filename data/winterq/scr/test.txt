@@ -539,7 +539,7 @@ choice.set "3 - interlaced wipe"
 choice.set "4 - crossfade"
 choice.set "Back"
 $v1 := (choice.get)
-if $v1 = 16 then goto byetransu end
+if $v1 > 4 then goto byetransu end
 gfx.show VILLAGE bkg
 gfx.transition index $v1 time 4096
 sleep
