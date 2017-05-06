@@ -87,8 +87,120 @@ begin
    dec(y2, margintop);
   end;
 
-  AddBoxMoveEffect(highlightbox, -1, x1, y1, 0, 0, 256, style);
-  AddBoxSizeEffect(highlightbox, -1, x2 - x1, y2 - y1, 256, style);
+  AddBoxMoveEffect(highlightbox, -1, x1, y1, 0, 0, 160, style);
+  AddBoxSizeEffect(highlightbox, -1, x2 - x1, y2 - y1, 160, style);
+ end;
+end;
+
+procedure MoveChoiceHighlightUp;
+var ivar, closestindex, closestdist : dword;
+begin
+ closestindex := $FFFFFFFF; closestdist := $FFFFFFFF;
+ with choicematic do begin
+  ivar := showcount;
+  while ivar <> 0 do begin
+   dec(ivar);
+   if ivar = highlightindex then continue;
+   // Is this choice above the highlighted choice?
+   if (showlist[ivar].sly2p <= showlist[highlightindex].sly1p)
+   // Does this choice overlap the highlighted choice's X coords?
+   and (showlist[ivar].slx1p < showlist[highlightindex].slx2p)
+   and (showlist[ivar].slx2p > showlist[highlightindex].slx1p)
+   // Is the choice closer than previous closest?
+   and (showlist[highlightindex].sly1p - showlist[ivar].sly1p < closestdist)
+   then begin
+    closestindex := ivar;
+    closestdist := showlist[highlightindex].sly1p - showlist[ivar].sly1p;
+   end;
+  end;
+  if closestindex < showcount then begin
+   highlightindex := closestindex;
+   HighlightChoice(MOVETYPE_HALFCOS);
+  end;
+ end;
+end;
+
+procedure MoveChoiceHighlightDown;
+var ivar, closestindex, closestdist : dword;
+begin
+ closestindex := $FFFFFFFF; closestdist := $FFFFFFFF;
+ with choicematic do begin
+  ivar := showcount;
+  while ivar <> 0 do begin
+   dec(ivar);
+   if ivar = highlightindex then continue;
+   // Is this choice below the highlighted choice?
+   if (showlist[ivar].sly1p >= showlist[highlightindex].sly2p)
+   // Does this choice overlap the highlighted choice's X coords?
+   and (showlist[ivar].slx1p < showlist[highlightindex].slx2p)
+   and (showlist[ivar].slx2p > showlist[highlightindex].slx1p)
+   // Is the choice closer than previous closest?
+   and (showlist[ivar].sly1p - showlist[highlightindex].sly1p < closestdist)
+   then begin
+    closestindex := ivar;
+    closestdist := showlist[ivar].sly1p - showlist[highlightindex].sly1p;
+   end;
+  end;
+  if closestindex < showcount then begin
+   highlightindex := closestindex;
+   HighlightChoice(MOVETYPE_HALFCOS);
+  end;
+ end;
+end;
+
+procedure MoveChoiceHighlightLeft;
+var ivar, closestindex, closestdist : dword;
+begin
+ closestindex := $FFFFFFFF; closestdist := $FFFFFFFF;
+ with choicematic do begin
+  ivar := showcount;
+  while ivar <> 0 do begin
+   dec(ivar);
+   if ivar = highlightindex then continue;
+   // Is this choice to the left of the highlighted choice?
+   if (showlist[ivar].slx2p <= showlist[highlightindex].slx1p)
+   // Does this choice overlap the highlighted choice's Y coords?
+   and (showlist[ivar].sly1p < showlist[highlightindex].sly2p)
+   and (showlist[ivar].sly2p > showlist[highlightindex].sly1p)
+   // Is the choice closer than previous closest?
+   and (showlist[highlightindex].slx1p - showlist[ivar].slx1p < closestdist)
+   then begin
+    closestindex := ivar;
+    closestdist := showlist[highlightindex].slx1p - showlist[ivar].slx1p;
+   end;
+  end;
+  if closestindex < showcount then begin
+   highlightindex := closestindex;
+   HighlightChoice(MOVETYPE_HALFCOS);
+  end;
+ end;
+end;
+
+procedure MoveChoiceHighlightRight;
+var ivar, closestindex, closestdist : dword;
+begin
+ closestindex := $FFFFFFFF; closestdist := $FFFFFFFF;
+ with choicematic do begin
+  ivar := showcount;
+  while ivar <> 0 do begin
+   dec(ivar);
+   if ivar = highlightindex then continue;
+   // Is this choice to the right of the highlighted choice?
+   if (showlist[ivar].slx1p >= showlist[highlightindex].slx2p)
+   // Does this choice overlap the highlighted choice's Y coords?
+   and (showlist[ivar].sly1p < showlist[highlightindex].sly2p)
+   and (showlist[ivar].sly2p > showlist[highlightindex].sly1p)
+   // Is the choice closer than previous closest?
+   and (showlist[ivar].slx1p - showlist[highlightindex].slx1p < closestdist)
+   then begin
+    closestindex := ivar;
+    closestdist := showlist[ivar].slx1p - showlist[highlightindex].slx1p;
+   end;
+  end;
+  if closestindex < showcount then begin
+   highlightindex := closestindex;
+   HighlightChoice(MOVETYPE_HALFCOS);
+  end;
  end;
 end;
 

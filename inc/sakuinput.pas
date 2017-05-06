@@ -99,45 +99,20 @@ end;
 
 procedure UserInput_Up; inline;
 begin
- if choicematic.active then with choicematic do begin
-  if highlightindex >= numcolumns then begin
-   dec(highlightindex, numcolumns);
-   HighlightChoice(MOVETYPE_HALFCOS);
-  end;
-  exit;
- end;
+ if choicematic.active then MoveChoiceHighlightUp;
 end;
 
 procedure UserInput_Down; inline;
 begin
- if choicematic.active then with choicematic do begin
-  if highlightindex + numcolumns < showcount then begin
-   inc(highlightindex, numcolumns);
-   HighlightChoice(MOVETYPE_HALFCOS);
-  end;
-  exit;
- end;
+ if choicematic.active then MoveChoiceHighlightDown;
 end;
 
 procedure UserInput_Left; inline;
 begin
- if (choicematic.active) and (choicematic.numcolumns > 1) then with choicematic do begin
-  if highlightindex mod numcolumns <> 0 then begin
-   dec(highlightindex);
-   HighlightChoice(MOVETYPE_HALFCOS);
-  end;
-  exit;
- end;
+ if (choicematic.active) and (choicematic.numcolumns > 1) then MoveChoiceHighlightLeft;
 end;
 
 procedure UserInput_Right; inline;
 begin
- if (choicematic.active) and (choicematic.numcolumns > 1) then with choicematic do begin
-  if ((highlightindex + 1) mod numcolumns <> 0)
-  and (highlightindex + 1 < showcount) then begin
-   inc(highlightindex);
-   HighlightChoice(MOVETYPE_HALFCOS);
-  end;
-  exit;
- end;
+ if (choicematic.active) and (choicematic.numcolumns > 1) then MoveChoiceHighlightRight;
 end;
