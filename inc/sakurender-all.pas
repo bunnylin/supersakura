@@ -394,7 +394,69 @@ begin
     end;
    end;
 
-   TRANSITION_RAGGEDWIPE:;
+   TRANSITION_RAGGEDWIPE: begin
+    // Calculate the maximum soft edge width.
+    toy := targetsizex shr 2 + 1;
+
+    // Build a raggedness list, if one doesn't exist yet. This assigns
+    // a different soft edge size to each pixel row.
+    if myfx^.poku = NIL then begin
+     getmem(myfx^.poku, targetsizey * 4);
+     // Find the largest integer square root of the maximum soft edge width.
+     jvar := 1; while jvar * jvar <= toy do inc(jvar); dec(jvar);
+     // Build the list.
+     ivar := 0;
+     for y := targetsizey - 1 downto 0 do begin
+      kvar := random(jvar) + 1;
+      dword((myfx^.poku + ivar)^) := kvar * kvar;
+      inc(ivar, 4);
+     end;
+    end;
+
+    // Calculate completion amount: runs from 0 to targetsizex + maxedgesize.
+    // This is the leading edge of the soft edge.
+    ivar := dword(high(coscos)) * myfx^.time div myfx^.time2;
+    jvar := (coscos[ivar] * (targetsizex + toy)) shr 16;
+    // Get the width of the pending area ahead of the soft edge.
+    kvar := 0;
+    if jvar < targetsizex then kvar := (targetsizex - jvar) * 4;
+
+    for y := targetsizey - 1 downto 0 do begin
+     // Get the soft edge width for this row.
+     tox := dword((myfx^.poku + y * 4)^);
+     // Get the width of the completed area behind the soft edge.
+     rowendskipbytes := 0;
+     if jvar > tox then begin
+      rowendskipbytes := (jvar - tox);
+      if rowendskipbytes > targetsizex then rowendskipbytes := targetsizex;
+      rowendskipbytes := rowendskipbytes * 4;
+     end;
+     // Clip the soft edge.
+     if jvar < tox then tox := jvar
+     else if jvar > targetsizex then
+     if jvar >= tox + targetsizex then tox := 0
+     else dec(tox, jvar - targetsizex);
+     // Skip the completed wipe area behind the soft edge.
+     inc(srcp, rowendskipbytes);
+     inc(destp, rowendskipbytes);
+     // Do the soft edge.
+     if tox <> 0 then for x := tox - 1 downto 0 do begin
+      lvar := tox - x;
+      byte(destp^) := (byte(destp^) * x + byte(srcp^) * lvar) div tox;
+      inc(srcp); inc(destp);
+      byte(destp^) := (byte(destp^) * x + byte(srcp^) * lvar) div tox;
+      inc(srcp); inc(destp);
+      byte(destp^) := (byte(destp^) * x + byte(srcp^) * lvar) div tox;
+      inc(srcp, 2); inc(destp, 2);
+     end;
+     // Fill the pending area ahead of the soft edge.
+     if kvar <> 0 then begin
+      move(srcp^, destp^, kvar);
+      inc(srcp, kvar);
+      inc(destp, kvar);
+     end;
+    end;
+   end;
 
    TRANSITION_INTERLACED: begin
     // Calculate completion amount: runs from 0 to targetsizey-1.
