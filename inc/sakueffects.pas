@@ -103,6 +103,7 @@ begin
   fx[fxnum] := fx[fxcount];
   fx[fxcount].kind := 0;
   fx[fxcount].poku := NIL;
+  if transitionactive = fxcount then transitionactive := fxnum;
  end;
 end;
 
