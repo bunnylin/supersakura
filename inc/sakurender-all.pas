@@ -785,7 +785,8 @@ begin
 
   {$ifndef sakucon}
   // Draw textboxes unless using stashbuffy.
-  if destbuf <> stashbuffy then begin
+  if (gamevar.hideboxes = 0)
+  and (destbuf <> stashbuffy) then begin
    ivar := 0;
    while ivar < dword(length(TBox)) do begin
     if TBox[ivar].boxstate <> BOXSTATE_NULL then begin

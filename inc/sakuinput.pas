@@ -116,3 +116,8 @@ procedure UserInput_Right; inline;
 begin
  if (choicematic.active) and (choicematic.numcolumns > 1) then MoveChoiceHighlightRight;
 end;
+
+procedure UserInput_HideBoxes; inline;
+begin
+ HideBoxes(gamevar.hideboxes = 0);
+end;

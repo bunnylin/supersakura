@@ -378,6 +378,10 @@ procedure HandleSDLevent(evd : PSDL_event);
   // strings. Typed strings require bonus localisation handling.
   begin
    // === Keyboard shortcuts ===
+   if modifier = $80 then case sym of
+    SDLK_B: UserInput_HideBoxes;
+
+   end;
 
    // === Cursor keys, Enter and ESC ===
    case sym of
@@ -465,20 +469,22 @@ begin
 
   // ctrl-q = 113 / $40 and 113 / $80
   if (evd^.key.keysym.sym = SDLK_Q) and (evd^.key.keysym._mod and $C0 <> 0)
-  then evd^.type_ := SDL_QUITEV
+  then evd^.type_ := SDL_QUITEV else
 
   // the pause button
-  else if evd^.key.keysym.sym = SDLK_PAUSE then begin
-   if evd^.key.keysym._mod = 0 then begin
-    if pausestate = PAUSESTATE_PAUSED then SetPauseState(PAUSESTATE_NORMAL)
-    else SetPauseState(PAUSESTATE_PAUSED);
-    exit;
-   end else
-   if evd^.key.keysym._mod <= 2 then begin
+  if (evd^.key.keysym.sym = SDLK_PAUSE)
+  or (evd^.key.keysym._mod and $80 <> 0)
+  and (evd^.key.keysym.sym = SDLK_P)
+  then begin
+   if evd^.key.keysym._mod and 3 <> 0 then begin
     // Shift-pause was pressed (modifiers $1 and $2)
     SetPauseState(PAUSESTATE_SINGLE);
-    exit;
+   end else begin
+    // Normal pause
+    if pausestate = PAUSESTATE_PAUSED then SetPauseState(PAUSESTATE_NORMAL)
+    else SetPauseState(PAUSESTATE_PAUSED);
    end;
+   exit;
   end else
   // alt-enter = 13 / $100 or $240
   if (evd^.key.keysym.sym = SDLK_RETURN)

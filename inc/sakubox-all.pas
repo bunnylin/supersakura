@@ -23,6 +23,7 @@ var ivar : dword;
 begin
  hideval := 0;
  if dohide then hideval := 1;
+ log('HideBoxes ' + strdec(hideval));
 
  for ivar := high(TBox) downto 0 do
   with TBox[ivar] do begin

@@ -69,7 +69,7 @@ begin
   // Esc
   if com = chr(27) then UserInput_Esc else
 
-  if com = '*' then HideBoxes(gamevar.hideboxes = 0);
+  if com = '*' then UserInput_HideBoxes;
   if com = '@' then Debug_PrintGobs;
 
   if (choicematic.active = FALSE) or (pausestate <> PAUSESTATE_NORMAL) then exit;
