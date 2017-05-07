@@ -686,11 +686,14 @@ begin
 end;
 
 procedure Invoke_TBOX_CLEAR; inline;
+var ivar : dword;
 begin
- numvalue := gamevar.defaulttextbox;
+ numvalue := -1;
  FetchParam(WOPP_BOX);
  if (numvalue < 0) or (numvalue >= length(TBox))
- then fibererror('tboxclear box out of range: ' + strdec(numvalue))
+ then begin
+  for ivar := length(TBox) - 1 downto 1 do ClearTextbox(ivar);
+ end
  else ClearTextbox(numvalue);
 end;
 

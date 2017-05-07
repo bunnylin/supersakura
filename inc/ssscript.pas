@@ -401,6 +401,7 @@ begin
  ss_rwopparams[WOP_TBOX_PRINT][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
  // default: empty string
  ss_rwopparams[WOP_TBOX_PRINT][WOPP_TEXT] := ss_rwoppargtype[WOPP_TEXT];
+ // default: clear all boxes
  ss_rwopparams[WOP_TBOX_CLEAR][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
  // default: box 1
  ss_rwopparams[WOP_TBOX_SETDEFAULT][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
