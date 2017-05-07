@@ -266,11 +266,15 @@ begin
 
   // Print the showlist in the choicebox.
   for ivar := 0 to showcount - 1 do begin
-   //if ivar <> 0 then if verticalonly then PrintBox(choicebox, '\n') else PrintBox(choicebox, ' \t');
    {$ifdef sakucon}
-   PrintBox(choicebox, chr(65 + ivar) + ') ');
-   {$endif}
+   if ivar <> 0 then
+    if numcolumns = 1
+     then PrintBox(choicebox, '\n')
+     else PrintBox(choicebox, ' ');
+   PrintBox(choicebox, chr(65 + ivar) + ') ' + showlist[ivar].showtxt);
+   {$else}
    PrintBox(choicebox, '\?' + showlist[ivar].showtxt + '\.');
+   {$endif}
   end;
  end;
 end;
