@@ -65,12 +65,14 @@ begin
            end;
       else begin
        // Partial alpha mix, using the precalculated alphamixtable.
+       // The source is premultiplied by its own alpha. To mix, we must now
+       // multiply the source by the inverse of the alpha, and sum the two.
+       alpha := alpha xor $FF;
        byte(destp^) := byte(alphamixtab[alpha, byte(destp^)] + byte(srcp^));
        inc(srcp); inc(destp);
        byte(destp^) := byte(alphamixtab[alpha, byte(destp^)] + byte(srcp^));
        inc(srcp); inc(destp);
        byte(destp^) := byte(alphamixtab[alpha, byte(destp^)] + byte(srcp^));
-       //inc(srcp, 2); inc(destp, 2);
        inc(srcp); inc(destp);
        byte(destp^) := byte(alphamixtab[alpha, byte(destp^)] + byte(srcp^));
        inc(srcp); inc(destp);
@@ -130,20 +132,46 @@ begin
  end;
 end;
 
-procedure DrawRGBA32lighten(clipdata : pblitstruct);
-// Copies 32-bit RGBA data from a source bitmap into a destination buffer,
-// with normal alpha blending. Call ClipRGB first to generate the blitstruct.
-// The pixel sum is capped at 255. The alpha channel is ignored during
-// mixing, although the source image may have been premultiplied already.
-begin
-end;
-
 procedure DrawRGBA32alpha(clipdata : pblitstruct; amul : byte);
 // Copies 32-bit RGBA data from a source bitmap into a destination buffer,
 // multiplying the source bitmap with an alpha value along the way.
 // Call ClipRGB first to generate the blitstruct.
 // 255 alpha is fully visible, 0 alpha is fully invisible.
+var x : dword;
+    alpha : byte;
 begin
+ with clipdata^ do begin
+  while copyrows <> 0 do begin
+   x := copywidth;
+   while x <> 0 do begin
+    alpha := alphamixtab[byte((srcp + 3)^), amul];
+    // Shortcut for totally transparent pixels.
+    if alpha = 0 then begin
+     inc(srcp, 4); inc(destp, 4);
+    end else begin
+     // Partial alpha mix, using the precalculated alphamixtable.
+     // Source is premultiplied by its own alpha, but must be further
+     // multiplied by amul. Destination must be multiplied by the inverse
+     // of (alpha * amul), then the two are summed.
+     alpha := alpha xor $FF;
+     byte(destp^) := byte(alphamixtab[alpha, byte(destp^)] + alphamixtab[byte(srcp^), amul]);
+     inc(srcp); inc(destp);
+     byte(destp^) := byte(alphamixtab[alpha, byte(destp^)] + alphamixtab[byte(srcp^), amul]);
+     inc(srcp); inc(destp);
+     byte(destp^) := byte(alphamixtab[alpha, byte(destp^)] + alphamixtab[byte(srcp^), amul]);
+     inc(srcp); inc(destp);
+     byte(destp^) := byte(alphamixtab[alpha, byte(destp^)] + alpha xor $FF);
+     inc(srcp); inc(destp);
+    end;
+
+    dec(x);
+   end;
+   inc(srcp, srcskipwidth);
+   inc(destp, destskipwidth);
+
+   dec(copyrows);
+  end;
+ end;
 end;
 
 procedure DrawSolid(clipdata : pblitstruct; fillcolor : dword; hasalpha : byte);

@@ -302,7 +302,7 @@ begin
 
  // alphamixtab is a lookup table for anything where you need a*b/255
  for ivar := 255 downto 0 do for jvar := 255 downto 0 do
-  alphamixtab[jvar, ivar] := (ivar * (jvar xor $FF)) div 255;
+  alphamixtab[jvar, ivar] := ivar * jvar div 255;
  initxpal;
 
  // Load the initial DAT file.
