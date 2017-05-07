@@ -17,6 +17,37 @@
 { along with SuperSakura.  If not, see <https://www.gnu.org/licenses/>.     }
 {                                                                           }
 
+procedure ScreenModeSwitch;
+// Call this to adjust the game to whatever the console's current size is.
+var ivar, jvar : dword;
+begin
+ GetConsoleSize(ivar, jvar);
+ if ivar <> 0 then sysvar.mv_WinSizeX := ivar;
+ if jvar <> 0 then sysvar.mv_WinSizeY := jvar;
+
+ log('Console size change: ' + strdec(ivar) + 'x' + strdec(jvar));
+ if ivar <> 0 then sysvar.mv_WinSizeX := ivar;
+ if jvar <> 0 then sysvar.mv_WinSizeY := jvar;
+ // Forget any ongoing transition. These rely on a stashed copy of the screen
+ // being transitioned away from, and a new screen size means the old copy
+ // would be mis-sized.
+ if transitionactive < fxcount then DeleteFx(transitionactive);
+
+ // Set up buffers for output.
+ ivar := sysvar.mv_WinSizeX * sysvar.mv_WinSizeY * 4;
+ if mv_OutputBuffy <> NIL then begin freemem(mv_OutputBuffy); mv_OutputBuffy := NIL; end;
+ getmem(mv_OutputBuffy, ivar);
+ if stashbuffy <> NIL then begin freemem(stashbuffy); stashbuffy := NIL; end;
+ getmem(stashbuffy, ivar);
+
+ // The viewports may need adjusting. This call imports the new window pixel
+ // size into viewport 0, and then cascades the change down to child ports.
+ // All content in the viewports also gets marked for refreshing. All
+ // previous screen refresh rects are dropped, as they are now mis-sized.
+ numfresh := 0;
+ UpdateViewport(0);
+end;
+
 procedure Debug_PrintGobs;
 var ivar : dword;
     txt : UTF8string;
@@ -45,7 +76,9 @@ begin
  if com = '' then exit;
  if com[1] = chr(0) then begin
   // Ctrl-R
-  if com = chr(0) + chr(4) + chr($12) then begin
+  if com = chr(0) + chr(4) + chr($12) then ScreenModeSwitch;
+  // Ctrl-T
+  if com = chr(0) + chr(4) + chr($14) then begin
    saku_param.lxymix := NOT saku_param.lxymix;
    initxpal;
    AddRefresh(0, 0, sysvar.mv_WinSizeX, sysvar.mv_WinSizeY);
@@ -311,8 +344,10 @@ begin
  ReadConfig;
 
  GetConsoleSize(ivar, jvar);
- if (ivar <> 0) and (saku_param.overridex = 0) then sysvar.mv_WinSizeX := ivar;
- if (jvar <> 0) and (saku_param.overridey = 0) then sysvar.mv_WinSizeY := jvar;
+ if ivar <> 0 then sysvar.mv_WinSizeX := ivar;
+ if jvar <> 0 then sysvar.mv_WinSizeY := jvar;
+ if saku_param.overridex <> 0 then sysvar.mv_WinSizeX := saku_param.overridex;
+ if saku_param.overridey <> 0 then sysvar.mv_WinSizeY := saku_param.overridey;
 
  // Hide the console cursor. Set the console colors to an expected default.
  CrtShowCursor(FALSE);
