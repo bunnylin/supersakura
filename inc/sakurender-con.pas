@@ -129,10 +129,17 @@ end;
 
 procedure BlitzBox(boxnum : dword);
 // Entirely reprints a box in a console.
-var ivar, jvar, y, cellcount : dword;
+var ivar, jvar, breakindex, escindex : dword;
     textpal, backpal : dword;
-    txtofs : dword;
+    txtofs, txtmark : dword;
     txt : UTF8string;
+
+  procedure newcolor(c : dword); inline;
+  begin
+   textpal := xpal[(c shr 20) and $F][(c shr 12) and $F][(c shr 4) and $F] and $F;
+   SetColor(textpal + backpal shl 4);
+  end;
+
 begin
  with TBox[boxnum] do begin
   // safety, clipping not performed
@@ -141,15 +148,14 @@ begin
   or (boxlocyp_r + longint(boxsizeyp_r) > longint(sysvar.mv_WinSizeY))
   then exit;
 
-  textpal := xpal[style.textcolor.r shr 4][style.textcolor.g shr 4][style.textcolor.b shr 4] and $F;
   backpal := xpal[style.basecolor[0].r shr 4][style.basecolor[0].g shr 4][style.basecolor[0].b shr 4] and $F;
-  SetColor(textpal + backpal shl 4);
+  newcolor(dword(style.textcolor));
 
   // Fill the box rectangle.
   {$ifdef WINDOWS}
-  cellcount := boxsizexp_r * boxsizeyp_r;
-  if dword(length(AsciiBuf)) < cellcount then begin setlength(AsciiBuf, 0); setlength(AsciiBuf, cellcount); end;
-  filldword(AsciiBuf[0], cellcount, backpal shl 20 + $20);
+  ivar := boxsizexp_r * boxsizeyp_r;
+  if dword(length(AsciiBuf)) < ivar then begin setlength(AsciiBuf, 0); setlength(AsciiBuf, ivar); end;
+  filldword(AsciiBuf[0], ivar, backpal shl 20 + $20);
   CrtWriteConOut(@AsciiBuf[0], boxsizexp_r, boxsizeyp_r, boxlocxp_r, boxlocyp_r, dword(boxlocxp_r) + boxsizexp_r, dword(boxlocyp_r) + boxsizeyp_r);
   {$else}
   for y := boxlocyp_r to boxlocyp_r + boxsizeyp_r - 1 do begin
@@ -161,28 +167,68 @@ begin
   // If the box is showing text, write the text one line at a time, starting
   // from the scroll-offset line.
   if boxstate = BOXSTATE_SHOWTEXT then begin
-   txtofs := 0; ivar := 0;
-   y := contentwinscrollofsp;
-   if y > txtlinebreakcount then txtofs := txtlength
-   else if y <> 0 then txtofs := txtlinebreaklist[y - 1];
+   txtofs := 0; escindex := 0; txt := '';
+   breakindex := contentwinscrollofsp;
+   if breakindex > txtlinebreakcount then txtofs := txtlength
+   else if breakindex <> 0 then txtofs := txtlinebreaklist[breakindex - 1];
 
-   while txtofs < txtlength do begin
-    GotoXY(dword(boxlocxp_r) + marginleftp, dword(boxlocyp_r) + margintopp + ivar);
-    txt := '';
-    jvar := txtlength;
-    if y < txtlinebreakcount then jvar := txtlinebreaklist[y];
-    inc(y);
-    dec(jvar, txtofs);
-    if jvar <> 0 then begin
-     setlength(txt, jvar);
-     move(txtcontent[txtofs], txt[1], jvar);
-     UTF8Write(txt);
-     inc(txtofs, jvar);
+   GotoXY(dword(boxlocxp_r) + marginleftp, dword(boxlocyp_r) + margintopp);
+
+   repeat
+    // Check for linebreaks at current txt offset.
+    while (breakindex < txtlinebreakcount)
+    and (txtlinebreaklist[breakindex] = txtofs)
+    do begin
+     inc(breakindex);
+     // Stop when bottom of the content window is reached.
+     if breakindex - contentwinscrollofsp >= contentwinsizeyp then begin
+      txtofs := txtlength + 1;
+      break;
+     end;
+
+     GotoXY(dword(boxlocxp_r) + marginleftp, dword(boxlocyp_r) + margintopp + breakindex);
     end;
-    // Stop writing when content window bottom reached.
-    inc(ivar);
-    if ivar >= contentwinsizeyp then break;
-   end;
+
+    // Check for escape codes at current txt offset.
+    while (escindex < txtescapecount)
+    and (txtescapelist[escindex].escapeofs <= txtofs)
+    do begin
+     case txtescapelist[escindex].escapecode of
+       byte('B'): ; // Bold on
+       byte('b'): ; // Bold off
+       byte('c'): newcolor(txtescapelist[escindex].escapedata);
+       byte('d'): newcolor(dword(style.textcolor));
+       byte('L'): ; // left
+       byte('C'): ; // center
+       byte('R'): ; // right
+       byte(':'): ;
+       byte('?'): ;
+       byte('.'): ;
+     end;
+     inc(escindex);
+    end;
+
+    // Is this the end of the text?
+    if txtofs >= txtlength then break;
+
+    // Calculate the distance to the next escape, linebreak, or end of text.
+    txtmark := txtlength;
+    if (breakindex < txtlinebreakcount)
+    and (txtlinebreaklist[breakindex] < txtmark)
+    then txtmark := txtlinebreaklist[breakindex];
+    if (escindex < txtescapecount)
+    and (txtescapelist[escindex].escapeofs < txtmark)
+    then txtmark := txtescapelist[escindex].escapeofs;
+
+    // Print text up to the next txtmark.
+    ivar := txtmark - txtofs;
+    if length(txt) < ivar then setlength(txt, 0);
+    setlength(txt, ivar);
+    move(txtcontent[txtofs], txt[1], ivar);
+    UTF8Write(txt);
+
+    txtofs := txtmark;
+   until FALSE;
   end;
 
  end;
