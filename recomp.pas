@@ -204,6 +204,38 @@ begin
  end;
 end;
 
+function FindFile_caseless(const namu : UTF8string; isdir : boolean) : UTF8string;
+// Tries to find the given filename using a case-insensitive search.
+// If isdir is TRUE, looks for a directory instead of a file.
+// Wildcards not supported. The path still has to be case-correct. :(
+// This can be used to find a single specific file on *nixes without knowing
+// the exact case used in the filename.
+// Returns the full case-correct path+name, or an empty string if not found.
+// If multiple identically-named, differently-cased files exist, returns
+// whichever FindFirst picks up first.
+var filusr : TSearchRec;
+    basedir, basename : UTF8string;
+    findresult : longint;
+begin
+ FindFile_caseless := '';
+ basename := lowercase(ExtractFileName(namu));
+ basedir := copy(namu, 1, length(namu) - length(basename));
+ findresult := faReadOnly;
+ if isdir then findresult := findresult or faDirectory;
+
+ findresult := FindFirst(basedir + '*', findresult, filusr);
+ while findresult = 0 do begin
+  if lowercase(filusr.Name) = basename then
+  if (isdir = FALSE) or (filusr.Attr and faDirectory <> 0)
+  then begin
+   FindFile_caseless := basedir + filusr.Name;
+   break;
+  end;
+  findresult := FindNext(filusr);
+ end;
+ FindClose(filusr);
+end;
+
 {$include inc/ssscript.pas}
 
 procedure ProcessScript(const srcfilu : UTF8string);
@@ -579,14 +611,12 @@ procedure ProcessFiles(srcdir : UTF8string);
     PNGcount := 0;
     // First read data.txt; this should contain all metadata generated during
     // a game's decompilation
-    searchresult := FindFirst(currdir + 'data.txt', faReadOnly, filusr);
-    if searchresult = 0 then ProcessMetaData(currdir + filusr.Name);
-    FindClose(filusr);
+    fnam := FindFile_Caseless(currdir + 'data.txt', FALSE);
+    if fnam <> '' then ProcessMetaData(fnam);
     // Next read newdata.txt; this should contain overrides for the above
     // metadata, for example to fix decompilation bugs or original game bugs
-    searchresult := FindFirst(currdir + 'newdata.txt', faReadOnly, filusr);
-    if searchresult = 0 then ProcessMetaData(currdir + filusr.Name);
-    FindClose(filusr);
+    fnam := FindFile_Caseless(currdir + 'newdata.txt', FALSE);
+    if fnam <> '' then ProcessMetaData(fnam);
    end
 
    // If we're deeper than the root directory, find and process all files
@@ -816,32 +846,54 @@ begin
  end;
 
  // Sanitise the commandline parameters...
- if recomp_param.project <> '' then begin
-  // If sourcedir was not overridden, use the project name.
-  if recomp_param.sourcedir = '' then recomp_param.sourcedir := recomp_param.project;
-  // If outputfile was not overridden, use the project name, under data dir.
-  if recomp_param.outputfile = ''
-  then recomp_param.outputfile := 'data' + DirectorySeparator + recomp_param.project + '.dat';
+
+ // Default sourcedir: the project name.
+ if (recomp_param.sourcedir = '')
+ and (recomp_param.project <> '')
+ then recomp_param.sourcedir := recomp_param.project;
+
+ // Remove the trailing separator, if any.
+ if recomp_param.sourcedir[length(recomp_param.sourcedir)] = DirectorySeparator
+ then setlength(recomp_param.sourcedir, length(recomp_param.sourcedir) - 1);
+
+ // Check if this sourcedir exists under "data".
+ // (Sourcedir can still be empty if neither sourcedir or project were
+ // specified on the commandline. In this case there should at least be
+ // a -loadfile parameter, otherwise there's nothing to work with.)
+ if recomp_param.sourcedir <> '' then begin
+  txt := FindFile_Caseless('data' + DirectorySeparator + recomp_param.sourcedir, TRUE);
+  if txt = '' then begin
+   PrintError('Sourcedir not found: data' + DirectorySeparator + recomp_param.sourcedir);
+   exit;
+  end;
+  // If the sourcedir is the same as the project name, use the sourcedir's
+  // exact casing for the project name too.
+  if lowercase(recomp_param.sourcedir) = lowercase(recomp_param.project)
+  then recomp_param.project := ExtractFileName(txt);
+  // Use the exact casing of the source directory.
+  recomp_param.sourcedir := txt;
  end;
 
- // Whether default or overridden, the source must be under "data".
- if recomp_param.sourcedir <> '' then begin
-  // The source directory also needs a trailing slash.
-  if recomp_param.sourcedir[length(recomp_param.sourcedir)] = DirectorySeparator
-  then recomp_param.sourcedir := 'data' + DirectorySeparator + recomp_param.sourcedir
-  else recomp_param.sourcedir := 'data' + DirectorySeparator + recomp_param.sourcedir + DirectorySeparator;
- end;
+ // Add a trailing separator to the source directory now.
+ recomp_param.sourcedir := recomp_param.sourcedir + DirectorySeparator;
+
+ // If outputfile was not overridden, use the project name, under data dir.
+ if recomp_param.outputfile = ''
+ then recomp_param.outputfile := 'data' + DirectorySeparator + recomp_param.project + '.dat';
 
  // Load an existing dat, if specified on commandline
  if recomp_param.loadfile <> '' then begin
   // (quit if output file is same as loadfile)
-  if recomp_param.outputfile = recomp_param.loadfile then begin
+  if lowercase(recomp_param.outputfile) = lowercase(recomp_param.loadfile) then begin
    PrintError('-load and -out cannot point to the same file.');
    exit;
   end;
-  txt := 'Trying to open existing dat: ' + recomp_param.loadfile;
-  writeln(txt); writeln(stdout, txt);
-  if LoadDAT(recomp_param.loadfile) <> 0 then begin
+  txt := FindFile_Caseless(recomp_param.loadfile, FALSE);
+  if txt = '' then begin
+   PrintError('No such file: ' + recomp_param.loadfile);
+   exit;
+  end;
+  if (LoadDAT(txt) <> 0) then begin
    PrintError('LoadDAT failed: ' + asman_errormsg);
    exit;
   end;
@@ -863,7 +915,13 @@ begin
   txt := 'Data version: ' + recomp_param.dataversion;
   writeln(txt); writeln(stdout, txt);
 
-  // Prepare the output file
+  // Prepare the output file.
+  txt := FindFile_Caseless(recomp_param.outputfile, FALSE);
+  if txt <> '' then begin
+   assign(filu, txt);
+   erase(filu);
+  end;
+  while IOresult <> 0 do ; // flush
   assign(filu, recomp_param.outputfile);
   filemode := 1; rewrite(filu, 1); // write-only
   ivar := IOresult;
@@ -872,7 +930,7 @@ begin
    exit;
   end;
 
-  // Prepare the output memory buffer
+  // Prepare the output memory buffer.
   {$note test if dat works with tiny buffysize}
   filubuffysize := 1 shl 24; filubuffyofs := 0;
   getmem(filubuffy, filubuffysize);
