@@ -75,8 +75,23 @@ var ivar : dword;
 begin
  if com = '' then exit;
  if com[1] = chr(0) then begin
+  // Ctrl-B
+  if com = chr(0) + chr(4) + chr(2) then UserInput_HideBoxes;
+
+  // Ctrl-P
+  if com = chr(0) + chr(4) + chr($10) then
+   if pausestate = PAUSESTATE_NORMAL then SetPauseState(PAUSESTATE_PAUSED)
+   else SetPauseState(PAUSESTATE_NORMAL);
+  // Ctrl-Alt-P or Ctrl-Shift-P
+  if (com = chr(0) + chr(2) + chr($10))
+  or (com = chr(0) + chr(5) + chr($10)) then SetPauseState(PAUSESTATE_SINGLE);
+
+  // Ctrl-Q
+  if com = chr(0) + chr(4) + chr($11) then sysvar.quit := TRUE;
+
   // Ctrl-R
   if com = chr(0) + chr(4) + chr($12) then ScreenModeSwitch;
+
   // Ctrl-T
   if com = chr(0) + chr(4) + chr($14) then begin
    saku_param.lxymix := NOT saku_param.lxymix;
@@ -85,14 +100,6 @@ begin
    for ivar := high(TBox) downto 0 do
     if TBox[ivar].style.hidable and 1 = 0 then TBox[ivar].needsredraw := TRUE;
   end;
-  // Ctrl-Q
-  if com = chr(0) + chr(4) + chr($11) then sysvar.quit := TRUE;
-  // Ctrl-P
-  if com = chr(0) + chr(4) + chr($10) then
-   if pausestate = PAUSESTATE_NORMAL then SetPauseState(PAUSESTATE_PAUSED)
-   else SetPauseState(PAUSESTATE_NORMAL);
-  // Ctrl-Shift-P
-  if com = chr(0) + chr(5) + chr($10) then SetPauseState(PAUSESTATE_SINGLE);
  end
 
  else begin
@@ -102,7 +109,7 @@ begin
   // Esc
   if com = chr(27) then UserInput_Esc else
 
-  if com = '*' then UserInput_HideBoxes;
+  if com = '*' then UserInput_HideBoxes else
   if com = '@' then Debug_PrintGobs;
 
   if (choicematic.active = FALSE) or (pausestate <> PAUSESTATE_NORMAL) then exit;
