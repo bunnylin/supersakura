@@ -173,10 +173,12 @@ begin
     if y < txtlinebreakcount then jvar := txtlinebreaklist[y];
     inc(y);
     dec(jvar, txtofs);
-    setlength(txt, jvar);
-    move(txtcontent[txtofs], txt[1], jvar);
-    UTF8Write(txt);
-    inc(txtofs, jvar);
+    if jvar <> 0 then begin
+     setlength(txt, jvar);
+     move(txtcontent[txtofs], txt[1], jvar);
+     UTF8Write(txt);
+     inc(txtofs, jvar);
+    end;
     // Stop writing when content window bottom reached.
     inc(ivar);
     if ivar >= contentwinsizeyp then break;
