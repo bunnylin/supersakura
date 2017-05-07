@@ -831,10 +831,8 @@ begin
        popruntime := style.poptime;
        finalbufvalid := FALSE;
        boxstate := BOXSTATE_SHOWTEXT;
-       {if (choicematic.active) and (boxnum = choicematic.choicebox)
-       then boxstate := BOXSTATE_SHOWTEXT;}
-       needsredraw := TRUE;
       end;
+      needsredraw := TRUE;
      end;
      BOXSTATE_VANISHING: begin
       dec(popruntime, tickcount);
