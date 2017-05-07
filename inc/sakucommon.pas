@@ -1451,6 +1451,8 @@ begin
 
  if viewnum = 0 then with viewport[0] do begin
   // The full game window just needs to reflect sizexyp.
+  viewportsizexp := sysvar.mv_WinSizeX;
+  viewportsizeyp := sysvar.mv_WinSizeY;
   viewportx1p := 0; viewportx2p := viewportsizexp;
   viewporty1p := 0; viewporty2p := viewportsizeyp;
   viewportratiox := viewportsizexp;

@@ -39,46 +39,13 @@ begin
  if mv_GamepadH <> NIL then writeln('Opened gamepad: ',SDL_GameControllerName(mv_GamepadH));
 end;
 
-procedure SpawnWindow;
-// Does everything necessary to set up a window to draw in.
-// Can switch to fullscreen mode if FullScreen is TRUE.
-var ivar : dword;
-    rendinfo : TSDL_RendererInfo;
+procedure CreateRendererAndTexture;
+var rendinfo : TSDL_RendererInfo;
+    ivar, jvar : dword;
 begin
- log('Spawning a window...');
-
- // Close and release the existing game window, if any.
+ // Release the old-sized texture and renderer, if any.
  if mv_MainTexH <> NIL then begin SDL_DestroyTexture(mv_MainTexH); mv_MainTexH := NIL; end;
  if mv_RendererH <> NIL then begin SDL_DestroyRenderer(mv_RendererH); mv_RendererH := NIL; end;
- if mv_MainWinH <> NIL then begin SDL_DestroyWindow(mv_MainWinH); mv_MainWinH := NIL; end;
-
- // Arbitrary window size minimum bounds.
- if sysvar.WindowSizeX < 16 then sysvar.WindowSizeX := 16;
- if sysvar.WindowSizeY < 16 then sysvar.WindowSizeY := 16;
- if sysvar.FullSizeX < 640 then sysvar.FullSizeX := 640;
- if sysvar.FullSizeY < 480 then sysvar.FullSizeY := 480;
-
- sysvar.mv_WinSizeX := sysvar.WindowSizeX;
- sysvar.mv_WinSizeY := sysvar.WindowSizeY;
-
- if sysvar.fullscreen then begin
-  // Attempt to go to fullscreen...
-  // If the target resolution is not supported by the user's display, will
-  // fall back to windowed mode.
-  sysvar.mv_WinSizeX := sysvar.FullSizeX;
-  sysvar.mv_WinSizeY := sysvar.FullSizeY;
- end;
-
- log('Desired game window size: ' + strdec(sysvar.mv_WinSizeX) + 'x' + strdec(sysvar.mv_WinSizeY));
-
- // Create the window!
- mv_MainWinH := SDL_CreateWindow(
-   NIL, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-   sysvar.mv_WinSizeX, sysvar.mv_WinSizeY, SDL_WINDOW_SHOWN);
- if mv_MainWinH = NIL then begin
-  LogError('Failed to create SDL window: ' + SDL_GetError);
-  exit;
- end;
 
  // Create the renderer!
  mv_RendererH := SDL_CreateRenderer(mv_MainWinH, -1, 0);
@@ -86,6 +53,9 @@ begin
   LogError('Failed to create SDL renderer: ' + SDL_GetError);
   exit;
  end;
+
+ SDL_GetRendererOutputSize(mv_RendererH, @ivar, @jvar);
+ log('New renderer output size: ' + strdec(ivar) + 'x' + strdec(jvar));
 
  // Clear the window a few times (double/triple buffering).
  SDL_SetRenderDrawColor(mv_RendererH, 0, 0, 0, 255);
@@ -102,6 +72,7 @@ begin
  if ivar <> 0 then LogError('Error fetching renderer info: ' + SDL_GetError)
  else begin
   log('Using renderer: ' + rendinfo.name);
+  log('Desired texture size: ' + strdec(sysvar.mv_WinSizeX) + 'x' + strdec(sysvar.mv_WinSizeY));
   log('Max texture size (effectively, largest possible window): ' + strdec(rendinfo.max_texture_width) + 'x' + strdec(rendinfo.max_texture_height));
   if rendinfo.flags and SDL_RENDERER_SOFTWARE <> 0
   then log('We''re a software renderer')
@@ -129,40 +100,109 @@ begin
  getmem(mv_OutputBuffy, ivar);
  if stashbuffy <> NIL then begin freemem(stashbuffy); stashbuffy := NIL; end;
  getmem(stashbuffy, ivar);
+end;
+
+procedure SpawnWindow;
+// Does everything necessary to set up a window to draw in.
+begin
+ log('Spawning a window...');
+
+ // Close and release the existing game window, if any.
+ if mv_MainWinH <> NIL then begin SDL_DestroyWindow(mv_MainWinH); mv_MainWinH := NIL; end;
+
+ // Arbitrary window size minimum bounds.
+ if sysvar.WindowSizeX < 16 then sysvar.WindowSizeX := 16;
+ if sysvar.WindowSizeY < 16 then sysvar.WindowSizeY := 16;
+
+ sysvar.mv_WinSizeX := sysvar.WindowSizeX;
+ sysvar.mv_WinSizeY := sysvar.WindowSizeY;
+
+ // Create the window!
+ mv_MainWinH := SDL_CreateWindow(
+   NIL, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+   sysvar.mv_WinSizeX, sysvar.mv_WinSizeY, SDL_WINDOW_SHOWN);
+ if mv_MainWinH = NIL then begin
+  LogError('Failed to create SDL window: ' + SDL_GetError);
+  exit;
+ end;
+
+ // Create the renderer and texture. All output goes first into our own
+ // outputbuffy, then that gets pushed into the texture, and the renderer is
+ // called to copy the full texture to the game window every frame.
+ CreateRendererAndTexture;
 
  // Make sure we start with a clean, black window.
  filldword(mv_OutputBuffy^, sysvar.mv_WinSizeX * sysvar.mv_WinSizeY, 0);
  SDL_UpdateTexture(mv_MainTexH, NIL, mv_OutputBuffy, sysvar.mv_WinSizeX * 4);
 end;
 
-procedure ScreenModeSwitch(full : boolean);
+procedure ScreenModeSwitch(usefull : boolean);
 // Removes the existing game window, and creates a new one.
-// If FULL is TRUE, changes display resolution to fullSizeX,fullSizeY, and
-// creates a screen-sized window.
-// If FULL is FALSE, sets display resolution to the system default, and
-// creates a window of size WindowSizeX,WindowSizeY.
-var ivar, jvar, lvar, yvar : word;
+// If FULL is TRUE, creates a desktop-sized window.
+// If FULL is FALSE, creates a window of size WindowSizeX,WindowSizeY.
+// SDL2 has a fullscreen toggle, but it seems bugged under some conditions,
+// so manually recreating the whole display stack seems to be the best way.
+var dispmode : TSDL_DisplayMode;
+    ivar, jvar : dword;
 begin
- {$note todo fix screenmodeswitch}
- for ivar := high(TBox) downto 0 do with TBox[ivar] do begin
-  // Set all existing boxes to redraw
+ log(':: Screen mode switch!');
+ // Forget any ongoing transition. These rely on a stashed copy of the screen
+ // being transitioned away from, and a new screen size means the old copy
+ // would be mis-sized.
+ if transitionactive < fxcount then DeleteFx(transitionactive);
+
+ // Close and release the existing game window, if any.
+ if mv_MainWinH <> NIL then begin SDL_DestroyWindow(mv_MainWinH); mv_MainWinH := NIL; end;
+
+ {$ifdef bonk}
+ // Resize the window. You'd think this would just work, but returning from
+ // fullscreen may cause the renderer to adopt a wrong size??
+ ivar := 0;
+ if usefull then ivar := SDL_WINDOW_FULLSCREEN_DESKTOP;
+ if SDL_SetWindowFullscreen(mv_MainWinH, ivar) <> 0 then begin
+  LogError('SetWindowFullscreen: ' + SDL_GetError);
+  exit;
+ end;
+ {$endif}
+
+ ivar := SDL_WINDOW_SHOWN;
+ if usefull then ivar := ivar or SDL_WINDOW_FULLSCREEN_DESKTOP;
+ // Re-create the window!
+ mv_MainWinH := SDL_CreateWindow(
+   NIL, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+   sysvar.WindowSizeX, sysvar.WindowSizeY, ivar);
+ if mv_MainWinH = NIL then begin
+  LogError('Failed to create SDL window: ' + SDL_GetError);
+  exit;
  end;
 
- // Forget any ongoing swipes/fades
- //if fadeactive <> $FF then fx[fadeactive].data := 3;
+ // Rename the window!
+ if (pausestate = PAUSESTATE_PAUSED)
+ then SetProgramName(mv_ProgramName + ' [paused]')
+ else SetProgramName(mv_ProgramName);
 
- // Kill the old window, but cancel the auto-quit
- //DestroyWindow(mv_WindowH);
- sysvar.quit := FALSE;
+ // Confirm what we got. When switching away from fullscreen, the display
+ // mode may show an incorrect size, so the new window size must be taken
+ // from GetWindowSize.
+ SDL_GetWindowDisplayMode(mv_MainWinH, @dispmode);
+ log('GetWinDisplayMode: ' + strdec(dispmode.w) + 'x' + strdec(dispmode.h));
+ SDL_GL_GetDrawableSize(mv_MainWinH, @ivar, @jvar);
+ log('GL_GetDrawable: ' + strdec(ivar) + 'x' + strdec(jvar));
+ SDL_GetWindowSize(mv_MainWinH, @ivar, @jvar);
+ log('GetWindowSize: ' + strdec(ivar) + 'x' + strdec(jvar));
+ sysvar.mv_WinSizeX := ivar;
+ sysvar.mv_WinSizeY := jvar;
+ sysvar.fullscreen := usefull;
 
- sysvar.fullscreen := full;
+ // Re-create the renderer.
+ CreateRendererAndTexture;
 
- // And lo! the new window
- SpawnWindow;
-
- // The viewframe may need adjusting
- //UpdateViewportData(0);
- // All autofitting boxes must be refitted
+ // The viewports may need adjusting. This call imports the new window pixel
+ // size into viewport 0, and then cascades the change down to child ports.
+ // All content in the viewports also gets marked for refreshing. All
+ // previous screen refresh rects are dropped, as they are now mis-sized.
+ numfresh := 0;
+ UpdateViewport(0);
 end;
 
 procedure GetDefaultWindowSizes(var sizex, sizey : dword);
@@ -492,7 +532,7 @@ begin
   or (evd^.key.keysym.sym = SDLK_KP_ENTER)
   then if (evd^.key.keysym._mod = $100) or (evd^.key.keysym._mod = $240)
   then begin
-   writeln('ALT-ENTER: fullscreen switch!');
+   ScreenModeSwitch(not sysvar.fullscreen);
    exit;
   end;
  end;
@@ -510,7 +550,16 @@ begin
   end;
   SDL_CONTROLLERDEVICEADDED: begin log('Controller added!'); InitGamepad; end;
   SDL_CONTROLLERDEVICEREMOVED: begin log('Controller removed!'); InitGamepad; end;
-  SDL_RENDER_TARGETS_RESET: LogError('SDL RENDER TARGETS RESET!?');
+
+  // If this happens, the renderer has been wrecked? Can happen when the user
+  // task switches while in fullscreen mode. The renderer must be renewed.
+  SDL_RENDER_TARGETS_RESET: begin
+   log('RENDER TARGETS RESET');
+   numfresh := 0;
+   AddRefresh(0, 0, sysvar.mv_WinSizeX, sysvar.mv_WinSizeY);
+  end;
+  SDL_RENDER_DEVICE_RESET: log('RENDER DEVICE RESET - DO SOMETHING!?');
+
   SDL_WINDOWEVENT: begin
     if evd^.window.event = SDL_WINDOWEVENT_FOCUS_GAINED then sysvar.havefocus := 1 else
     if evd^.window.event = SDL_WINDOWEVENT_FOCUS_LOST then sysvar.havefocus := 0;
