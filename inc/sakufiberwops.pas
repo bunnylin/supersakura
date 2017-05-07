@@ -679,8 +679,10 @@ end;
 
 procedure Invoke_SYS_SETTITLE; inline;
 begin
- if FetchParam(WOPP_TEXT) then SetProgramName(strvalue[0])
- else SetProgramName('');
+ {$note make sys.settitle multilingual}
+ if FetchParam(WOPP_TEXT) then mv_ProgramName := strvalue[0]
+ else mv_ProgramName := '';
+ SetProgramName(mv_ProgramName);
 end;
 
 procedure Invoke_TBOX_CLEAR; inline;
