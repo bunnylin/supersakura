@@ -11,6 +11,9 @@ FUTURE
   cursors is too convoluted to rely on across different screen modes, not
   to mention compatibility across operating systems; or perhaps cursor
   changing should be dropped as too much trouble for minimal reward
+- Console mode textboxes must each redraw completely if overlapping; also add
+  clipping against screen/viewport at least for the background if not the
+  text content
 - Eye candy
    + Add a pixelisation effect, dynamically slidable pixel size?
    + Add nice wind for sakura petals and snowfall
@@ -125,9 +128,7 @@ ONGOING
 - Re-implement gob/area events
 - Re-implement quick RGB tweak?
 - Box move effect reflows text weirdly?
-- Add box hiding in SDL mode
 - Re-add gamepad support
-- Make fullscreen switch work again, and sakucon react to term resize
 - By default, binaries should be in a write-protected executable
   directory; writable subdirectories for "data" and "save" will be
   used for the other stuff, or if they don't exist and cannot be
@@ -152,7 +153,7 @@ REQUIRED FOR 1.0
 - Add music conversion options in data.txt; needs instrument mappings and
   vol/key transposing at least; useful for .M or .O files
 ONGOING
-- Address case shenanigans when rebuilding capitalised project
+- Nothing!
 
 ------------------------------------------------------------------
 Decomp
