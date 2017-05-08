@@ -281,20 +281,21 @@ gfx.show NUM name NUM1 type sprite locx -960 locy -1280
 gfx.show NUM name NUM2 type sprite locx 31680 locy 31147
 gfx.transition 0
 print "Mess with Cubert's face!\nClick the kids to quit."
-event.create.gob AREA1 CUBERTA1 a1click a1on a1off
-event.create.area AREA2 locx 18432 locy 14336 sizex 9932 sizey 4710 a2click
-event.mouseon AREA2 a2on
-event.mouseoff AREA2 a2off
-event.create.gob NUM1 NUM1 num1click
-event.create.gob NUM2 NUM2 num2click
+event.create.gob AREA1 CUBERTA1 test.a1click test.a1on test.a1off
+event.create.area AREA2 locx 18432 locy 14336 sizex 9932 sizey 4710 test.a2click
+event.mouseon AREA2 test.a2on
+event.mouseoff AREA2 test.a2off
+event.create.gob NUM1 NUM1 test.num1click
+event.create.gob NUM2 NUM2 test.num2click
+$v0 := 0
+$v302 := 0
 
-$eventwait := 1
-while $eventwait do yield end
+waitsig
+
 gfx.clearkids
 gfx.show TITLE bkg
 gfx.transition
-tbox.clear 1
-tbox.clear 2
+tbox.clear
 goto testevents
 
 @a1click:
@@ -302,16 +303,17 @@ goto testevents
     $v302 := 1
     gfx.show CUBERTSM locx 256
     gfx.transition
-    choice.go
+  else
+    $v302 := 0
+    gfx.remove CUBERTSM
+    gfx.transition
   end
-  $v302 := 0
-  gfx.remove CUBERTSM
-  gfx.transition
 fiber.stop
+
 @a2click:
   event.remove AREA1
   event.remove AREA2
-  $eventwait := 0
+  signal MAIN
 fiber.stop
 
 @a1on:
