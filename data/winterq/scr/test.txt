@@ -515,12 +515,10 @@ gfx.show CUBERT1 name CU4 locx 21000 locy 4500
 gfx.show CUBERTsm locx 21000 locy 4500
 gfx.show CUBERTa1 locx 21000 locy 4500
 
-$v301 := 0xFFFFFF80 // half-transparent white
-$v302 := 0x00000080 // half-transparent black
-#gfx.solidblit CU2 $v301
-#gfx.solidblit CU3 $v302
-#fx.gobslidealpha CU3 0x80 0
-#fx.gobslidealpha CU4 0x80 0
+gfx.setsolidblit CU2 0xFFFFFF80 // half-transparent white
+gfx.setsolidblit CU3 0x00000080 // half-transparent black
+gfx.setalpha CU3 0x80
+gfx.setalpha CU4 0x80
 
 gfx.transition
 sleep 0
@@ -715,38 +713,38 @@ goto printgamma
 // ------------------------------------------------------------------
 @testsolidblit:
   $v301 := 0x6C5EB5FF
-  $v302 := 1
-  #gfx.solidblit "FRAME" $v301 // should turn viewframe commodore blue
-  #gfx.solidblit TITLE $v302 // should turn viewport black
+  #gfx.setsolidblit FRAME $v301 // should turn viewframe commodore blue
+  gfx.setsolidblit TITLE 1 // should turn viewport black
   gfx.transition 3
   sleep
   waitkey
-  #gfx.solidblit TITLE $v0 // back to normal
-  #gfx.solidblit "FRAME" $v0
+  gfx.setsolidblit TITLE 0 // back to normal
+  #gfx.setsolidblit "FRAME" 0
   gfx.show CUBERT1 locx 6000
   gfx.show CUBERTA1 locx 6000
   gfx.transition 3 // restores view, now with Cubert
   sleep
   waitkey
   $v303 := 0xFFFFFFFF
-  #gfx.solidblit CUBERT1 $v303 // flash Cubert white!
+  gfx.setsolidblit CUBERT1 $v303 // flash Cubert white!
   gfx.transition
   sleep 100
-  #gfx.solidblit CUBERT1 $v0 // fade to normal
-  gfx.transition 3
-  sleep $v900 + 500 // wait until transition done, plus .5 seconds
-  #gfx.solidblit CUBERT1 $v303
+  gfx.setsolidblit CUBERT1 0 // fade to normal
+  gfx.transition 4
+  sleep
+  sleep 480
+  gfx.setsolidblit CUBERT1 $v303
   gfx.transition
   sleep 100
-  #gfx.solidblit CUBERT1 $v0
-  gfx.transition 3
-  sleep $v900 + 500
-  $v303 := 0x900090FF
-  #gfx.solidblit CUBERT1 $v303 // flash to purple
-  gfx.transition 3 time 256
-  sleep 100
+  gfx.setsolidblit CUBERT1 0
+  gfx.transition 4
+  sleep
+  sleep 480
+  gfx.setsolidblit CUBERT1 0x900090FF // flash to purple
+  gfx.transition
+  sleep 256
   gfx.remove CUBERT1 // and take it away
-  gfx.transition 3
+  gfx.transition 4 time 1280
   sleep
   waitkey
 goto effys
@@ -756,20 +754,20 @@ goto effys
   gfx.show CUBERT1 locx 8000
   gfx.show CUBERTA1 locx 8000
   gfx.show CUBERTA1 locx 16000 locy -2000 name EVILEYES
-  #fx.gobslidealpha CUBERT1; 0; 0
-  #fx.gobslidealpha EVILEYES; 128; 0
+  gfx.setalpha CUBERT1 0
+  gfx.setalpha EVILEYES 128
   gfx.transition
   waitkey
-  #fx.gobslidealpha CUBERT1; 255; 3000
+  gfx.setalpha CUBERT1 alpha 255 time 3000
   sleep
   waitkey
-  #fx.gobslidealpha CUBERT1; 128; 1000
+  gfx.setalpha CUBERT1 128 1000
   sleep
   waitkey
-  #fx.gobslidealpha CUBERT1; 0; 1000
+  gfx.setalpha CUBERT1 0 1000
   sleep
   waitkey
-  #fx.gobslidealpha CUBERT1; 255; 0
+  gfx.setalpha CUBERT1 255 0
   waitkey
   gfx.clearkids
   gfx.transition
