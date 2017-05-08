@@ -366,8 +366,47 @@ begin
  end;
 end;
 
-procedure Invoke_EVENT_MOUSEOFF; inline; begin end;
-procedure Invoke_EVENT_MOUSEON; inline; begin end;
+procedure Invoke_EVENT_MOUSEOFF; inline;
+var ivar : dword;
+begin
+ if FetchParam(WOPP_NAME) = FALSE then fibererror('setmouseoff without event name')
+ else begin
+  StashStrval;
+  strvalue2[0] := upcase(strvalue2[0]);
+  FetchParam(WOPP_LABEL);
+  ivar := length(event.gob);
+  while ivar <> 0 do begin
+   dec(ivar);
+   if event.gob[ivar].namu = strvalue2[0] then event.gob[ivar].mouseofflabel := strvalue[0];
+  end;
+  ivar := length(event.area);
+  while ivar <> 0 do begin
+   dec(ivar);
+   if event.area[ivar].namu = strvalue2[0] then event.area[ivar].mouseofflabel := strvalue[0];
+  end;
+ end;
+end;
+
+procedure Invoke_EVENT_MOUSEON; inline;
+var ivar : dword;
+begin
+ if FetchParam(WOPP_NAME) = FALSE then fibererror('setmouseon without event name')
+ else begin
+  StashStrval;
+  strvalue2[0] := upcase(strvalue2[0]);
+  FetchParam(WOPP_LABEL);
+  ivar := length(event.gob);
+  while ivar <> 0 do begin
+   dec(ivar);
+   if event.gob[ivar].namu = strvalue2[0] then event.gob[ivar].mouseonlabel := strvalue[0];
+  end;
+  ivar := length(event.area);
+  while ivar <> 0 do begin
+   dec(ivar);
+   if event.area[ivar].namu = strvalue2[0] then event.area[ivar].mouseonlabel := strvalue[0];
+  end;
+ end;
+end;
 
 procedure Invoke_EVENT_REMOVE; inline;
 var ivar, jvar : dword;
@@ -426,7 +465,29 @@ begin
 end;
 
 procedure Invoke_EVENT_SETLABEL; inline;
+var ivar : dword;
 begin
+ if FetchParam(WOPP_NAME) = FALSE then fibererror('setlabel without event name')
+ else begin
+  StashStrval;
+  strvalue2[0] := upcase(strvalue2[0]);
+  FetchParam(WOPP_LABEL);
+  ivar := length(event.gob);
+  while ivar <> 0 do begin
+   dec(ivar);
+   if event.gob[ivar].namu = strvalue2[0] then event.gob[ivar].triggerlabel := strvalue[0];
+  end;
+  ivar := length(event.area);
+  while ivar <> 0 do begin
+   dec(ivar);
+   if event.area[ivar].namu = strvalue2[0] then event.area[ivar].triggerlabel := strvalue[0];
+  end;
+  ivar := length(event.timer);
+  while ivar <> 0 do begin
+   dec(ivar);
+   if event.timer[ivar].namu = strvalue2[0] then event.timer[ivar].triggerlabel := strvalue[0];
+  end;
+ end;
 end;
 
 procedure Invoke_FIBER_GETID; inline;
