@@ -57,55 +57,65 @@ tbox.setparam 6 ax 16384
 tbox.setparam 6 minsizey 6400
 tbox.setparam 6 maxsizey 8000
 tbox.setparam 6 fontheight 2000
+tbox.setparam 6 poptime 4096
 
-waitkey
+print "Transition 1, pop in/out"
+waitkey noclear=1
 
-tbox.setparam 1 poptype 1
 tbox.setparam 6 poptype 1
 tbox.setparam 6 textalign 1
-print "Transition 1, pop in/out"
 print 6 '"Just popping by," he intoned in an intense tone.'
+waitkey noclear=1
+tbox.popout 6
 waitkey
-waitkey
+print "Transition 2, fade in/out"
+waitkey noclear=1
 
-tbox.setparam 1 poptype 2
 tbox.setparam 6 poptype 2
 tbox.setparam 6 textalign 2
-print "Transition 2, fade in/out"
+tbox.clear 6
 print 6 "Those who would know themselves . . .\nmust first know arithmetics."
+waitkey noclear=1
+tbox.popout 6
 waitkey
-waitkey
+print "Transition 3, sweep in/out"
+waitkey noclear=1
 
-tbox.setparam 1 poptype 3
 tbox.setparam 6 poptype 3
 tbox.setparam 6 textalign 1
-
-print "Transition 3, sweep in/out"
+tbox.clear 6
 print 6 "Look into your heart\n\nyou KNOW this to be true!"
-waitkey
+waitkey noclear=1
+tbox.popout 6
 waitkey
 
 tbox.setparam 1 poptype 0
 tbox.setparam 6 poptype 0
+tbox.clear 6
+tbox.setparam 6 minsizex 16000
+tbox.setparam 6 minsizey 1600
+tbox.setparam 6 maxsizey 6400
+
 print "Transition 0, instant. With movement and sizing!\n"
 print "Instant, linear, coscos and halfcos."
-waitkey noclear=1
 
 print 6 "Box McBoxFace"
-tbox.setloc 6 locx 16000 locy 4000 time 4000 style=instant
-tbox.setsize 6 sizex 14000 sizey 8000 time 4000 style=instant
 waitkey noclear=1
 
-tbox.setloc 6 locx 17000 locy 26000 time 4000 style=linear
-tbox.setsize 6 sizex 12000 sizey 6000 time 4000 style=linear
+tbox.setloc 6 locx 12000 locy 4000 time 3200 style=instant
+tbox.setsize 6 sizex 14000 sizey 4000 time 3200 style=instant
 waitkey noclear=1
 
-tbox.setloc 6 locx 16000 locy 4000 time 4000 style=cosine
-tbox.setsize 6 sizex 14000 sizey 8000 time 4000 style=cosine
+tbox.setloc 6 locx 24000 locy 16000 time 3200 style=linear
+tbox.setsize 6 sizex 10000 sizey 5600 time 3200 style=linear
 waitkey noclear=1
 
-tbox.setloc 6 locx 15000 locy 26000 time 4000 style=halfcos
-tbox.setsize 6 sizex 12000 sizey 6000 time 4000 style=halfcos
+tbox.setloc 6 locx 12000 locy 4000 time 3200 style=cosine
+tbox.setsize 6 sizex 14000 sizey 4000 time 3200 style=cosine
+waitkey noclear=1
+
+tbox.setloc 6 locx 24000 locy 16000 time 3200 style=halfcos
+tbox.setsize 6 sizex 10000 sizey 5600 time 3200 style=halfcos
 sleep
 
 tbox.clear
