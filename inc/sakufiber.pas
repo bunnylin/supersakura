@@ -39,12 +39,6 @@ end;
 
 // ------------------------------------------------------------------
 
-procedure StripEscapes(var txt : UTF8string);
-// Removes all escape codes from the given string. \$ is dereferenced.
-// Useful particularly for clean resource file references.
-begin
-end;
-
 procedure ScriptGoto(fibernum : dword; labelnamu : UTF8string);
 // Jumps fiber execution to the start of the given label.
 var ivar : dword;
@@ -136,6 +130,23 @@ begin
  else ScriptGoto(fibernum, copy(labs, startofs, curofs - startofs));
 end;
 
+function ClearWaitKey : boolean;
+// Resumes fibers waiting for a keypress. Returns TRUE if any fiber was
+// resumed, otherwise FALSE.
+var ivar, jvar : dword;
+begin
+ ClearWaitKey := FALSE;
+ if fibercount <> 0 then
+  for ivar := fibercount - 1 downto 0 do
+   if fiber[ivar].fiberstate in [FIBERSTATE_WAITKEY, FIBERSTATE_WAITCLEAR]
+   then begin
+    if fiber[ivar].fiberstate = FIBERSTATE_WAITCLEAR then
+     for jvar := high(TBox) downto 0 do ClearTextbox(jvar);
+    fiber[ivar].fiberstate := FIBERSTATE_NORMAL;
+    ClearWaitKey := TRUE;
+   end;
+end;
+
 procedure SignalFiber(fibernamu : UTF8string);
 // Finds all fibers with the given name (case-insensitive), or all fibers if
 // empty name, and puts them in a normal state if they were waiting for
@@ -178,8 +189,10 @@ begin
   LogError('StartFiber: label not found: ' + labelnamu);
   exit;
  end;
- // Grow the fiber list if needed.
- if dword(length(fiber)) >= fibercount then setlength(fiber, length(fiber) + length(fiber) shr 1 + 4);
+ // Resize the fiber list if needed.
+ if (fibercount + 8 < dword(length(fiber)) shr 1)
+ or (fibercount >= dword(length(fiber)))
+ then setlength(fiber, fibercount + fibercount shr 1 + 4);
  // Initialise fiber data.
  with fiber[fibercount] do begin
   if fibernamu <> '' then fibername := upcase(fibernamu)
@@ -1021,6 +1034,7 @@ begin
   case fiber[fiberid].fiberstate of
     // Stopped fibers
     FIBERSTATE_STOPPING: begin
+     log('Stopping fiber ' + fiber[fiberid].fibername);
      // Stop this fiber's effects, shift above fibers' effects down a notch.
      if fxcount <> 0 then for ivar := fxcount - 1 downto 0 do begin
       if fx[ivar].fxfiber = longint(fiberid) then DeleteFx(ivar)
@@ -1028,7 +1042,7 @@ begin
      end;
      // Move above fibers down a notch.
      ivar := fiberid + 1;
-     while ivar <= fibercount do begin
+     while ivar < fibercount do begin
       fiber[ivar - 1] := fiber[ivar];
       inc(ivar);
      end;
