@@ -78,7 +78,9 @@ begin
     FX_BOXSIZE: begin
      with TBox[fxbox] do begin
       contentwinminsizex := x2;
-      contentwinmaxsizex := y2;
+      contentwinmaxsizex := x2;
+      contentwinminsizey := y2;
+      contentwinmaxsizey := y2;
       contentbufparamvalid := FALSE;
      end;
     end;
