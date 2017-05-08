@@ -764,6 +764,24 @@ begin
  end;
 end;
 
+procedure Invoke_TBOX_POPIN; inline;
+begin
+ numvalue := gamevar.defaulttextbox;
+ FetchParam(WOPP_BOX);
+ if (numvalue < 0) or (numvalue >= length(TBox))
+ then fibererror('popin box out of range: ' + strdec(numvalue))
+ else TBox[numvalue].boxstate := BOXSTATE_APPEARING;
+end;
+
+procedure Invoke_TBOX_POPOUT; inline;
+begin
+ numvalue := gamevar.defaulttextbox;
+ FetchParam(WOPP_BOX);
+ if (numvalue < 0) or (numvalue >= length(TBox))
+ then fibererror('popout box out of range: ' + strdec(numvalue))
+ else TBox[numvalue].boxstate := BOXSTATE_VANISHING;
+end;
+
 procedure nestedprint(inbox : dword);
 var ivar : dword;
 begin
@@ -1067,6 +1085,8 @@ begin
    WOP_TBOX_CLEAR: Invoke_TBOX_CLEAR;
    WOP_TBOX_DECORATE: Invoke_TBOX_DECORATE;
    WOP_TBOX_OUTLINE: Invoke_TBOX_OUTLINE;
+   WOP_TBOX_POPIN: Invoke_TBOX_POPIN;
+   WOP_TBOX_POPOUT: Invoke_TBOX_POPOUT;
    WOP_TBOX_PRINT: Invoke_TBOX_PRINT;
    WOP_TBOX_REMOVEDECOR: Invoke_TBOX_REMOVEDECOR;
    WOP_TBOX_REMOVEOUTLINES: Invoke_TBOX_REMOVEOUTLINES;
@@ -1090,23 +1110,6 @@ end;
 
  {$ifdef bonk}
   case comm of
-   // 17 = fx.movegob [name] [tox, toy] [duration] [style]
-   17: begin
-        namutxt := upcase(StripEscapes(ReadString));
-        data2 := Evaluate; // tox
-        data3 := Evaluate; // toy
-        data4 := Evaluate; // duration
-        if data4 < 0 then data4 := 0;
-        data := byte((script[scr^.curnum].code + scr^.ofs)^); // style
-        inc(scr^.ofs);
-        // find all gobs of given name, move them
-        ivar := length(gob);
-        while ivar <> 0 do begin
-         dec(ivar);
-         if (IsGobValid(ivar)) and (gob[ivar].gobnamu = namutxt)
-         then addMoveEffect(ivar, data2, data3, data4, data);
-        end;
-       end;
    // 42 = gfx.solidblit [gob name] [color variable]
    42: begin
         txt := upcase(StripEscapes(ReadString));

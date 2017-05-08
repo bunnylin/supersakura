@@ -161,15 +161,17 @@ WOP_GFX_TRANSITION = 97;
 WOP_TBOX_CLEAR = 120;
 WOP_TBOX_DECORATE = 121;
 WOP_TBOX_OUTLINE = 122;
-WOP_TBOX_PRINT = 123;
-WOP_TBOX_REMOVEDECOR = 124;
-WOP_TBOX_REMOVEOUTLINES = 125;
-WOP_TBOX_SETDEFAULT = 126;
-WOP_TBOX_SETLOC = 127;
-WOP_TBOX_SETNUMBOXES = 128;
-WOP_TBOX_SETPARAM = 129;
-WOP_TBOX_SETSIZE = 130;
-WOP_TBOX_SETTEXTURE = 131;
+WOP_TBOX_POPIN = 123;
+WOP_TBOX_POPOUT = 124;
+WOP_TBOX_PRINT = 125;
+WOP_TBOX_REMOVEDECOR = 126;
+WOP_TBOX_REMOVEOUTLINES = 127;
+WOP_TBOX_SETDEFAULT = 128;
+WOP_TBOX_SETLOC = 129;
+WOP_TBOX_SETNUMBOXES = 130;
+WOP_TBOX_SETPARAM = 131;
+WOP_TBOX_SETSIZE = 132;
+WOP_TBOX_SETTEXTURE = 133;
 
 WOP_FIBER_GETID = 160;
 WOP_FIBER_SIGNAL = 161;
@@ -205,7 +207,7 @@ WOP_SYS_SETTITLE = 252;
 // Reserved words of power
 // Table mapping word of power strings to bytecode values
 // Must be arranged in ascending ascii order!
-var ss_rwoplist : array[0..121] of record
+var ss_rwoplist : array[0..123] of record
   namu : string[22];
   code : byte;
 end = (
@@ -310,6 +312,8 @@ end = (
 (namu : 'tbox.decorate'; code : WOP_TBOX_DECORATE),
 (namu : 'tbox.move'; code : WOP_TBOX_SETLOC),
 (namu : 'tbox.outline'; code : WOP_TBOX_OUTLINE),
+(namu : 'tbox.popin'; code : WOP_TBOX_POPIN),
+(namu : 'tbox.popout'; code : WOP_TBOX_POPOUT),
 (namu : 'tbox.print'; code : WOP_TBOX_PRINT),
 (namu : 'tbox.removedecor'; code : WOP_TBOX_REMOVEDECOR),
 (namu : 'tbox.removeoutlines'; code : WOP_TBOX_REMOVEOUTLINES),
@@ -458,6 +462,9 @@ begin
  ss_rwopparams[WOP_TBOX_OUTLINE][WOPP_LOCY] := ss_rwoppargtype[WOPP_LOCY] or $50;
  // default: 0
  ss_rwopparams[WOP_TBOX_OUTLINE][WOPP_ALPHA] := ss_rwoppargtype[WOPP_ALPHA] or $20;
+
+ ss_rwopparams[WOP_TBOX_POPIN][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
+ ss_rwopparams[WOP_TBOX_POPOUT][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
 
  ss_rwopparams[WOP_TBOX_REMOVEOUTLINES][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
  ss_rwopparams[WOP_TBOX_REMOVEDECOR][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX] or $F0;
