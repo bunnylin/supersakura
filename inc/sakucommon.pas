@@ -538,13 +538,15 @@ var // Script execution fibers.
       area : array of record
         namu : UTF8string;
         inviewport : dword;
-        x1, y1, x2, y2, x1p, y1p, x2p, y2p : longint;
+        x1, y1, x2, y2 : longint; // 32k relative to viewport
+        x1p, y1p, x2p, y2p : longint; // pixel values relative to game window
         triggerlabel, mouseonlabel, mouseofflabel : UTF8string;
         state : byte; // 1 if currently overed, 0 if not
       end;
       gob : array of record
         namu : UTF8string;
         gobnamu : UTF8string;
+        gobnum : dword;
         triggerlabel, mouseonlabel, mouseofflabel : UTF8string;
         state : byte; // 1 if currently overed, 0 if not
       end;
@@ -593,7 +595,7 @@ var // Commandline parameters.
       mouseX, mouseY : longint; // straight px coord within program window
       mousecheck : byte;
       savestate : byte;
-      hideboxes : byte;
+      hideboxes : byte; // 1 = hidden, 0 = visible
       numlang : byte; // number of languages
       skipseenmsgs : boolean;
     end;
