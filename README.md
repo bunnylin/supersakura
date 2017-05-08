@@ -13,8 +13,17 @@ The actual games themselves are under copyright and are not distributed with
 this project. To run games on Supersakura, you need to convert the game data
 from original files.
 
-For a list of supported games, see inc/gidtable.inc, or the main site at
+For a list of supported games, run "decomp -list", or see inc/gidtable.inc,
+or visit the main site at
 [mooncore.eu/ssakura](https://mooncore.eu/ssakura/).
+
+
+Downloads
+---------
+
+You can get a reasonably recent Win32 build of the engine and tools from
+[mooncore.eu/ssakura](https://mooncore.eu/ssakura/). But for best results,
+see below on how to compile your own copy.
 
 
 Compiling
@@ -35,7 +44,7 @@ in SuperSakura's source directory. On Linuxes, your distro's main software
 repository will have SDL2.
 
 Get the sources for the SDL2 Pascal headers and moonlibs, and save them in
-a directory near FPC's other bundled units. On Windows, this is probably
+a directory near FPC's other units. On Windows, this is probably
 \FPC\units\arch\. On Linuxes, it may be under /lib/fpc/version/arch/.
 Alternatively, just dump everything in the SuperSakura source directory.
 
@@ -66,17 +75,25 @@ To compile resources into a usable SuperSakura data file:
 
     recomp <projectname>
 
-To run the game:
+For example, to build the included Winterquest ministory/testsuite:
+
+    recomp winterq
+
+To run a game:
 
     supersakura <projectname>
 
-Or, the non-graphical version:
+Or, to run a game purely in a console:
 
     supersakura-con <projectname>
 
-Aside from standard console output, these also create a recomp.log and
-saku.log files in the working directory, or in your profile directory if the
-working directory is not writable.
+Aside from stanard console output, recomp also creates a recomp.log in the
+working directory, or in your profile directory if the working directory is
+not writable. Likewise, the SuperSakura engine prints a lot of debug output
+into a saku.log file, either in the working directory or in your profile.
+
+You can add -h to any executable's commandline to see what other commandline
+options are available.
 
 
 Converting game data
@@ -87,14 +104,15 @@ saves them under SuperSakura's data directory in converted standard file
 formats. Note, that although some PC-98 games are supported, Decomp cannot
 yet extract the individual data files from .HDI or .FDI images, so if you
 keep your PC-98 games in those, you will have to first extract the files
-manually. EditDisk or another tool like it may do the trick.
+from the disk image manually. EditDisk or another tool like it may do the
+trick.
 
 To convert resources:
 
     decomp <filename or directory>
 
-For example, to run the DOS version of The Three Sisters' Story (the Windows
-port is not yet supported):
+For example, to convert and run the DOS version of The Three Sisters' Story
+(the Windows port is not yet supported):
 
     decomp /mygames/threesistersstory/
     recomp 3sis
