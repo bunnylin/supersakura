@@ -86,6 +86,11 @@ begin
     end;
 
     FX_GOBMOVE: MoveGob(fxgob, x2 - gob[fxgob].locx, y2 - gob[fxgob].locy);
+
+    FX_GOBALPHA: begin
+     gob[fxgob].alphaness := x2;
+     if gob[fxgob].drawstate and 2 <> 0 then gob[fxgob].drawstate := gob[fxgob].drawstate or 1;
+    end;
   end;
 
   // Zero out the effect data.
@@ -331,56 +336,58 @@ begin
  end;
 end;
 
-function AddAlphaSlideEffect(gobnum : byte; toalpha : byte; msecs : dword) : byte;
+procedure AddGobAlphaEffect(gobnum : dword; fibernum : longint; toalpha : byte; msecs : dword);
 // Creates an effect that slides the given gob's alphaness from its current
 // value to a new value, over a duration of msecs.
-// 255 alpha means fully visible, 0 alpha means fully transparent.
+// 255 = fully opaque, 0 = fully transparent.
 // NOTE: if you alpha slide a gob that has a child gob, trouble ensues. Even
 // if the child is alphaslid the same amount simultaneously, this type of
 // alpha blending makes the child gob stand out sharply in any areas where it
 // overlaps the parent gob. So before sliding a gob's alpha, hide its kids.
-// To fix this, the alpha'ed gob and its kids would have to be rendered in
+// To fix this, the alpha'ed gob and its kids would have to be composited in
 // a separate buffer that later gets blitted to output. Or use the new
 // renderer and its pixel shader approach.
-var fxvar : byte;
+var fxvar : dword;
 begin
- AddAlphaSlideEffect := 0;
  if gobnum >= length(gob) then exit;
- // Any existing slide effect on this same gob can be scrapped
- for fxvar := high(fx) downto 0 do
-  if (fx[fxvar].kind = 9) and (fx[fxvar].fxgob = gobnum) then begin
-   fx[fxvar].kind := 0; break;
-  end;
- // also do the kids
- for fxvar := high(gob) downto gobnum + 1 do
-  if (IsGobValid(fxvar)) and (gob[fxvar].parent = gobnum) then
-   AddAlphaSlideEffect(fxvar, toalpha, msecs);
- // If duration = 0, just set the alpha value right away
- if msecs = 0 then begin
-  if (toalpha <> 0) and (gob[gobnum].drawstate and 2 <> 0)
-  then gob[gobnum].drawstate := gob[gobnum].drawstate or 1;
-  gob[gobnum].alphaness := toalpha; exit;
+ // If an alpha slide on this gob is already live, co-opt it.
+ fxvar := 0;
+ while fxvar < fxcount do begin
+  if (fx[fxvar].kind = FX_GOBALPHA) and (fx[fxvar].fxgob = gobnum) then break;
+  inc(fxvar);
  end;
- // create the effect
- fxvar := NewFx(0);
- fx[fxvar].kind := 9;
- fx[fxvar].fxgob := gobnum;
- fx[fxvar].time2 := 0;
- fx[fxvar].time := msecs;
- fx[fxvar].x1 := gob[gobnum].alphaness;
- fx[fxvar].x2 := toalpha;
- AddAlphaSlideEffect := fxvar;
+ if fxvar >= fxcount then fxvar := NewFx(fibernum);
+
+ // If duration = 0, just set alphaness immediately.
+ if msecs = 0 then begin
+  gob[gobnum].alphaness := toalpha;
+  if gob[gobnum].drawstate and 2 <> 0 then gob[gobnum].drawstate := gob[gobnum].drawstate or 1;
+  exit;
+ end;
+
+ // Set up the effect.
+ with fx[fxvar] do begin
+  kind := FX_GOBALPHA;
+  fxgob := gobnum;
+  time := msecs; // remaining msecs
+  time2 := msecs; // full msecs
+  x1 := gob[gobnum].alphaness;
+  x2 := toalpha;
+ end;
 end;
 
-procedure AddSolidBlitEffect(gobnum : byte; blitcolvar : dword);
-var fxvar : byte;
+procedure AddGobSolidBlitEffect(gobnum : dword; blitcolor : dword);
+var ivar : dword;
 begin
- gob[gobnum].solidblit := blitcolvar;
- if gob[gobnum].drawstate and 2 <> 0 then gob[gobnum].drawstate := gob[gobnum].drawstate or $40;
- // also do the kids
- for fxvar := high(gob) downto gobnum + 1 do
-  if (IsGobValid(fxvar)) and (gob[fxvar].parent = gobnum) then
-   AddSolidBlitEffect(fxvar, blitcolvar);
+ with gob[gobnum] do begin
+  dword(solidblitnext) := blitcolor;
+  // Redraw gob if it's supposed to be visible.
+  if drawstate and 2 <> 0 then drawstate := drawstate or 1;
+  // Also do the kids.
+  for ivar := high(gob) downto gobnum + 1 do
+   if (IsGobValid(ivar)) and (gob[ivar].parent = gobnum) then
+    AddGobSolidBlitEffect(ivar, blitcolor);
+ end;
 end;
 
 
@@ -603,6 +610,17 @@ begin
            (x2 * ivar + x1 * jvar) div $7FFF - gob[fxgob].locx,
            (y2 * ivar + y1 * jvar) div $7FFF - gob[fxgob].locy);
         end;
+      end;
+     end;
+    end;
+
+    FX_GOBALPHA: begin
+     if tickcount >= fx[fxi].time then DeleteFx(fxi)
+     else with fx[fxi] do begin
+      dec(time, tickcount);
+      with gob[fx[fxi].fxgob] do begin
+       alphaness := (x1 * time + x2 * (time2 - time)) div time2;
+       if drawstate and 2 <> 0 then drawstate := drawstate or 1;
       end;
      end;
     end;

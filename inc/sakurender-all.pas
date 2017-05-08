@@ -261,12 +261,52 @@ begin
  end;
 end;
 
-procedure DrawSolid(clipdata : pblitstruct; fillcolor : dword; hasalpha : byte);
+procedure DrawSolid(clipdata : pblitstruct; fillcolor : dword; hasalpha : boolean);
 // Fills a destination buffer with the alpha profile of a source bitmap,
-// using fillcolor. The fill color will be solid, its a component is ignored.
+// using fillcolor. If hasalpha is FALSE, the source's alpha channel is
+// ignored and the whole rectangle is filled with the fillcolor.
 // Useful for full-screen blackouts, or making a character sprite flash.
 // Call ClipRGB first to generate the blitstruct.
+var x : dword;
+    r, g, b, a, alpha : byte;
 begin
+ a := byte(fillcolor shr 24);
+ if a = 0 then exit;
+ b := byte(fillcolor);
+ g := byte(fillcolor shr 8);
+ r := byte(fillcolor shr 16);
+
+ with clipdata^ do begin
+  while copyrows <> 0 do begin
+   x := copywidth;
+   while x <> 0 do begin
+    alpha := alphamixtab[byte((srcp + 3)^), a];
+    // Shortcut for totally transparent pixels.
+    if alpha = 0 then begin
+     inc(srcp, 4); inc(destp, 4);
+    end else begin
+     // Partial alpha mix, using the precalculated alphamixtable.
+     // Source is premultiplied by its own alpha, but must be further
+     // multiplied by amul. Destination must be multiplied by the inverse
+     // of (alpha * amul), then the two are summed.
+     byte(destp^) := byte(alphamixtab[alpha xor $FF, byte(destp^)] + alphamixtab[b, alpha]);
+     inc(srcp); inc(destp);
+     byte(destp^) := byte(alphamixtab[alpha xor $FF, byte(destp^)] + alphamixtab[g, alpha]);
+     inc(srcp); inc(destp);
+     byte(destp^) := byte(alphamixtab[alpha xor $FF, byte(destp^)] + alphamixtab[r, alpha]);
+     inc(srcp); inc(destp);
+     byte(destp^) := byte(alphamixtab[alpha xor $FF, byte(destp^)] + alpha);
+     inc(srcp); inc(destp);
+    end;
+
+    dec(x);
+   end;
+   inc(srcp, srcskipwidth);
+   inc(destp, destskipwidth);
+
+   dec(copyrows);
+  end;
+ end;
 end;
 
 procedure NegateRGB(clipdata : pblitstruct);
@@ -786,6 +826,7 @@ begin
    if (IsGobValid(jvar))
    and (gob[jvar].drawstate and 3 <> 0)
    and (gob[jvar].alphaness = $FF)
+   and (dword(gob[jvar].solidblit) = 0)
    and (gfxlist[gob[jvar].cachedgfx].bitflag and 128 = 0) then begin
     if (gob[jvar].locxp <= refrect.x1p)
     and (gob[jvar].locyp <= refrect.y1p)
@@ -861,8 +902,8 @@ begin
        + ']');
 
      // At last, draw the graphic
-     if gob[ivar].solidblit <> 0 then
-      DrawSolid(@clipsi, gob[ivar].solidblit, gfxlist[gob[ivar].cachedgfx].bitflag shr 7)
+     if dword(gob[ivar].solidblit) <> 0 then
+      DrawSolid(@clipsi, dword(gob[ivar].solidblit), gfxlist[gob[ivar].cachedgfx].bitflag and $80 <> 0)
      else
      if gob[ivar].alphaness <> $FF then
       DrawRGBA32alpha(@clipsi, gob[ivar].alphaness)

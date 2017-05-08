@@ -305,9 +305,8 @@ begin
    end;
   end;
 
-  solidblit := 0;
+  dword(solidblit) := 0;
   alphaness := 255;
-  rendermode := 0; // not currently used, maybe solidblit etc can be here?
   UpdateGobSizep(gobindex);
   if gobtype <> 1 then parent := AdoptGob(gobindex);
  end;

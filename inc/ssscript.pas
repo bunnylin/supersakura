@@ -592,19 +592,19 @@ begin
  ss_rwopparams[WOP_GFX_PRECACHE][WOPP_VIEWPORT] := ss_rwoppargtype[WOPP_VIEWPORT];
  ss_rwopparams[WOP_GFX_REMOVE][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB];
  ss_rwopparams[WOP_GFX_SETALPHA][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB];
- // default: alpha 1.0, fully opaque
- ss_rwopparams[WOP_GFX_SETALPHA][WOPP_ALPHA] := ss_rwoppargtype[WOPP_ALPHA] or $C0;
+ // default: alpha 255, fully opaque
+ ss_rwopparams[WOP_GFX_SETALPHA][WOPP_ALPHA] := ss_rwoppargtype[WOPP_ALPHA];
  // default: 0 msec
- ss_rwopparams[WOP_GFX_SETALPHA][WOPP_TIME] := ss_rwoppargtype[WOPP_TIME] or $80;
+ ss_rwopparams[WOP_GFX_SETALPHA][WOPP_TIME] := ss_rwoppargtype[WOPP_TIME];
  ss_rwopparams[WOP_GFX_SETFRAME][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB];
  // default: frame 0
  ss_rwopparams[WOP_GFX_SETFRAME][WOPP_FRAME] := ss_rwoppargtype[WOPP_FRAME];
  ss_rwopparams[WOP_GFX_SETSEQUENCE][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB];
  // default: index 0
  ss_rwopparams[WOP_GFX_SETSEQUENCE][WOPP_INDEX] := ss_rwoppargtype[WOPP_INDEX];
- ss_rwopparams[WOP_GFX_SETSOLIDBLIT][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB] or $C0;
- // default: empty string, disable solid blit effect
- ss_rwopparams[WOP_GFX_SETSOLIDBLIT][WOPP_COLOR] := ss_rwoppargtype[WOPP_COLOR] or $A0;
+ ss_rwopparams[WOP_GFX_SETSOLIDBLIT][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB];
+ // default: 0, disables solid blit effect
+ ss_rwopparams[WOP_GFX_SETSOLIDBLIT][WOPP_COLOR] := ss_rwoppargtype[WOPP_COLOR];
  // default: empty string, gfx show fails
  ss_rwopparams[WOP_GFX_SHOW][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB] or $F0;
  // default: sprite, or anim if an animation is defined for this graphic

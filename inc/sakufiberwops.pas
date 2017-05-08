@@ -530,7 +530,30 @@ begin
  end;
 end;
 
-procedure Invoke_GFX_SETALPHA; inline; begin end;
+procedure Invoke_GFX_SETALPHA; inline;
+var alpha : byte;
+begin
+ if FetchParam(WOPP_GOB) = FALSE then fibererror('gfx.setalpha without gob') else begin
+  strvalue[0] := upcase(strvalue[0]);
+  numvalue2 := GetGob(strvalue[0]);
+  if IsGobValid(numvalue2) = FALSE then fibererror('gfx.setalpha bad gob: ' + strvalue[0])
+  else with gob[numvalue2] do begin
+   numvalue := $FF;
+   FetchParam(WOPP_ALPHA);
+   alpha := numvalue and $FF;
+   numvalue := 0;
+   FetchParam(WOPP_TIME);
+   if numvalue = 0 then begin
+    // immediate
+    alphaness := alpha;
+    if drawstate and 2 <> 0 then drawstate := drawstate or 1;
+   end else begin
+    // timed
+    AddGobAlphaEffect(numvalue2, fiberid, alpha, numvalue);
+   end;
+  end;
+ end;
+end;
 
 procedure Invoke_GFX_SETFRAME; inline;
 begin
@@ -549,7 +572,20 @@ begin
 end;
 
 procedure Invoke_GFX_SETSEQUENCE; inline; begin end;
-procedure Invoke_GFX_SETSOLIDBLIT; inline; begin end;
+
+procedure Invoke_GFX_SETSOLIDBLIT; inline;
+begin
+ if FetchParam(WOPP_GOB) = FALSE then fibererror('gfx.setsolidblit without gob') else begin
+  strvalue[0] := upcase(strvalue[0]);
+  numvalue2 := GetGob(strvalue[0]);
+  if IsGobValid(numvalue2) = FALSE then fibererror('gfx.setsolidblit bad gob: ' + strvalue[0])
+  else begin
+   numvalue := 0;
+   FetchParam(WOPP_COLOR);
+   AddGobSolidBlitEffect(numvalue2, ExpandColorRef(numvalue));
+  end;
+ end;
+end;
 
 procedure Invoke_GFX_SHOW; inline;
 var nam : UTF8string;
@@ -602,25 +638,26 @@ begin
  // call right after this will re-mark still visible graphics as sacred.
  ReleaseGfx;
 
- for ivar := length(gob) - 1 downto 0 do begin
-  case (gob[ivar].drawstate and $E0) of
+ for ivar := length(gob) - 1 downto 0 do with gob[ivar] do begin
+  solidblit := solidblitnext;
+  case (drawstate and $E0) of
     // set as new background
     $20: begin
-     gob[ivar].zlevel := -$80000000;
-     gob[ivar].drawstate := 1;
-     jvar := viewport[gob[ivar].inviewport].backgroundgob;
+     zlevel := -$80000000;
+     drawstate := 1;
+     jvar := viewport[inviewport].backgroundgob;
      if ivar <> jvar then begin
       gob[jvar] := gob[ivar];
-      gob[ivar].gobnamu := ''; gob[ivar].gfxnamu := '';
-      gob[ivar].drawstate := $80;
+      gobnamu := ''; gfxnamu := '';
+      drawstate := $80;
      end;
     end;
     // make visible after swipe -> draw gob
-    $40: gob[ivar].drawstate := gob[ivar].drawstate and $18 or 1;
+    $40: drawstate := drawstate and $18 or 1;
     // kill after swipe -> delete gob
     $80: DeleteGob(ivar);
     // make invisible after swipe -> hide
-    $C0: gob[ivar].drawstate := gob[ivar].drawstate and $1C;
+    $C0: drawstate := drawstate and $1C;
   end;
  end;
 

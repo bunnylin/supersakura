@@ -69,6 +69,7 @@ FX_TRANSITION = 2;
 FX_BOXMOVE = 10;
 FX_BOXSIZE = 11;
 FX_GOBMOVE = 20;
+FX_GOBALPHA = 22;
 
 // Move types:
 MOVETYPE_INSTANT = 0;
@@ -156,7 +157,8 @@ type gobtype = record
        // next frame after x msecs, -1 if not animating
        animtimer : dword;
 
-       solidblit : dword; // if non-zero, gob is colorised as gvar[solidblit]
+       solidblit : RGBquad; // if non-zero, gob is colorised with this color
+       solidblitnext : RGBquad; // this moves to solidblit on next transition
        zlevel : longint;
 
        // Bitflags, the current state of the gob
@@ -171,7 +173,6 @@ type gobtype = record
        //   $C0 - make invisible
 
        alphaness : byte; // 0 = transparent, 255 = fully visible (default)
-       rendermode : byte; // see Renderer for values? not used atm
      end;
 
 type boxtype = record
@@ -1410,8 +1411,7 @@ end;
 
 procedure InitGob(gobnum : dword);
 // Inits a gob to basically zero values at almost everything. Expands the
-// gob array if needed. If a gob at this index already exists, inherits the
-// previous gob's drawstate. why??
+// gob array if needed.
 var ivar : dword;
 begin
  // Expand gob array if necessary, zero out newly created indexes.
@@ -1426,7 +1426,7 @@ begin
   gob[gobnum].gobnamu := '';
   gob[gobnum].gfxnamu := '';
   fillbyte(gob[gobnum], sizeof(gobtype), 0);
-  //gob[gobnum].drawstate := ivar;
+  gob[gobnum].alphaness := $FF;
  end;
 end;
 
