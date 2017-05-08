@@ -138,7 +138,7 @@ var txtsurface : PSDL_Surface;
     runalign, luggage : byte;
     runchoice : boolean;
 
-  procedure finaliserow; inline;
+  procedure finaliserow;
   var lclear, rclear, y : dword;
       readp : pointer;
   begin
@@ -244,7 +244,7 @@ var txtsurface : PSDL_Surface;
    end;
   end;
 
-  procedure endchoicerun; inline;
+  procedure endchoicerun;
   begin
    with TBox[boxnum] do begin
     if (rowsizexp <> 0)
