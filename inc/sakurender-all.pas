@@ -261,10 +261,9 @@ begin
  end;
 end;
 
-procedure DrawSolid(clipdata : pblitstruct; fillcolor : dword; hasalpha : boolean);
+procedure DrawSolid(clipdata : pblitstruct; fillcolor : dword);
 // Fills a destination buffer with the alpha profile of a source bitmap,
-// using fillcolor. If hasalpha is FALSE, the source's alpha channel is
-// ignored and the whole rectangle is filled with the fillcolor.
+// using fillcolor.
 // Useful for full-screen blackouts, or making a character sprite flash.
 // Call ClipRGB first to generate the blitstruct.
 var x : dword;
@@ -903,7 +902,7 @@ begin
 
      // At last, draw the graphic
      if dword(gob[ivar].solidblit) <> 0 then
-      DrawSolid(@clipsi, dword(gob[ivar].solidblit), gfxlist[gob[ivar].cachedgfx].bitflag and $80 <> 0)
+      DrawSolid(@clipsi, dword(gob[ivar].solidblit))
      else
      if gob[ivar].alphaness <> $FF then
       DrawRGBA32alpha(@clipsi, gob[ivar].alphaness)

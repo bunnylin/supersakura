@@ -17,8 +17,7 @@
 { along with SuperSakura.  If not, see <https://www.gnu.org/licenses/>.     }
 {                                                                           }
 
-var flushinput : boolean;
-    mv_MainWinH : PSDL_Window;
+var mv_MainWinH : PSDL_Window;
     mv_RendererH : PSDL_Renderer;
     mv_MainTexH : PSDL_Texture;
     mv_GamepadH : PSDL_GameController;
@@ -39,7 +38,6 @@ begin
 end;
 
 function CompStrFast(const str1, str2 : UTF8string) : boolean;
-var ivar, jvar : dword;
 begin
  CompStrFast := FALSE;
  if length(str1) <> length(str2) then exit;

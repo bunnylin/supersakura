@@ -20,8 +20,6 @@
 // SuperSakura user input
 
 procedure UserInput_Enter; inline;
-var ivar, jvar : dword;
-    swallow : boolean;
 begin
  // If textboxes are hidden, make them visible.
  if gamevar.hideboxes <> 0 then begin

@@ -779,17 +779,6 @@ begin
  ExpandColorRef := ExpandColorRef or (ExpandColorRef shl 4);
 end;
 
-procedure UseIcon(newpic : string; makeicon : boolean);
-// Makes an icon from the PNG resource "newpic". If Makeicon is TRUE, this
-// then sets the game window to use it. If Makeicon is FALSE, the new icon is
-// set to be the new mouse cursor shape.
-// The graphic is recommended to be 32x32 or 48x48. It will be rescaled to
-// whatever the OS prefers.
-// The cursor's hotspot is only correct if user's desktop is 32-bit...
-// Color bitmap bitdepth should be always same as desktop's to avoid this.
-begin
-end;
-
 procedure ReadSeenGFX;
 // Initialises the seengfx list, opens the .SAV file, reads previously seen
 // graphics into the list.
@@ -1545,17 +1534,17 @@ begin
  while ivar <> 0 do with event.area[ivar] do begin
   dec(ivar);
   if x1 >= 0
-  then x1p := (x1 * viewport[inviewport].viewportsizexp + 16384) shr 15 + viewport[inviewport].viewportx1p
-  else x1p := -((-x1 * viewport[inviewport].viewportsizexp + 16384) shr 15) + viewport[inviewport].viewportx1p;
+  then x1p := (x1 * longint(viewport[inviewport].viewportsizexp) + 16384) shr 15 + viewport[inviewport].viewportx1p
+  else x1p := -((-x1 * longint(viewport[inviewport].viewportsizexp) + 16384) shr 15) + viewport[inviewport].viewportx1p;
   if x2 >= 0
-  then x2p := (x2 * viewport[inviewport].viewportsizexp + 16384) shr 15 + viewport[inviewport].viewportx1p
-  else x2p := -((-x2 * viewport[inviewport].viewportsizexp + 16384) shr 15) + viewport[inviewport].viewportx1p;
+  then x2p := (x2 * longint(viewport[inviewport].viewportsizexp) + 16384) shr 15 + viewport[inviewport].viewportx1p
+  else x2p := -((-x2 * longint(viewport[inviewport].viewportsizexp) + 16384) shr 15) + viewport[inviewport].viewportx1p;
   if y1 >= 0
-  then y1p := (y1 * viewport[inviewport].viewportsizeyp + 16384) shr 15 + viewport[inviewport].viewporty1p
-  else y1p := -((-y1 * viewport[inviewport].viewportsizeyp + 16384) shr 15) + viewport[inviewport].viewporty1p;
+  then y1p := (y1 * longint(viewport[inviewport].viewportsizeyp) + 16384) shr 15 + viewport[inviewport].viewporty1p
+  else y1p := -((-y1 * longint(viewport[inviewport].viewportsizeyp) + 16384) shr 15) + viewport[inviewport].viewporty1p;
   if y2 >= 0
-  then y2p := (y2 * viewport[inviewport].viewportsizeyp + 16384) shr 15 + viewport[inviewport].viewporty1p
-  else y2p := -((-y2 * viewport[inviewport].viewportsizeyp + 16384) shr 15) + viewport[inviewport].viewporty1p;
+  then y2p := (y2 * longint(viewport[inviewport].viewportsizeyp) + 16384) shr 15 + viewport[inviewport].viewporty1p
+  else y2p := -((-y2 * longint(viewport[inviewport].viewportsizeyp) + 16384) shr 15) + viewport[inviewport].viewporty1p;
  end;
 end;
 
@@ -1863,16 +1852,8 @@ begin
  end;
 end;
 
-function FindDat(const namu : UTF8string) : boolean;
-// Checks if the specified data file is available in the current directory or
-// in the local appdata directory
-begin
- FindDat := namu = ''; //?
-end;
-
 procedure SetPauseState(newstate : tpausestate);
 // Call to switch cleanly between pause states.
-var strutsi : UTF8String;
 begin
  if (newstate = PAUSESTATE_PAUSED) and (pausestate <> PAUSESTATE_PAUSED)
  then begin

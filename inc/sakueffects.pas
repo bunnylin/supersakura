@@ -349,7 +349,7 @@ procedure AddGobAlphaEffect(gobnum : dword; fibernum : longint; toalpha : byte; 
 // renderer and its pixel shader approach.
 var fxvar : dword;
 begin
- if gobnum >= length(gob) then exit;
+ if gobnum >= dword(length(gob)) then exit;
  // If an alpha slide on this gob is already live, co-opt it.
  fxvar := 0;
  while fxvar < fxcount do begin
@@ -619,7 +619,7 @@ begin
      else with fx[fxi] do begin
       dec(time, tickcount);
       with gob[fx[fxi].fxgob] do begin
-       alphaness := (x1 * time + x2 * (time2 - time)) div time2;
+       alphaness := (dword(x1) * time + dword(x2) * (time2 - time)) div time2;
        if drawstate and 2 <> 0 then drawstate := drawstate or 1;
       end;
      end;

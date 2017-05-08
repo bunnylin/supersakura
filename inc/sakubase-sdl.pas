@@ -606,7 +606,7 @@ end;
 procedure MainLoop;
 var evd : TSDL_event;
     tickcount, tickmark : ptruint;
-    ivar, jvar : dword;
+    ivar : dword;
 begin
  tickmark := SDL_GetTicks;
  while NOT sysvar.quit do begin
