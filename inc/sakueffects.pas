@@ -479,10 +479,10 @@ begin
         MOVETYPE_LINEAR: begin
          ivar := time2 - time;
          with TBox[fxbox] do begin
-          boxlocx := (x2 * ivar + x1 * time) div time2;
-          boxlocy := (y2 * ivar + y1 * time) div time2;
-          anchorx := (longint((poku + 8)^) * ivar + longint((poku + 0)^) * time) div time2;
-          anchory := (longint((poku + 12)^) * ivar + longint((poku + 4)^) * time) div time2;
+          boxlocx := (x2 * ivar + x1 * longint(time)) div longint(time2);
+          boxlocy := (y2 * ivar + y1 * longint(time)) div longint(time2);
+          anchorx := (longint((poku + 8)^) * ivar + longint((poku + 0)^) * longint(time)) div longint(time2);
+          anchory := (longint((poku + 12)^) * ivar + longint((poku + 4)^) * longint(time)) div longint(time2);
          end;
         end;
 
@@ -534,8 +534,8 @@ begin
         MOVETYPE_LINEAR: begin
          ivar := time2 - time;
          with TBox[fxbox] do begin
-          contentwinminsizex := (x2 * ivar + x1 * time) div time2;
-          contentwinminsizey := (y2 * ivar + y1 * time) div time2;
+          contentwinminsizex := (x2 * ivar + x1 * longint(time)) div longint(time2);
+          contentwinminsizey := (y2 * ivar + y1 * longint(time)) div longint(time2);
          end;
         end;
 
@@ -580,8 +580,8 @@ begin
         MOVETYPE_LINEAR: begin
          ivar := time2 - time;
          MoveGob(fxgob,
-           (x2 * ivar + x1 * time) div time2 - gob[fxgob].locx,
-           (y2 * ivar + y1 * time) div time2 - gob[fxgob].locy);
+           (x2 * ivar + x1 * longint(time)) div longint(time2) - gob[fxgob].locx,
+           (y2 * ivar + y1 * longint(time)) div longint(time2) - gob[fxgob].locy);
         end;
 
         MOVETYPE_COSCOS: begin
