@@ -106,6 +106,25 @@ begin
  end;
 end;
 
+function CheckPageableBoxes : boolean;
+// Checks all boxes for undisplayed content, where the box is not freely
+// scrollable and has autowaitkey enabled. If any such box exists, it is
+// paged ahead, and the function returns TRUE, otherwise returns FALSE.
+var ivar : dword;
+begin
+ CheckPageableBoxes := FALSE;
+ for ivar := high(TBox) downto 0 do
+  with TBox[ivar] do begin
+   if (boxstate = BOXSTATE_SHOWTEXT)
+   and (style.freescrollable = FALSE) and (style.autowaitkey)
+   and (contentwinscrollofsp + contentwinsizeyp < contentfullheightp)
+   then begin
+    ScrollBoxTo(ivar, contentwinscrollofsp + contentwinsizeyp);
+    CheckPageableBoxes := TRUE;
+   end;
+  end;
+end;
+
 procedure PrintBox(boxnum : dword; const newtxt : UTF8string);
 // Adds the given string to the box's text content. Separates escape codes
 // from displayable text first, and immediately dereferences variables.
