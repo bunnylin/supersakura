@@ -1639,7 +1639,7 @@ begin
  end;
 
  // Shrink the textbox array.
- if boxnum <> 0 then setlength(TBox, boxnum - 1);
+ setlength(TBox, boxnum + 1);
 end;
 
 procedure ResetAllBoxes;
