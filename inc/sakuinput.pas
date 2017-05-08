@@ -43,31 +43,14 @@ begin
  end;
  {$endif}
 
- // Check boxes for pageble content.
- swallow := FALSE;
- for ivar := high(TBox) downto 0 do
-  with TBox[ivar] do begin
-   if (boxstate = BOXSTATE_SHOWTEXT)
-   and (style.freescrollable = FALSE) and (style.autowaitkey)
-   and (contentwinscrollofsp + contentwinsizeyp < contentfullheightp)
-   then begin
-    ScrollBoxTo(ivar, contentwinscrollofsp + contentwinsizeyp);
-    swallow := TRUE;
-   end;
-  end;
- if swallow then exit;
+ // Check boxes for pageble content. Any box that has more to display and is
+ // not freely scrollable but does have autowaitkey enabled, will scroll
+ // ahead by a page, swallowing the keystroke.
+ if CheckPageableBoxes then exit;
 
- // Clear fibers waiting for a keypress.
- if fibercount <> 0 then
-  for ivar := fibercount - 1 downto 0 do
-   if fiber[ivar].fiberstate in [FIBERSTATE_WAITKEY, FIBERSTATE_WAITCLEAR]
-   then begin
-    if fiber[ivar].fiberstate = FIBERSTATE_WAITCLEAR then
-     for jvar := high(TBox) downto 0 do ClearTextbox(jvar);
-    fiber[ivar].fiberstate := FIBERSTATE_NORMAL;
-    swallow := TRUE;
-   end;
- if swallow then exit;
+ // Check if any fiber is waiting for a keypress, and resume them if so,
+ // swallowing the keystroke.
+ if ClearWaitKey then exit;
 
  // Select a mouseoverable, if highlighted.
 
