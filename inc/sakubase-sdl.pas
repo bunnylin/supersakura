@@ -234,120 +234,7 @@ begin
  end;
 end;
 
-{$ifdef bonk} // handleuserinput is obsolete, now using handlesdlevent
-procedure HandleUserInput;
-var ivar, jvar, lvar : dword;
-    xvar, yvar, xvar2, yvar2 : longint;
-begin
- if mv_MouseMoved and 1 <> 0 then begin
-
-  // Text choice selection
-  if scr^.gamestate = 2 then begin
-   mv_MouseMoved := mv_MouseMoved and $FD; // not over a valid choice
-   // is cursor over the choicebox?
-   if (mv_MouseX >= TBox[gamevar.defaultchoicebox].boxlocxp_r + TBox[gamevar.defaultchoicebox].marginleftp)
-   and (mv_MouseX < TBox[gamevar.defaultchoicebox].boxlocxp_r + TBox[gamevar.defaultchoicebox].marginleftp + TBox[gamevar.defaultchoicebox].textareasizexp)
-   and (mv_MouseY >= TBox[gamevar.defaultchoicebox].boxlocyp_r + TBox[gamevar.defaultchoicebox].margintopp)
-   and (mv_MouseY < TBox[gamevar.defaultchoicebox].boxlocyp_r + TBox[gamevar.defaultchoicebox].margintopp + TBox[gamevar.defaultchoicebox].textareasizeyp)
-   then begin
-    // which choice is cursor over?
-    xvar := mv_MouseX - TBox[gamevar.defaultchoicebox].boxlocxp_r - TBox[gamevar.defaultchoicebox].marginleftp;
-    yvar := mv_MouseY - TBox[gamevar.defaultchoicebox].boxlocyp_r - TBox[gamevar.defaultchoicebox].margintopp;
-    jvar := curchoicecount;
-    while jvar <> 0 do begin
-     dec(jvar);
-     xvar2 := 0; yvar2 := 0;
-     // Note: GetBoxintloc returns the choice string's exact loc/size, and
-     // not that of the full choice row, so there are rectangles where your
-     // cursor is fully in the box but doesn't get recognised as being over
-     // a choice so item 0 ends up being the fallback selection.
-     GetBoxintloc(gamevar.defaultchoicebox, jvar mod TBox[gamevar.defaultchoicebox].numrows, jvar div TBox[gamevar.defaultchoicebox].numrows, @xvar2, @yvar2);
-     if (xvar >= xvar2) and (yvar >= yvar2) then break;
-    end;
-    mv_MouseMoved := mv_MouseMoved or 2; // over a valid choice
-    if jvar <> chsel then SelectInBox(jvar, TRUE);
-   end;
-  end;
-
-  // Mouseover handling
-  for ivar := high(fx) downto 0 do
-  if (fx[ivar].kind in [10,11])
-  //and (string((@fx[ivar].fxtxt[9])^) = script[scr^.curnum].namu)
-  then begin
-   // kind 10 is an absolute area mouseover, already have the pixel coords
-   if (fx[ivar].kind = 11) and (IsGobValid(fx[ivar].gob)) then begin
-    // kind 11 is gob mouseover, must calculate the clickable area in pixels
-    with gob[fx[ivar].gob] do begin
-     fx[ivar].x1p := gob[fx[ivar].gob].locxp_r;
-     fx[ivar].y1p := gob[fx[ivar].gob].locyp_r;
-     fx[ivar].x2p := fx[ivar].x1p + gob[fx[ivar].gob].sizexp;
-     fx[ivar].y2p := fx[ivar].y1p + gob[fx[ivar].gob].sizeyp;
-     // gobs need to be clipped against their viewport
-     if fx[ivar].x1p < viewport[inviewport].viewportx1p then fx[ivar].x1p := viewport[inviewport].viewportx1p;
-     if fx[ivar].y1p < viewport[inviewport].viewporty1p then fx[ivar].y1p := viewport[inviewport].viewporty1p;
-     if fx[ivar].x2p > viewport[inviewport].viewportx2p then fx[ivar].x2p := viewport[inviewport].viewportx2p;
-     if fx[ivar].y2p > viewport[inviewport].viewporty2p then fx[ivar].y2p := viewport[inviewport].viewporty2p;
-     // convert pixel coordinates to 32k coordinates for future reference
-     jvar := viewport[inviewport].viewportsizexp;
-     fx[ivar].x1 := ((fx[ivar].x1p - viewport[inviewport].viewportx1p) * 32768) div jvar;
-     fx[ivar].x2 := ((fx[ivar].x2p - viewport[inviewport].viewportx1p) * 32768) div jvar;
-     jvar := viewport[inviewport].viewportsizeyp;
-     fx[ivar].y1 := ((fx[ivar].y1p - viewport[inviewport].viewporty1p) * 32768) div jvar;
-     fx[ivar].y2 := ((fx[ivar].y2p - viewport[inviewport].viewporty1p) * 32768) div jvar;
-    end;
-   end;
-   // Second, compare the current mouse location with the clickable area
-   if (mv_MouseX >= fx[ivar].x1p) and (mv_MouseX < fx[ivar].x2p)
-   and (mv_MouseY >= fx[ivar].y1p) and (mv_MouseY < fx[ivar].y2p)
-   then begin
-    // We are over the area!
-    if fx[ivar].fxtxt[25] = chr(0) then begin
-     // we didn't used to be, so MouseOn
-     fx[ivar].fxtxt[25] := chr(1);
-     ScriptGoto(fx[ivar].time2, TRUE);
-    end;
-   end
-   else begin
-    // We are not over the area!
-    if fx[ivar].fxtxt[25] <> chr(0) then begin
-     // we used to be, so MouseOff
-     fx[ivar].fxtxt[25] := chr(0);
-     ScriptGoto(fx[ivar].time, TRUE);
-    end;
-   end;
-   // Finally, store the distance from cursor to each area's center
-   xvar := (fx[ivar].x1p + fx[ivar].x2p) div 2 - mv_MouseX;
-   yvar := (fx[ivar].y1p + fx[ivar].y2p) div 2 - mv_MouseY;
-   fx[ivar].data2 := (word(xvar and $FFFF) shl 16) or word(yvar and $FFFF);
-  end;
-
-  // Remove "moved" state
-  mv_MouseMoved := mv_MouseMoved and $FE;
- end;
-
- while mv_InputBuffy[0] <> 0 do begin
-
-  i := mv_InputBuffy[1];
-  for jvar := 1 to 15 do mv_InputBuffy[jvar] := mv_InputBuffy[jvar + 1];
-  dec(mv_InputBuffy[0]); // Remove keypress from input buffer
-
-  // ====== Mouse input =======
-  // left-click
-  if i = $FFFF then begin
-   // check if clicked a mouseoverable event area
-   for ivar := high(fx) downto 0 do
-    if (fx[ivar].kind in [10,11])
-    and (string((@fx[ivar].fxtxt[9])^) = script[scr^.curnum].namu)
-    and (fx[ivar].fxtxt[25] <> chr(0))
-    then ScriptGoto(fx[ivar].data, TRUE);
-   case scr^.gamestate of
-    2: if mv_MouseMoved and 2 <> 0 then i := 13;
-    4,5,6: i := 13;
-   end;
-  end;
-
-  // ====== Common input =======
-  case i of
+{$ifdef bonk}
    // Ctrl-V: game version
    $4016: begin
            txt := 'SuperSakura ' + ssver + chr(13)
@@ -374,9 +261,6 @@ begin
               ClearTextBox(1);
               PrintTxt(0, 'Rendered current screen ' + strdec(xvar) + ' times' + chr($A) + 'Elapsed time: ' + strdec(lvar) + 'ms' + chr($A) + 'Time/frame: ' + strdec(jvar) + 'ms' + chr($A) + 'FPS: ' + strdec(ivar));
              end;
-  end;
- end;
-end;
 {$endif}
 
 procedure HandleSDLevent(evd : PSDL_event);
@@ -418,7 +302,7 @@ procedure HandleSDLevent(evd : PSDL_event);
   // strings. Typed strings require bonus localisation handling.
   begin
    // === Keyboard shortcuts ===
-   if modifier = $80 then case sym of
+   if modifier and KMOD_CTRL <> 0 then case sym of
     SDLK_B: UserInput_HideBoxes;
 
    end;
@@ -441,68 +325,196 @@ procedure HandleSDLevent(evd : PSDL_event);
   // The button is 0 if this is just the mouse moving around; 1 if it's
   // a left-click and 3 if it's a right-click.
   var ivar, jvar : dword;
+      x, y : longint;
   begin
-   // If we're paused, mouse clicks are ignored and mouseovers don't trigger
+   // If we're paused, mouse clicks are ignored and mouseovers don't trigger.
    if pausestate = PAUSESTATE_PAUSED then exit;
 
-   // If textboxes are visible and the topmost interactive box has choices,
-   // check if we're mouseovering
+   // Check mouse movement over interested areas...
 
-   // Check mouseoverable areas
-
-   // Check mouseoverable gobs
-   {$ifdef bonk}
-   ivar := length(event.gob);
-   while ivar <> 0 do begin
-    dec(ivar);
-    if (IsGobValid(event.gob[ivar].gobnum) = FALSE) then begin
-     // this gob has vanished, remove it from list
-     Log('mouseoverable gob ' + strdec(event.gob[ivar].gobnum) + ' vanished, removing from event.gob');
-     jvar := ivar + 1;
-     while jvar < dword(length(event.gob)) do begin
-      event.gob[jvar - 1] := event.gob[jvar];
-      inc(jvar);
-     end;
-     setlength(event.gob, length(event.gob) - 1);
-    end else with gob[event.gob[ivar].gobnum] do begin
-     // is the mouse over this gob?
-     if (musx >= locxp) and (musx < locxp + longint(sizexp))
-     and (musy >= locyp) and (musy < locyp + longint(sizeyp))
-     then begin
-      // YES, mouse is over the gob
-      if (event.gob[ivar].state = 0) then begin
-       event.gob[ivar].state := 1;
-       //if event.gob[ivar].mouseongoto <> 0 then ;//ScriptGoto(event.gob[ivar].mouseongoto, TRUE);
-      end;
-     end else begin
-      // NO, mouse is not over the gob
-      if (event.gob[ivar].state <> 0) then begin
-       event.gob[ivar].state := 0;
-       //if event.gob[ivar].mouseoffgoto <> 0 then ;//ScriptGoto(event.gob[ivar].mouseoffgoto, TRUE);
+   // Check if mouseovering choices in an active choicebox.
+   // (Ignore, if the highlight box is currently moving.)
+   if choicematic.active then with TBox[choicematic.choicebox] do begin
+    if (musx >= boxlocxp_r) and (musx < boxlocxp_r + longint(boxsizexp_r))
+    and (musy >= boxlocyp_r) and (musy < boxlocyp_r + longint(boxsizeyp_r))
+    then begin
+     // Calculate the cursor's location relative to the full content buffer.
+     x := musx - boxlocxp_r;
+     y := musy - boxlocyp_r + longint(contentwinscrollofsp);
+     // Check if the cursor is over any choice rect.
+     ivar := choicematic.showcount;
+     while ivar <> 0 do begin
+      dec(ivar);
+      if (ivar <> choicematic.highlightindex)
+      and (x >= longint(choicematic.showlist[ivar].slx1p))
+      and (x < longint(choicematic.showlist[ivar].slx2p))
+      and (y >= longint(choicematic.showlist[ivar].sly1p))
+      and (y < longint(choicematic.showlist[ivar].sly2p))
+      then begin
+       choicematic.highlightindex := ivar;
+       HighlightChoice(MOVETYPE_HALFCOS);
+       break;
       end;
      end;
     end;
    end;
-   {$endif}
+
+   // Check mouseoverable areas.
+   if length(event.area) <> 0 then
+    for ivar := length(event.area) - 1 downto 0 do
+     with event.area[ivar] do begin
+      if (musx >= x1p) and (musx < x2p)
+      and (musy >= y1p) and (musy < y2p)
+      then begin
+       // Area is being overed!
+       if state = 0 then begin
+        // It wasn't overed before, so trigger mouseon.
+        state := 1;
+        if mouseonlabel <> '' then StartFiber(mouseonlabel, '');
+       end;
+      end else begin
+       // Area is not being overed!
+       if state <> 0 then begin
+        // It was overed before, so trigger mouseoff.
+        state := 0;
+        if mouseofflabel <> '' then StartFiber(mouseofflabel, '');
+       end;
+      end;
+     end;
+
+   // Check mouseoverable gobs.
+   ivar := length(event.gob);
+   while ivar <> 0 do begin
+    dec(ivar);
+    // Check if the gob number still matches the gob name.
+    if (IsGobValid(event.gob[ivar].gobnum) = FALSE)
+    or (gob[event.gob[ivar].gobnum].gobnamu <> event.gob[ivar].gobnamu)
+    then event.gob[ivar].gobnum := GetGob(event.gob[ivar].gobnamu);
+
+    if IsGobValid(event.gob[ivar].gobnum) = FALSE then begin
+     // The gob is no longer valid, remove the event.
+     log(event.gob[ivar].gobnamu + ' vanished, removing its event');
+     jvar := length(event.gob) - 1;
+     if ivar < jvar then event.gob[ivar] := event.gob[jvar];
+     setlength(event.gob, jvar);
+    end
+    else with gob[event.gob[ivar].gobnum] do begin
+     // The gob is valid. Check if the cursor is over it.
+     if (musx >= locxp) and (musx < locxp + longint(sizexp))
+     and (musy >= locyp) and (musy < locyp + longint(sizeyp))
+     then begin
+      // Gob is being overed!
+      if event.gob[ivar].state = 0 then begin
+       // It wasn't overed before, so trigger mouseon.
+       event.gob[ivar].state := 1;
+       if event.gob[ivar].mouseonlabel <> '' then StartFiber(event.gob[ivar].mouseonlabel, '');
+      end;
+     end else begin
+      // Gob is not being overed!
+      if event.gob[ivar].state <> 0 then begin
+       // It was overed before, so trigger mouseoff.
+       event.gob[ivar].state := 0;
+       if event.gob[ivar].mouseofflabel <> '' then StartFiber(event.gob[ivar].mouseofflabel, '');
+      end;
+     end;
+    end;
+   end;
 
    gamevar.mouseX := musx;
    gamevar.mouseY := musy;
 
-   // Handle mouse clicks
+   // Handle mouse clicks...
+
+   // Left-click!
    if button = 1 then begin
-    // Left-click!
-    // If textboxes are hidden, make them visible
+
+    // If textboxes are hidden, make them visible.
     if gamevar.hideboxes and 1 <> 0 then begin
-     gamevar.hideboxes := gamevar.hideboxes xor 1;
+     UserInput_HideBoxes;
      exit;
     end;
 
-    // If topmost interactive box
+    // If clicking over a choicebox, select the currently highlighted choice.
+    if choicematic.active then with TBox[choicematic.choicebox] do
+     if (musx >= boxlocxp_r) and (musx < boxlocxp_r + longint(boxsizexp_r))
+     and (musy >= boxlocyp_r) and (musy < boxlocyp_r + longint(boxsizeyp_r))
+     then begin
+      SelectChoice(choicematic.highlightindex);
+      exit;
+     end;
+
+    // If clicking over any box, page boxes ahead and resume waitkeys.
+    for ivar := high(TBox) downto 0 do
+     if TBox[ivar].boxstate <> BOXSTATE_NULL then
+      with TBox[ivar] do
+       if (musx >= boxlocxp_r) and (musx < boxlocxp_r + longint(boxsizexp_r))
+       and (musy >= boxlocyp_r) and (musy < boxlocyp_r + longint(boxsizeyp_r))
+       then begin
+        if CheckPageableBoxes then exit;
+        ClearWaitKey;
+        exit;
+       end;
+
+    // If over any mouseoverable gob or area, trigger them.
+    jvar := 0;
+    ivar := length(event.gob);
+    while ivar <> 0 do begin
+     dec(ivar);
+     if (event.gob[ivar].state <> 0) and (event.gob[ivar].triggerlabel <> '')
+     then begin
+      StartFiber(event.gob[ivar].triggerlabel, '');
+      inc(jvar);
+     end;
+    end;
+    ivar := length(event.area);
+    while ivar <> 0 do begin
+     dec(ivar);
+     if (event.area[ivar].state <> 0) and (event.area[ivar].triggerlabel <> '')
+     then begin
+      StartFiber(event.area[ivar].triggerlabel, '');
+      inc(jvar);
+     end;
+    end;
+    if jvar <> 0 then exit;
+
+    // Page boxes ahead and resume waitkeys, even if not clicking a box.
+    if CheckPageableBoxes then exit;
+    if ClearWaitKey then exit;
+
+    // Trigger the normal interrupt, if defined.
+    if event.normalint.triggerlabel <> '' then StartFiber(event.normalint.triggerlabel, '');
 
    end else
+
+   // Right-click!
    if button = 3 then begin
-    // Right-click!
+
+    // If choicematic is active and not on the topmost choice level, cancel
+    // toward the top level.
+    if (choicematic.active) and (choicematic.choiceparent <> '') then begin
+     RevertChoice;
+     exit;
+    end;
+
+    // If boxes are visible and the mouse is over any displayed box, hide
+    // all boxes.
+    if gamevar.hideboxes = 0 then
+     for ivar := high(TBox) downto 0 do
+      if TBox[ivar].boxstate <> BOXSTATE_NULL then
+       with TBox[ivar] do
+        if (musx >= boxlocxp_r) and (musx < boxlocxp_r + longint(boxsizexp_r))
+        and (musy >= boxlocyp_r) and (musy < boxlocyp_r + longint(boxsizeyp_r))
+        then begin
+         HideBoxes(TRUE);
+         exit;
+        end;
+
+    // Trigger the esc-interrupt, if defined.
+    if event.escint.triggerlabel <> '' then StartFiber(event.escint.triggerlabel, '');
+
+    // Summon the metamenu.
    end;
+
   end;
 
 begin
@@ -515,10 +527,10 @@ begin
 
   // the pause button
   if (evd^.key.keysym.sym = SDLK_PAUSE)
-  or (evd^.key.keysym._mod and $80 <> 0)
+  or (evd^.key.keysym._mod and KMOD_CTRL <> 0)
   and (evd^.key.keysym.sym = SDLK_P)
   then begin
-   if evd^.key.keysym._mod and 3 <> 0 then begin
+   if evd^.key.keysym._mod and KMOD_SHIFT <> 0 then begin
     // Shift-pause was pressed (modifiers $1 and $2)
     SetPauseState(PAUSESTATE_SINGLE);
    end else begin
@@ -531,8 +543,10 @@ begin
   // alt-enter = 13 / $100 or $240
   if (evd^.key.keysym.sym = SDLK_RETURN)
   or (evd^.key.keysym.sym = SDLK_RETURN2)
-  or (evd^.key.keysym.sym = SDLK_KP_ENTER)
-  then if (evd^.key.keysym._mod = $100) or (evd^.key.keysym._mod = $240)
+  or (evd^.key.keysym.sym = SDLK_KP_ENTER) then
+  if (evd^.key.keysym._mod = KMOD_LALT)
+  or (evd^.key.keysym._mod = KMOD_RALT)
+  or (evd^.key.keysym._mod = $240) // alt-gr
   then begin
    ScreenModeSwitch(not sysvar.fullscreen);
    exit;
