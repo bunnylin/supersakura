@@ -174,6 +174,93 @@ begin
  end;
 end;
 
+procedure DrawRGBA32wipe(clipdata : pblitstruct; completion : dword; wipein : boolean);
+// Copies data from a source bitmap into a destination buffer, applying
+// a sideways wipe effect up to 32k completion fraction. If wipein is TRUE,
+// the image will appear wiped in from the left; else the image appears being
+// wiped away toward the right.
+var atable : array of byte;
+    x : dword;
+    edgewidthp, leadedgep, trailedgep : dword;
+    alpha, alpha2 : byte;
+begin
+ with clipdata^ do begin
+  // Pre-calculate an alpha table... This shows what alpha each pixel column
+  // needs to be multiplied with.
+  setlength(atable, copywidth + 1);
+  // If wiping out, invert completion.
+  if wipein = FALSE then completion := 32768 - completion;
+  // Soft edge width = WinSizeX / 16
+  edgewidthp := (copywidth + (destskipwidth shr 2)) shr 4;
+  // Lead edge position.
+  leadedgep := ((copywidth + edgewidthp) * completion) shr 15;
+  // Trailing edge position.
+  trailedgep := 0;
+  if leadedgep > edgewidthp then trailedgep := leadedgep - edgewidthp;
+
+  if wipein then begin
+   // Fill max alpha before trailing edge.
+   if trailedgep <> 0 then fillbyte(atable[copywidth - trailedgep], trailedgep, 255);
+   // Fill min alpha after leading edge.
+   if leadedgep < copywidth then fillbyte(atable[0], copywidth - leadedgep, 0);
+   // Prepare the trailing edge alpha value.
+   alpha := 255;
+   if leadedgep < edgewidthp then alpha := (255 * leadedgep) div edgewidthp;
+   // Prepare the leading edge alpha value.
+   alpha2 := 0;
+   if leadedgep > copywidth then alpha2 := 255 * (leadedgep - copywidth) div edgewidthp;
+  end
+  else begin
+   // Fill min alpha before trailing edge.
+   if trailedgep <> 0 then fillbyte(atable[copywidth - trailedgep], trailedgep, 0);
+   // Fill max alpha after leading edge.
+   if leadedgep < copywidth then fillbyte(atable[0], copywidth - leadedgep, 255);
+   // Prepare the trailing edge alpha value.
+   alpha := 0;
+   if leadedgep < edgewidthp then alpha := ((255 * leadedgep) div edgewidthp) xor $FF;
+   // Prepare the leading edge alpha value.
+   alpha2 := 255;
+   if leadedgep > copywidth then alpha2 := (255 * (leadedgep - copywidth) div edgewidthp) xor $FF;
+  end;
+  // Clip lead edge.
+  if leadedgep > copywidth then leadedgep := copywidth;
+  // Calculate the soft edge linear alpha gradient.
+  for x := leadedgep - trailedgep downto 0 do
+   atable[copywidth - x - trailedgep] := (alpha2 * x + alpha * (leadedgep - trailedgep - x)) div (leadedgep - trailedgep);
+
+  while copyrows <> 0 do begin
+   x := copywidth;
+   while x <> 0 do begin
+    alpha := alphamixtab[byte((srcp + 3)^), atable[x]];
+    // Shortcut for totally transparent pixels.
+    if alpha = 0 then begin
+     inc(srcp, 4); inc(destp, 4);
+    end else begin
+     // Partial alpha mix, using the precalculated alphamixtable.
+     // Source is premultiplied by its own alpha, but must be further
+     // multiplied by atable. Destination must be multiplied by the inverse
+     // of (alpha * atable), then the two are summed.
+     alpha := alpha xor $FF;
+     byte(destp^) := byte(alphamixtab[alpha, byte(destp^)] + alphamixtab[byte(srcp^), atable[x]]);
+     inc(srcp); inc(destp);
+     byte(destp^) := byte(alphamixtab[alpha, byte(destp^)] + alphamixtab[byte(srcp^), atable[x]]);
+     inc(srcp); inc(destp);
+     byte(destp^) := byte(alphamixtab[alpha, byte(destp^)] + alphamixtab[byte(srcp^), atable[x]]);
+     inc(srcp); inc(destp);
+     byte(destp^) := byte(alphamixtab[alpha, byte(destp^)] + alpha xor $FF);
+     inc(srcp); inc(destp);
+    end;
+
+    dec(x);
+   end;
+   inc(srcp, srcskipwidth);
+   inc(destp, destskipwidth);
+
+   dec(copyrows);
+  end;
+ end;
+end;
+
 procedure DrawSolid(clipdata : pblitstruct; fillcolor : dword; hasalpha : byte);
 // Fills a destination buffer with the alpha profile of a source bitmap,
 // using fillcolor. The fill color will be solid, its a component is ignored.
@@ -848,11 +935,14 @@ begin
         + ']');}
 
       // Draw the box.
-      if (TBox[ivar].boxstate in [BOXSTATE_APPEARING, BOXSTATE_VANISHING])
-      and (TBox[ivar].style.poptype = 2) then
-       DrawRGBA32alpha(@clipsi, dword(TBox[ivar].popruntime) * 255 div TBox[ivar].style.poptime)
-      else
-       DrawRGBA32(@clipsi);
+      if TBox[ivar].boxstate in [BOXSTATE_APPEARING, BOXSTATE_VANISHING] then begin
+       case TBox[ivar].style.poptype of
+         2: DrawRGBA32alpha(@clipsi, dword(TBox[ivar].popruntime) * 255 div TBox[ivar].style.poptime);
+         3: DrawRGBA32wipe(@clipsi, (dword(TBox[ivar].popruntime) shl 15) div TBox[ivar].style.poptime, TBox[ivar].boxstate = BOXSTATE_APPEARING);
+         else DrawRGBA32(@clipsi);
+       end;
+      end
+      else DrawRGBA32(@clipsi);
      end;
 
     end;
