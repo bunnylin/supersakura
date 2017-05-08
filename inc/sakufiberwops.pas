@@ -232,7 +232,67 @@ begin
  end;
 end;
 
-procedure Invoke_EVENT_CREATE_AREA; inline; begin end;
+procedure Invoke_EVENT_CREATE_AREA;
+var enamu, elabel, emouseon, emouseoff : UTF8string;
+    eport, esx, esy : dword;
+    elx, ely : longint;
+begin
+ if FetchParam(WOPP_NAME) = FALSE then fibererror('event.create.area without name')
+ else begin
+  enamu := strvalue[0];
+  numvalue := gamevar.defaultviewport;
+  FetchParam(WOPP_VIEWPORT);
+  if (numvalue < 0) or (numvalue >= length(viewport))
+  then fibererror('event.create.area bad viewport: ' + strdec(numvalue))
+  else begin
+   eport := numvalue;
+   numvalue := 0;
+   FetchParam(WOPP_LOCX);
+   elx := numvalue;
+   numvalue := 0;
+   FetchParam(WOPP_LOCY);
+   ely := numvalue;
+   numvalue := 32768;
+   FetchParam(WOPP_SIZEX);
+   esx := abs(numvalue);
+   numvalue := 32768;
+   FetchParam(WOPP_SIZEY);
+   esy := abs(numvalue);
+
+   elabel := ''; emouseon := ''; emouseoff := '';
+   if FetchParam(WOPP_LABEL) then elabel := strvalue[0];
+   if FetchParam(WOPP_MOUSEON) then emouseon := strvalue[0];
+   if FetchParam(WOPP_MOUSEOFF) then emouseoff := strvalue[0];
+
+   numvalue := length(event.area);
+   setlength(event.area, length(event.area) + 1);
+   with event.area[numvalue] do begin
+    namu := upcase(enamu);
+    inviewport := eport;
+    x1 := elx;
+    x2 := elx + esx;
+    y1 := ely;
+    y2 := ely + esy;
+    if x1 >= 0
+    then x1p := (x1 * viewport[eport].viewportsizexp + 16384) shr 15 + viewport[eport].viewportx1p
+    else x1p := -((-x1 * viewport[eport].viewportsizexp + 16384) shr 15) + viewport[eport].viewportx1p;
+    if x2 >= 0
+    then x2p := (x2 * viewport[eport].viewportsizexp + 16384) shr 15 + viewport[eport].viewportx1p
+    else x2p := -((-x2 * viewport[eport].viewportsizexp + 16384) shr 15) + viewport[eport].viewportx1p;
+    if y1 >= 0
+    then y1p := (y1 * viewport[eport].viewportsizeyp + 16384) shr 15 + viewport[eport].viewporty1p
+    else y1p := -((-y1 * viewport[eport].viewportsizeyp + 16384) shr 15) + viewport[eport].viewporty1p;
+    if y2 >= 0
+    then y2p := (y2 * viewport[eport].viewportsizeyp + 16384) shr 15 + viewport[eport].viewporty1p
+    else y2p := -((-y2 * viewport[eport].viewportsizeyp + 16384) shr 15) + viewport[eport].viewporty1p;
+    triggerlabel := elabel;
+    mouseonlabel := emouseon;
+    mouseofflabel := emouseoff;
+    state := 0;
+   end;
+  end;
+ end;
+end;
 
 procedure Invoke_EVENT_CREATE_ESC; inline;
 begin
@@ -243,7 +303,33 @@ begin
  end;
 end;
 
-procedure Invoke_EVENT_CREATE_GOB; inline; begin end;
+procedure Invoke_EVENT_CREATE_GOB;
+var enamu, egob, elabel, emouseon, emouseoff : UTF8string;
+begin
+ if FetchParam(WOPP_NAME) = FALSE then fibererror('event.create.area without name')
+ else begin
+  enamu := strvalue[0];
+  if FetchParam(WOPP_GOB) = FALSE then fibererror('event.create.gob without gob')
+  else begin
+   egob := strvalue[0];
+   elabel := ''; emouseon := ''; emouseoff := '';
+   if FetchParam(WOPP_LABEL) then elabel := strvalue[0];
+   if FetchParam(WOPP_MOUSEON) then emouseon := strvalue[0];
+   if FetchParam(WOPP_MOUSEOFF) then emouseoff := strvalue[0];
+
+   numvalue := length(event.gob);
+   setlength(event.gob, length(event.gob) + 1);
+   with event.gob[numvalue] do begin
+    namu := upcase(enamu);
+    gobnamu := upcase(egob);
+    triggerlabel := elabel;
+    mouseonlabel := emouseon;
+    mouseofflabel := emouseoff;
+    state := 0;
+   end;
+  end;
+ end;
+end;
 
 procedure Invoke_EVENT_CREATE_INT; inline;
 begin
@@ -271,7 +357,7 @@ begin
    numvalue2 := length(event.timer);
    setlength(event.timer, numvalue2 + 1);
    with event.timer[numvalue2] do begin
-    namu := strvalue2[0];
+    namu := upcase(strvalue2[0]);
     triggerfreq := numvalue;
     timercounter := 0;
     triggerlabel := strvalue[0];
@@ -284,7 +370,7 @@ procedure Invoke_EVENT_MOUSEOFF; inline; begin end;
 procedure Invoke_EVENT_MOUSEON; inline; begin end;
 
 procedure Invoke_EVENT_REMOVE; inline;
-var ivar : dword;
+var ivar, jvar : dword;
 begin
  if (FetchParam(WOPP_NAME) = FALSE) or (strvalue[0] = '') then begin
   // Remove all events.
@@ -295,7 +381,37 @@ begin
   event.escint.triggerlabel := '';
  end
  else begin
-  // Remove all events by this name.
+  strvalue[0] := upcase(strvalue[0]);
+  // Remove all area events by this name.
+  ivar := length(event.area);
+  while ivar <> 0 do begin
+   dec(ivar);
+   if event.area[ivar].namu = strvalue[0] then begin
+    jvar := length(event.area) - 1;
+    if ivar < jvar then event.area[ivar] := event.area[jvar];
+    setlength(event.area, jvar);
+   end;
+  end;
+  // Remove all gob events by this name.
+  ivar := length(event.gob);
+  while ivar <> 0 do begin
+   dec(ivar);
+   if event.gob[ivar].namu = strvalue[0] then begin
+    jvar := length(event.gob) - 1;
+    if ivar < jvar then event.gob[ivar] := event.gob[jvar];
+    setlength(event.gob, jvar);
+   end;
+  end;
+  // Remove all timers by this name.
+  ivar := length(event.timer);
+  while ivar <> 0 do begin
+   dec(ivar);
+   if event.timer[ivar].namu = strvalue[0] then begin
+    jvar := length(event.timer) - 1;
+    if ivar < jvar then event.timer[ivar] := event.timer[jvar];
+    setlength(event.timer, jvar);
+   end;
+  end;
  end;
 end;
 

@@ -451,6 +451,7 @@ procedure HandleSDLevent(evd : PSDL_event);
    // Check mouseoverable areas
 
    // Check mouseoverable gobs
+   {$ifdef bonk}
    ivar := length(event.gob);
    while ivar <> 0 do begin
     dec(ivar);
@@ -482,6 +483,7 @@ procedure HandleSDLevent(evd : PSDL_event);
      end;
     end;
    end;
+   {$endif}
 
    gamevar.mouseX := musx;
    gamevar.mouseY := musy;

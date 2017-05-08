@@ -544,7 +544,7 @@ var // Script execution fibers.
       end;
       gob : array of record
         namu : UTF8string;
-        gobnum : dword;
+        gobnamu : UTF8string;
         triggerlabel, mouseonlabel, mouseofflabel : UTF8string;
         state : byte; // 1 if currently overed, 0 if not
       end;
@@ -1536,6 +1536,24 @@ begin
  while ivar <> 0 do begin
   dec(ivar);
   if (TBox[ivar].inviewport = viewnum) then TBox[ivar].contentbufparamvalid := FALSE;
+ end;
+
+ // Refresh all area events in this viewport.
+ ivar := length(event.area);
+ while ivar <> 0 do with event.area[ivar] do begin
+  dec(ivar);
+  if x1 >= 0
+  then x1p := (x1 * viewport[inviewport].viewportsizexp + 16384) shr 15 + viewport[inviewport].viewportx1p
+  else x1p := -((-x1 * viewport[inviewport].viewportsizexp + 16384) shr 15) + viewport[inviewport].viewportx1p;
+  if x2 >= 0
+  then x2p := (x2 * viewport[inviewport].viewportsizexp + 16384) shr 15 + viewport[inviewport].viewportx1p
+  else x2p := -((-x2 * viewport[inviewport].viewportsizexp + 16384) shr 15) + viewport[inviewport].viewportx1p;
+  if y1 >= 0
+  then y1p := (y1 * viewport[inviewport].viewportsizeyp + 16384) shr 15 + viewport[inviewport].viewporty1p
+  else y1p := -((-y1 * viewport[inviewport].viewportsizeyp + 16384) shr 15) + viewport[inviewport].viewporty1p;
+  if y2 >= 0
+  then y2p := (y2 * viewport[inviewport].viewportsizeyp + 16384) shr 15 + viewport[inviewport].viewporty1p
+  else y2p := -((-y2 * viewport[inviewport].viewportsizeyp + 16384) shr 15) + viewport[inviewport].viewporty1p;
  end;
 end;
 
