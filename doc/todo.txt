@@ -20,6 +20,7 @@ FUTURE
    + Add a sunlight effect; perhaps full starburst with loc/speed vars
    + Add a rain effect
    + Add a horizontal blur effect, doubled vision (use in sakura CS704)
+- Develop a proper Bunnyscaler, or use an existing pixel scaler
 - Add graphic scaling at run-time in scriptcode? Scalesizex/y? A rescale
   cache used solely by the Renderer routine, so when a gob of unusual size
   is requested, it's rescaled and cached? Smooth size slides done this way
@@ -55,19 +56,15 @@ FUTURE
    + Expanded soundtrack mod, subtle variations on existing themes?
    + Eye-blinkies for event graphics wherever appropriate
 REQUIRED FOR 1.0
-- Add runtime modification loading, eg. game language switching
-  (by loading game_*.mod, each needs title and description blocks;
-  use global save file per game to allow mod selection to persist)
-- Add auto-update capability from UPD files; if DAT to be patched is
-  write-protected, rename UPD to MOD, notify user, copy to appdata\, and
-  automatically add it to enabled mods
+- Automatically load all .mod files whose header namedrops the dat being
+  loaded
 - Create a Settings dialog, video and audio config
    + Needs a simple widget system of our own; existing ones would probably
      work well except I'd like gamepad support; most likely layout will be
      something like PPSSPP menus, a vertical list that scrolls, with the
      item names on the left and the values on the right
 - Create a game/dat selection dialog, something like ScummVM
-- Add a friendly button in game/dat selecion dialog to directly convert
+- Add a friendly button in game/dat selection dialog to directly convert
   games to ssakudats
    + Integrate decomp/beautify/recomp in supersakura?
    + Source dir selection may require a separate UI, current choicebox
@@ -75,15 +72,9 @@ REQUIRED FOR 1.0
      just put in a text field and tell the user to type the directory...
      Vertical-only choicebox could forward left/right presses to area
      events, allowing a file list and actions at the same time?
-- Implement a basic save/load state command; remember to save all array
-  sizes in save file; even if constant, it may be desirable to expand them
-  in the future, and it's better to save stuff dynamically anyway; make
-  save files DAT-style modular
-   + Various gamevars should be moved into varmon for easier saving
-- Create a save/load dialog, accessing separate .Sxx files
+- Create a save/load dialog, accessing separate gamename.Sxx files
 - 8 autosave slots, use a timer and save once every five minutes during
-  waitkey or waitevent, but only if saves allowed (also check if
-  allownosaves persists properly when returning to a script)
+  waitkey or waitevent, but only if saves allowed?
 - Check how well multiple displays and hi-DPI are working
 - Textboxes:
    + Add test for if normal text and choices can now coexist in boxes
@@ -96,21 +87,6 @@ REQUIRED FOR 1.0
    + Implement text outlines, with RGBA color, thickness, offset, and the
      option to fade alpha to transparent toward the outline edge; the
      thickness and offset must be 32k values relative to fontheight
-- See if can read TTF etc headers to find font face names, that would
-  allow quick font enumeration at startup and then friendly selection
-- Implement drop-down console in box 0
-- The drop-down console should probably work in two modes: either show all
-  debug stdout text, or show a game text transcript as you play, which can
-  be brought up if you missed a textbox accidentally; should probably have
-  a way to dump all contents of either log into a text file
-- Try calling dumpexceptionbacktrace in the exit block??
-- Skip seen text is cumbersome if implemented per-string, but it could
-  work well on a per-label basis, with far less user state to track
-- Reimplement precipitation effects
-- Change animation sequence handling to run code snippets in minifibers
-  instead of the current special syntax monstrosity; anim snippets should
-  be a list of their own, and gobs and box decors point to list items
-- Develop a proper Bunnyscaler, or use an existing pixel scaler
 - Rework Moonsynth into Bunnysynth, plain midi; as for sound effects,
   consider internal support for wav/flac/opus
 - Make the pre-cacher read ahead in bytecode from the current position to
@@ -118,17 +94,65 @@ REQUIRED FOR 1.0
   waitkeys/sleeps/if-jumps away; pre-cacher also needs to strongly
   prioritise big pictures since small ones can be loaded at runtime almost
   instantly anyway
+- Reimplement precipitation effects
+- See if can read TTF etc headers to find font face names, that would
+  allow quick font enumeration at startup and then friendly selection
 - Implement the software pixel shader style thing to replace the old
   renderer; subpixel repositioning will have to go here too
-- Metamenu viewframe option: can be handled in script; game window size
-  changes or fullscreen toggles must be completely transparent to the
-  script, and UI may not be modified by the script depending on window
-  pixel size
+- Skip seen text is cumbersome if implemented per-string, but it could
+  work well on a per-label basis, with far less user state to track
+- Change animation sequence handling to run code snippets in minifibers
+  instead of the current special syntax monstrosity; anim snippets should
+  be a list of their own, and gobs and box decors point to list items
+- Designate a banner graphic in each dat, define in newdata.txt as "banner";
+  this should generally be the title screen, and it can be displayed as
+  a background on the main dat selector menu
+- Implement drop-down console in box 0
+   + The drop-down console should probably work in two modes: either show all
+     debug stdout text, or show a game text transcript as you play, which can
+     be brought up if you missed a textbox accidentally
+   + When in debug mode, can type sakurascript lines in the box, which get
+     compiled and executed in a new fiber
+   + Commandline option to dump the game transcript into a file as you play
+- Viewframe option in metamenu for games that have one
+- Implement a metamenu
+   + When the metamenu is summoned, save and freeze fibers, gobs, anims,
+     events, boxes, effects (using the save state system), then spawn the
+     hardcoded fiber name METAMENU. as the sole fiber
+   + But do not save variables! The metamenu may wish to change them to keep
+     track of state
+   + Options: save, load, fullscreen, msg history, skip seen, settings, quit
+   + New wops needed: sys.isfullscreen, sys.setfullscreen [value],
+     sys.closemetamenu, sys.isskipping, sys.setskipseen [value],
+     sys.showhistory, sys.getnumsaves, sys.getsavename [index],
+     sys.getsavedate [index], gfx.stashthumbnail [name],
+     sys.loadsavethumb [index] [name], sys.loadstate [index],
+     sys.savestate [index] [name], choice.gethighlight,
+     choice.onhighlight [label], sys.getnumdats, sys.loadrun [name],
+     sys.getdatname [index], sys.loaddatbanner [index] [name]
+   + Set up choice.typeinbox [box], choice.endtyping, tbox.getlastline [box],
+     fiber.waittyping
+   + As long as choicematic.typeinbox is valid, user keypresses are added to
+     the last line of the box; pressing enter in this case takes precedence
+     and ends typing, resuming fibers waiting for typing to end; typing must
+     allow spaces and backspaces, but backslashes are automatically doubled;
+     tbox.getlastline should return all characters from the box content up to
+     the last escape code or newline
+   + Mcsassm needs a way to add run-time incidental graphics
+   + Gob/area mouseovers must be selected before choicebox upon enter or
+     gamepad select, if both are selectable
+- Implement a basic save/load state command; remember to save all array
+  sizes in save file; even if constant, it may be desirable to expand them
+  in the future, and it's better to save stuff dynamically anyway; make
+  save files DAT-style modular
+   + Should have a separate save state command for each engine component and
+     a main command that invokes the others
 ONGOING
-- Re-implement gob/area events
 - Re-implement quick RGB tweak?
-- Box move effect reflows text weirdly?
 - Re-add gamepad support
+- Keyboard mouseoverables handling
+- Switch main menus to use textboxes instead of graphics
+- Add missing Japanese protag names
 - By default, binaries should be in a write-protected executable
   directory; writable subdirectories for "data" and "save" will be
   used for the other stuff, or if they don't exist and cannot be
@@ -148,6 +172,7 @@ FUTURE
 REQUIRED FOR 1.0
 - Make a mod that inserts new special effects all over the scripts
 - newdata.txt: add entries for gamename, gameversion, modname, moddesc
+- Make sure data files go under user profile if workdir not accessible
 - Make program icons for all three games
 - Add intros for the prime three
 - Add music conversion options in data.txt; needs instrument mappings and
@@ -172,6 +197,7 @@ FUTURE
   format, so it'll be easier to convert games
 REQUIRED FOR 1.0
 - Add color to dialogue titles?
+- Make sure output data goes under user profile if workdir not accessible
 - Specific global vars with known uses in games should be named
 - Fix music conversion, polish code
 - Integrate Beautify
