@@ -1,7 +1,7 @@
 // Main menu and game definitions for Eden no Kaori / Scent of Eden
 
 sys.settitle "Eden no Kaori"
-$s1 := "Joe"
+#$s1 := "Joe" # not used?
 
 // 480x296 view in 640x400 frame @ 80,16
 viewport.setparams viewport:1 parent:0, ratiox = 16, ratioy = 10

@@ -2,7 +2,7 @@
 // Main menu and game definitions
 
 sys.settitle "Majokko Paradise"
-$s1 := "Rei"
+#$s1 := "Rei" # not used?
 
 // 480x296 view in 640x400 frame @ 80,16
 viewport.setparams viewport:1 parent:0, ratiox = 16, ratioy = 10
@@ -71,7 +71,7 @@ tbox.setparam 3 basecolor 0xFFF7
 // through, start alpha-fading in the game logo.
 
 gfx.show OPA bkg
-gfx.transition 9
+gfx.transition 4
 sleep
 sleep 400
 
