@@ -76,6 +76,7 @@ REQUIRED FOR 1.0
 - 8 autosave slots, use a timer and save once every five minutes during
   waitkey or waitevent, but only if saves allowed?
 - Check how well multiple displays and hi-DPI are working
+- Check how well touch controls work if at all
 - Textboxes:
    + Add test for if normal text and choices can now coexist in boxes
    + Add a box padding parameter; boxsize = content + margins + padding;
@@ -140,7 +141,21 @@ REQUIRED FOR 1.0
      the last escape code or newline
    + Mcsassm needs a way to add run-time incidental graphics
    + Gob/area mouseovers must be selected before choicebox upon enter or
-     gamepad select, if both are selectable
+     gamepad select, if both are selectable; but if a highlighted area has
+     no trigger, don't swallow the press
+   + Add sys.getkeyleft, sys.getkeyright, sys.getkeyup, sys.getkeydown
+   + Add sys.getmousex [viewport], sys.getmousey [viewport]
+   + Add -mouseonly to mouseoverables
+- Set up another distro or two in VMs and make sure can build on them
+- Set up win7 in a VM and make sure can build on it, also check the esc key
+  in minicrt
+- Build installable AUR package
+- Improve release.bat to also do the full compile
+- Add a simple makefile for Linux deployment; although I don't really want to
+  push the tools into system-wide binary directories...
+- Add a Windows installer, InnoSetup?
+- Improve the main site, needs better download section at least; move
+  progress page to be part of main page to make space?
 - Implement a basic save/load state command; remember to save all array
   sizes in save file; even if constant, it may be desirable to expand them
   in the future, and it's better to save stuff dynamically anyway; make
@@ -152,11 +167,12 @@ ONGOING
 - Re-add gamepad support
 - Keyboard mouseoverables handling
 - Switch main menus to use textboxes instead of graphics
-- Add missing Japanese protag names
+- Free-scrollable textboxes, choiceboxes; add test to test suite
 - By default, binaries should be in a write-protected executable
   directory; writable subdirectories for "data" and "save" will be
   used for the other stuff, or if they don't exist and cannot be
   created, they are put under the user's home directory as appropriate
+- Interrupts should be triggerable only once per frame, set a cooldown var
 
 ------------------------------------------------------------------
 Recomp
