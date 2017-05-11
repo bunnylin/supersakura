@@ -158,8 +158,8 @@ begin
   filldword(AsciiBuf[0], ivar, backpal shl 20 + $20);
   CrtWriteConOut(@AsciiBuf[0], boxsizexp_r, boxsizeyp_r, boxlocxp_r, boxlocyp_r, dword(boxlocxp_r) + boxsizexp_r, dword(boxlocyp_r) + boxsizeyp_r);
   {$else}
-  for y := boxlocyp_r to boxlocyp_r + boxsizeyp_r - 1 do begin
-   GotoXY(boxlocxp_r, y);
+  for ivar := boxlocyp_r to boxlocyp_r + boxsizeyp_r - 1 do begin
+   GotoXY(boxlocxp_r, ivar);
    write(space(boxsizexp_r));
   end;
   {$endif}
