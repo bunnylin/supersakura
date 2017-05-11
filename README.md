@@ -38,14 +38,20 @@ Requirements:
 After downloading the SuperSakura sources, you need to install FPC. Try to
 make a hello-world program to confirm it works.
 
-Next, get SDL2 and SDL2_ttf. If on Windows, you can download the dll's from
-libsdl.org, and can put them either in your \Windows\System32 directory, or
-in SuperSakura's source directory. On Linuxes, your distro's main software
-repository will have SDL2.
+Next, get SDL2 and SDL2_ttf. These are dynamically linked libraries that
+must be present on the system for the engine to run. If on Windows, you can
+download the dll's from libsdl.org, and can put them either in your
+\Windows\System32 directory, or in SuperSakura's source directory. On
+Linuxes, your distro's main software repository will have SDL2 and SDL2_ttf.
 
-Get the sources for the SDL2 Pascal headers and moonlibs, and save them in
+The SDL2 Pascal headers and moonlibs are statically linked units or
+libraries; they are needed to compile the engine and tools, but afterward
+are not needed to run them. Download the sources for those and save them in
 a directory near FPC's other units. On Windows, this is probably
-\FPC\units\arch\. On Linuxes, it may be under /lib/fpc/version/arch/.
+\FPC\units\arch\. On Linuxes, it may be under /usr/lib/fpc/version/arch/.
+If you have trouble finding where FPC keeps its units, see the relevant
+[wiki page](http://wiki.freepascal.org/Unit_not_found_-_How_to_find_units).
+
 Alternatively, just dump everything in the SuperSakura source directory.
 
 To compile, you can use the included comp.bat or comp.sh commands:
@@ -87,7 +93,7 @@ Or, to run a game purely in a console:
 
     supersakura-con <projectname>
 
-Aside from stanard console output, recomp also creates a recomp.log in the
+Aside from standard console output, recomp also creates a recomp.log in the
 working directory, or in your profile directory if the working directory is
 not writable. Likewise, the SuperSakura engine prints a lot of debug output
 into a saku.log file, either in the working directory or in your profile.
