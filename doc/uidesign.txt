@@ -10,7 +10,7 @@ In general:
 - Meta-interaction through modal pop-up menu, and summonable special menus.
 
 Below, input reactions are tested from the highest downward. As soon as any
-reaction is triggered, the remaining items need not be checked.
+reaction is triggered, the remaining items are skipped.
 
 Keyboard
 --------
@@ -19,10 +19,10 @@ Enter
 - If textboxes are hidden, make them visible.
 - If box 0 is in showtext state and transcript mode is off, retrieve the
   last line, and if it's not empty, compile and run it as a minifiber.
+- If a pageable box needs to show more content, scroll the box.
 - If a mouseoverable without -mouseonly is highlighted and it has a trigger
   label, trigger it.
 - If choicematic is active, select the highlighted choice.
-- If a pageable box needs to show more content, scroll the box.
 - If choicematic typeinbox is valid, and any fibers are in waittyping state,
   resume the fibers.
 - If any fibers are waiting for a keypress, resume the fibers.
@@ -65,10 +65,10 @@ Home/end/pageup/pagedown
 - If a freely scrollable box exists, scroll the box.
 
 Ctrl-A
-- Enable/disable skip seen text mode.
+- If metastate is normal, enable/disable skip seen text mode.
 
 Ctrl-B
-- Hide/display textboxes, if boxes are currently hidable.
+- If metastate is normal and boxes are hidable, hide/display textboxes.
 
 Ctrl-D
 - If debug mode is not enabled, ignore. (Ctrl-XYZZY to enable debug mode.)
@@ -77,8 +77,7 @@ Ctrl-D
 - Otherwise disable transcript mode and pop in the box.
 
 Ctrl-L
-- If not in normal metastate, ignore.
-- Otherwise enter saveload metastate, with load highlighted.
+- If metastate is normal, enter saveload metastate, with load highlighted.
 
 Pause, Ctrl-P
 - Pause/unpause the game.
@@ -87,12 +86,10 @@ Shift-Pause, Ctrl-Shift-P, Ctrl-Alt-P
 - Enter single-step mode.
 
 Ctrl-Q
-- If not in normal metastate, ignore.
-- Otherwise enter quit confirm metastate.
+- If metastate is normal, enter quit confirm metastate.
 
 Ctrl-S
-- If not in normal metastate, ignore.
-- Otherwise enter saveload metastate, with save highlighted.
+- If metastate is normal, enter saveload metastate, with save highlighted.
 
 Ctrl-T
 - If not in normal metastate or boxes hidden, ignore.
@@ -100,210 +97,148 @@ Ctrl-T
   mode and pop out the box.
 - Otherwise enable transcript mode and pop in the box.
 
-Gamepad (tbd)
+Gamepad
 -------
 
-- Start button: pause and unpause the game
-- If textboxes are hidden, then confirm/hide/cancel button makes them visible
-- If textboxes are visible and any boxes are displayed, then hide button
-  hides the textboxes
-- If the topmost interactive box has choices
-   + Direction buttons and left stick change selection in box
-   + Confirm button selects current selection in box like Enter
-   + Cancel button cancels toward the box's top choice level, or if already
-     on the top level, then pass the cancel button to the next check
-- If the topmost interactive box has no choices
-   + Direction buttons and left stick are passed to the next check
-   + Confirm button works like Enter
-   + Cancel button is passed to the next check
-- If mouseoverables are defined
-   + Direction buttons and left stick move highlight between mouseover areas
-   + Confirm button selects the currently highlighted area; if none is
-     highlighted, pass it to the next check
-   + Cancel button is passed to the next check
-- If mouseoverables are not defined either...
-   + Direction buttons and left stick are ignored
-   + Confirm/cancel button: if interrupt is defined, invokes it
-   + Menu button:
-      * if esc-interrupt is defined, invokes it
-      * else summons the metamenu
+Confirm button (low position)
+- Same as enter key.
 
-  it's bad to have mousables during a choicebox since it won't be
-  accessible through the keyboard or gamepad
+Cancel button (right position)
+- If skip seen text mode is enabled, disable it.
+- If textboxes are hidden, make them visible.
+- If box 0 is in showtext state and transcript mode is on, disable transcript
+  mode and popout the box.
+- If choicematic is active, and not on top choice level, go up a level.
+- If a pageable box needs to show more content, scroll the box.
+- If any fibers are waiting for a keypress, resume the fibers.
+- If a normal interrupt is defined, trigger it.
+- If an esc-interrupt is defined, trigger it.
 
-Mouse (tbd)
+Menu button (high position)
+- If skip seen text mode is enabled, disable it.
+- If textboxes are hidden, make them visible.
+- If box 0 is in showtext state and transcript mode is on, disable transcript
+  mode and popout the box.
+- If an esc-interrupt is defined, trigger it.
+- If metastate is normal, enter the metamenu metastate.
+
+Log button (left position)
+- If not in normal metastate, ignore.
+- If skip seen text mode is enabled, disable it.
+- If textboxes are hidden, make them visible.
+- If box 0 is in showtext state and transcript mode is on, disable transcript
+  mode and pop out the box.
+- Otherwise enable transcript mode and pop in the box.
+
+Start button
+- Pause/unpause the game.
+
+Option/select button
+- If metastate is normal and boxes are hidable, hide/display textboxes.
+
+Left/Right/Up/Down
+- Same as cursor keys.
+
+Left stick
+- Probably same as cursor keys? Need to check how SDL returns this input.
+
+Mouse
 -----
 
-- Mouse movement:
-   + If textboxes are visible and the topmost interactive box has choices,
-     and the mouse is over a choice, then highlight it
-   + Also, if mouseoverables are defined, and the mouse is no longer over one
-     or more, then trigger mouseoff events; if it is over new mouseoverables,
-     then trigger mouseon events
-- Left-click:
-   + If textboxes are hidden, then make them visible
-   + Else if the topmost interactive box has choices, and the mouse is over
-     a choice, then select the choice
-   + Else if the topmost interactive box has no choices, and the mouse is
-     over the box, then do the same as Enter
-   + Else if mouseoverables are defined, and the mouse is currently on one or
-     more, then trigger them
-   + Else if the topmost interactive box has no choices, then do the same
-     as Enter
-   + Else if interrupt is defined, invokes it
-- Right-click:
-   + If textboxes are visible and the topmost interactive box has choices
-     and it's not already on the top choice level, then cancels toward the
-     box's top choice level
-   + Else if textboxes are visible and the mouse is over any displayed box,
-     then hides the textboxes
-   + Else if esc-interrupt is defined, invokes it
-   + Else summons the metamenu
-- Mouse wheel?
+Mouse movement
+- If textboxes are visible and the topmost interactive box has choices, and
+  the mouse is over a choice, then highlight it.
+- Trigger mouseon and mouseoff events on mouseoverables.
+
+Left-click
+- If skip seen text mode is enabled, disable it.
+- If textboxes are hidden, make them visible.
+- If the cursor is not over any box, but is on a mouseoverable which has
+  a trigger label, trigger it.
+- If choicematic is active and the cursor is over a choice, select it.
+- If any pageable box needs to show more content, scroll the box.
+- If any fibers are waiting for a keypress, resume the fibers.
+- If a normal interrupt is defined, trigger it.
+
+Right-click
+- If skip seen text mode is enabled, disable it.
+- If box 0 is in showtext state and transcript mode is on, disable transcript
+  mode and popout the box.
+- If boxes are not hidden, and choicematic is active, and not on top choice
+  level, go up a level.
+- If boxes are not hidden, and metastate is normal, and the cursor is over
+  any box, hide all boxes.
+- If an esc-interrupt is defined, trigger it.
+- If metastate is normal, enter the metamenu metastate.
+
+Mouse wheel
+- If choicematic is active, move the highlight forward/backward.
+- If a freely scrollable box exists, scroll the box up/down.
 
 
-States (tbd)
-======
-
-Pausestate
-0 PAUSESTATE_NORMAL: unpaused
-1 PAUSESTATE_SINGLE: single-stepping
-2 PAUSESTATE_PAUSED: paused
-
-Locstate
-0 LOCSTATE_NORMAL: not in special screen, metamenu etc can be summoned
-1 LOCSTATE_SPECIAL: in a special screen
-
-Fiberstate
-0 FIBERSTATE_NORMAL: executing script code
-1 FIBERSTATE_WAITBOX: waiting until the box being waited for no longer has
-  the interactiveness flag set; or -1 for all boxes
-2 FIBERSTATE_WAITSLEEP: waiting for all sleep fx to end
-3 FIBERSTATE_WAITFX: waiting for all timed fx to end
-
-PAUSE: User may pause/unpause at any time by pressing the pause button
-- Change window title to say "paused", otherwise no visual effect
-- While paused, override tickcount with 0 all the time
-- No events are triggered, timers or mouseovers or anything
-- Renderer is not called (or if must be, then with tickcount 0)
-- The metamenu cannot be summoned
-
-SINGLE-STEP: Pressing shift-pause
-- Unpauses the game and sets it to single-step mode instead
-- Runs a single script command, then a single round of mouseovers etc and the
-  renderer, overriding the tickcount with resttime. During the user input
-  processing it would need to specifically check if a mouse button is being
-  held down, and if so, treat that as a click issued during the single step.
-- At the end of the main loop the game is re-paused
-
-METAMENU: User may summon the metamenu by pressing ESC or right-clicking
-- This works at any time except if the game is PAUSED or a METAMENU exists.
-- Jump to the metamenu script, which must push the current textbox state, and
-  sets up its own box
-- Renderer keeps being called, tickcount is not overridden
-- Events are not triggered, timers or mouseovers or anything
-
-
-Metamenu (tbd)
+Metamenu
 ========
 
-While the METAMENU has been invoked:
-- On entry:
-   + If textboxes are hidden, they are made visible
-   + Script fibers and events are pushed and cleared
-   + The existing animations, boxes, and effects are pushed and frozen
-   + The pushed stuff all together forms an instant save state
-   + Spawn a METAMENU script fiber
-- On exit:
-   + Pop everything from the instant save state
-- Script fibers, events, animations, effects run normally
-- Textboxes cannot be hidden
-
-- Cursor keys and enter works as normal, ESC dismisses the metamenu,
-  other keyboard shortcuts do nothing
-- Gamepad direction buttons change selection, select button selects current
-  selection, cancel and start buttons dismiss the metamenu as above
-- Mouseovers on box change selections, left-click on selection selects it,
-  left-click anywhere outside the box or right-click anywhere dismisses the
-  metamenu as above
-
-- Metamenu may call saveload and settings scripts
-
+General contents of the metamenu:
 Save (Ctrl-S)
 Load (Ctrl-L)
-Transcript (Ctrl-T)
-Skip seen messages (Ctrl-A)
-Fullscreen (Alt-Enter)
-Viewframe (Ctrl-F)
-- - - - - - - -
+Text log (Ctrl-T)
+Skip seen text (Ctrl-A)
+Fullscreen
+Viewframe
+................
 Settings
 Return to title
 Quit (Ctrl-Q)
 
-Save:
-Right-click menu, ctrl-S, runscript SAVELOAD
-All have the same effect, running script SAVELOAD.
-Disabled entirely when within the SAVELOAD script.
+This is a pop-up menu that the user can bring up by pressing esc, or
+right-clicking, or pressing the menu button. It has various functions,
+including save/load, fullscreen, settings, and quit. It also needs to have
+game-specific options, such as a viewframe toggle, so some script control is
+unavoidable.
 
-Load:
-Right-click menu, ctrl-L, runscript SAVELOAD
-All have the same effect, running script SAVELOAD.
-Disabled entirely when within the SAVELOAD script.
+Since the metamenu should be controllable by gamepad, it needs to be handled
+in-game. The simplest way to do this is to use the existing textbox system,
+and hand control to a special script label named metamenu. To keep this from
+messing up the current game state, most of the game state must be savestated
+before invoking the metamenu. Once the script signals it's finished, the
+engine must loadstate and continue where it left off. As a side effect, the
+instant savestate can be easily built into a full save game, if the user
+wants to save.
 
-Transcript:
-Right-click menu, ctrl-T
+When the metamenu is summoned:
+- If textboxes are hidden, make them visible.
+- Save fibers, gobs, anims, events, boxes, effects.
+- Delete effects, anims, events, fibers.
+- Make a thumbnail of the screen, add that to the savestate elements.
+- Spawn metamenu. as the sole new fiber.
+- Set metastate to metastate_metamenu.
 
-Debug console:
-Ctrl-D only.
+When the metamenu or any other fiber it has spawned invokes the word of power
+sys.closemetamenu, restore fibers, gobs, anims, events, boxes, effects. Note,
+that variables are left untouched by these; the metamenu script can carry
+useful state information in normal script variables.
 
-Skip seen messages:
-Right-click menu, ctrl-A
-Disabled when within SAVELOAD or mainscript. Automatically turned off upon
-a left-click, right-click, esc, enter, entering game states 2..4, or upon
-printing an unseen message.
+The metamenu can also be terminated as a result of sys.loadstate,
+sys.showhistory, and sys.restartgame. The save and load options should jump
+to the special script label named metamenu.saveload; the settings option
+jumps to the special label metamenu.settings.
 
-Fullscreen:
-Right-click menu, alt-enter
-Menu has a tick next to option if in fullscreen mode.
+The engine's internal metastate variable tracks whether the engine is running
+normally or has brought up the metamenu. While the metamenu is visible, it
+should define a normal interrupt and an esc-interrupt which close the menu.
 
-Viewframe:
-Right-click menu
-Menu has a tick next to option if in viewframe mode.
-Removed from menu if frame stuff hasn't been fully defined.
+The metamenu.saveload script brings up a full-screen menu containing
+a vertical choicebox with all current savegames, and the option for a new
+save topmost. At the top should be four mouseoverables lined horizontally:
+Save, Load, Delete, Cancel.
 
-Settings:
-Right-click menu
-Opens a modal settings dialog, freezing the game until dialog closes.
-
-Return to title:
-Right-click menu
-Confirm returning to title.
-Disabled if in mainscript.
-
-Quit:
-Right-click menu, ctrl-Q, alt-F4, close window button, sys.quit command
-Confirm quitting, unless in mainscript or sys.quit issued
-
-Mouse functionality:
-In case mouseover areas have been defined, moving the mouse on or off such
-areas will generate mouseover events for the script.
-
-Left-clicking a defined mouseover area generates a mouseover clicked event.
-Left-clicking while textboxes have been temporarily removed will bring them
-back in. Otherwise, left-clicking while an interrupt callback has been
-defined will generate an interrupt event. Left-clicking while waiting for an
-anykeypress clears the waitkey. If choices are up, left-clicking on a choice
-selects it.
-Otherwise a left-click does nothing.
-
-Right-click and ESC are equivalent. Right-clicking while an interrupt
-callback has been defined will generate an interrupt event. If a verb has
-been selected and subjects are up, right-clicking anywhere or pressing ESC
-cancels the selection and goes back to verb choices. Right-clicking on the
-area of textbox 1 while the textbox's style has a non-void background will
-make all textboxes temporarily pop out. Right-clicking anywhere while
-textboxes have been temporarily removed will bring them back in.
-Otherwise, a right-click will spawn the popup menu.
+Pressing left/right will move between them, while pressing up/down will move
+in the choicebox. An extra textbox is needed on the right side, which is
+seeded with either the currently highlighted save's data, or with data that
+would be used if you were to save a new game: one row containing a date-time,
+and a second row containing a user-typable description of the save. Above or
+below this box should be a thumbnail associated with this save.
 
 
 Settings menu reqs
@@ -350,6 +285,8 @@ Pixel scaler - combobox.
 Font selection - 2 comboboxes, for Latin and Japanese; when selected, brings
 up a list of enumerated font face names, default-highlighting the currently
 selected font.
+
+VSync - checkbox.
 
 Sound - checkbox.
 
