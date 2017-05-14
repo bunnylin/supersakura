@@ -102,6 +102,13 @@ begin
   end;
  end
 
+ else if com[1] = chr($EE) then begin
+  if com = chr($EE) + chr($90) + chr($A5) then UserInput_Left else
+  if com = chr($EE) + chr($90) + chr($A6) then UserInput_Up else
+  if com = chr($EE) + chr($90) + chr($A7) then UserInput_Right else
+  if com = chr($EE) + chr($90) + chr($A8) then UserInput_Down;
+ end
+
  else begin
   // Enter
   if com = chr($D) then UserInput_Enter else

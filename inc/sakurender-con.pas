@@ -186,7 +186,7 @@ begin
       break;
      end;
 
-     GotoXY(dword(boxlocxp_r) + marginleftp, dword(boxlocyp_r) + margintopp + breakindex);
+     GotoXY(dword(boxlocxp_r) + marginleftp, dword(boxlocyp_r) + margintopp + breakindex - contentwinscrollofsp);
     end;
 
     // Check for escape codes at current txt offset.
