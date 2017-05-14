@@ -326,6 +326,7 @@ procedure HandleSDLevent(evd : PSDL_event);
   // a left-click and 3 if it's a right-click.
   var ivar, jvar : dword;
       x, y : longint;
+      overnewarea, overnewgob : boolean;
   begin
    // If we're paused, mouse clicks are ignored and mouseovers don't trigger.
    if pausestate = PAUSESTATE_PAUSED then exit;
@@ -360,6 +361,7 @@ procedure HandleSDLevent(evd : PSDL_event);
    end;
 
    // Check mouseoverable areas.
+   overnewarea := FALSE;
    if length(event.area) <> 0 then
     for ivar := length(event.area) - 1 downto 0 do
      with event.area[ivar] do begin
@@ -368,9 +370,12 @@ procedure HandleSDLevent(evd : PSDL_event);
       then begin
        // Area is being overed!
        if state = 0 then begin
-        // It wasn't overed before, so trigger mouseon.
+        // It wasn't overed before, so prepare to trigger mouseon.
         state := 1;
-        if mouseonlabel <> '' then StartFiber(mouseonlabel, '');
+        if mouseonlabel <> '' then begin
+         overnewarea := TRUE;
+         state := 2;
+        end;
        end;
       end else begin
        // Area is not being overed!
@@ -383,6 +388,7 @@ procedure HandleSDLevent(evd : PSDL_event);
      end;
 
    // Check mouseoverable gobs.
+   overnewgob := FALSE;
    ivar := length(event.gob);
    while ivar <> 0 do begin
     dec(ivar);
@@ -405,9 +411,12 @@ procedure HandleSDLevent(evd : PSDL_event);
      then begin
       // Gob is being overed!
       if event.gob[ivar].state = 0 then begin
-       // It wasn't overed before, so trigger mouseon.
+       // It wasn't overed before, so prepare to trigger mouseon.
        event.gob[ivar].state := 1;
-       if event.gob[ivar].mouseonlabel <> '' then StartFiber(event.gob[ivar].mouseonlabel, '');
+       if event.gob[ivar].mouseonlabel <> '' then begin
+        overnewgob := TRUE;
+        event.gob[ivar].state := 2;
+       end;
       end;
      end else begin
       // Gob is not being overed!
@@ -419,6 +428,18 @@ procedure HandleSDLevent(evd : PSDL_event);
      end;
     end;
    end;
+
+   // Trigger mouseon labels.
+   if overnewarea then for ivar := 0 to high(event.area) do
+    if event.area[ivar].state = 2 then begin
+     event.area[ivar].state := 1;
+     StartFiber(event.area[ivar].mouseonlabel, '');
+    end;
+   if overnewgob then for ivar := 0 to high(event.gob) do
+    if event.gob[ivar].state = 2 then begin
+     event.gob[ivar].state := 1;
+     StartFiber(event.gob[ivar].mouseonlabel, '');
+    end;
 
    gamevar.mouseX := musx;
    gamevar.mouseY := musy;
