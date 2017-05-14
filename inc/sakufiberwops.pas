@@ -366,48 +366,6 @@ begin
  end;
 end;
 
-procedure Invoke_EVENT_MOUSEOFF; inline;
-var ivar : dword;
-begin
- if FetchParam(WOPP_NAME) = FALSE then fibererror('setmouseoff without event name')
- else begin
-  StashStrval;
-  strvalue2[0] := upcase(strvalue2[0]);
-  FetchParam(WOPP_LABEL);
-  ivar := length(event.gob);
-  while ivar <> 0 do begin
-   dec(ivar);
-   if event.gob[ivar].namu = strvalue2[0] then event.gob[ivar].mouseofflabel := strvalue[0];
-  end;
-  ivar := length(event.area);
-  while ivar <> 0 do begin
-   dec(ivar);
-   if event.area[ivar].namu = strvalue2[0] then event.area[ivar].mouseofflabel := strvalue[0];
-  end;
- end;
-end;
-
-procedure Invoke_EVENT_MOUSEON; inline;
-var ivar : dword;
-begin
- if FetchParam(WOPP_NAME) = FALSE then fibererror('setmouseon without event name')
- else begin
-  StashStrval;
-  strvalue2[0] := upcase(strvalue2[0]);
-  FetchParam(WOPP_LABEL);
-  ivar := length(event.gob);
-  while ivar <> 0 do begin
-   dec(ivar);
-   if event.gob[ivar].namu = strvalue2[0] then event.gob[ivar].mouseonlabel := strvalue[0];
-  end;
-  ivar := length(event.area);
-  while ivar <> 0 do begin
-   dec(ivar);
-   if event.area[ivar].namu = strvalue2[0] then event.area[ivar].mouseonlabel := strvalue[0];
-  end;
- end;
-end;
-
 procedure Invoke_EVENT_REMOVE; inline;
 var ivar, jvar : dword;
 begin
@@ -465,27 +423,48 @@ begin
 end;
 
 procedure Invoke_EVENT_SETLABEL; inline;
-var ivar : dword;
+var triglabel, onlabel, offlabel : UTF8string;
+    ivar : dword;
+    hastrig, hason, hasoff : boolean;
 begin
  if FetchParam(WOPP_NAME) = FALSE then fibererror('setlabel without event name')
  else begin
   StashStrval;
   strvalue2[0] := upcase(strvalue2[0]);
-  FetchParam(WOPP_LABEL);
+
+  hastrig := FetchParam(WOPP_LABEL);
+  triglabel := strvalue[0];
+  hason := FetchParam(WOPP_MOUSEON);
+  onlabel := strvalue[0];
+  hasoff := FetchParam(WOPP_MOUSEOFF);
+  offlabel := strvalue[0];
+
   ivar := length(event.gob);
   while ivar <> 0 do begin
    dec(ivar);
-   if event.gob[ivar].namu = strvalue2[0] then event.gob[ivar].triggerlabel := strvalue[0];
+   if event.gob[ivar].namu = strvalue2[0] then begin
+    if hastrig then event.gob[ivar].triggerlabel := triglabel;
+    if hason then event.gob[ivar].mouseonlabel := onlabel;
+    if hasoff then event.gob[ivar].mouseofflabel := offlabel;
+   end;
   end;
+
   ivar := length(event.area);
   while ivar <> 0 do begin
    dec(ivar);
-   if event.area[ivar].namu = strvalue2[0] then event.area[ivar].triggerlabel := strvalue[0];
+   if event.area[ivar].namu = strvalue2[0] then begin
+    if hastrig then event.area[ivar].triggerlabel := triglabel;
+    if hason then event.area[ivar].mouseonlabel := onlabel;
+    if hasoff then event.area[ivar].mouseofflabel := offlabel;
+   end;
   end;
-  ivar := length(event.timer);
-  while ivar <> 0 do begin
-   dec(ivar);
-   if event.timer[ivar].namu = strvalue2[0] then event.timer[ivar].triggerlabel := strvalue[0];
+
+  if hastrig then begin
+   ivar := length(event.timer);
+   while ivar <> 0 do begin
+    dec(ivar);
+    if event.timer[ivar].namu = strvalue2[0] then event.timer[ivar].triggerlabel := triglabel;
+   end;
   end;
  end;
 end;
@@ -1259,8 +1238,6 @@ begin
    WOP_EVENT_CREATE_GOB: Invoke_EVENT_CREATE_GOB;
    WOP_EVENT_CREATE_INT: Invoke_EVENT_CREATE_INT;
    WOP_EVENT_CREATE_TIMER: Invoke_EVENT_CREATE_TIMER;
-   WOP_EVENT_MOUSEOFF: Invoke_EVENT_MOUSEOFF;
-   WOP_EVENT_MOUSEON: Invoke_EVENT_MOUSEON;
    WOP_EVENT_REMOVE: Invoke_EVENT_REMOVE;
    WOP_EVENT_REMOVE_ESC: Invoke_EVENT_REMOVE_ESC;
    WOP_EVENT_REMOVE_INT: Invoke_EVENT_REMOVE_INT;

@@ -182,13 +182,11 @@ WOP_FIBER_WAITKEY = 165;
 WOP_FIBER_WAITSIG = 166;
 WOP_FIBER_YIELD = 167;
 
-WOP_EVENT_CREATE_AREA = 189;
-WOP_EVENT_CREATE_ESC = 190;
-WOP_EVENT_CREATE_GOB = 191;
-WOP_EVENT_CREATE_INT = 192;
-WOP_EVENT_CREATE_TIMER = 193;
-WOP_EVENT_MOUSEOFF = 194;
-WOP_EVENT_MOUSEON = 195;
+WOP_EVENT_CREATE_AREA = 191;
+WOP_EVENT_CREATE_ESC = 192;
+WOP_EVENT_CREATE_GOB = 193;
+WOP_EVENT_CREATE_INT = 194;
+WOP_EVENT_CREATE_TIMER = 195;
 WOP_EVENT_REMOVE = 196;
 WOP_EVENT_REMOVE_ESC = 197;
 WOP_EVENT_REMOVE_INT = 198;
@@ -207,7 +205,7 @@ WOP_SYS_SETTITLE = 252;
 // Reserved words of power
 // Table mapping word of power strings to bytecode values
 // Must be arranged in ascending ascii order!
-var ss_rwoplist : array[0..123] of record
+var ss_rwoplist : array[0..121] of record
   namu : string[22];
   code : byte;
 end = (
@@ -244,8 +242,6 @@ end = (
 (namu : 'event.create.int'; code : WOP_EVENT_CREATE_INT),
 (namu : 'event.create.interrupt'; code : WOP_EVENT_CREATE_INT),
 (namu : 'event.create.timer'; code : WOP_EVENT_CREATE_TIMER),
-(namu : 'event.mouseoff'; code : WOP_EVENT_MOUSEOFF),
-(namu : 'event.mouseon'; code : WOP_EVENT_MOUSEON),
 (namu : 'event.remove'; code : WOP_EVENT_REMOVE),
 (namu : 'event.remove.all'; code : WOP_EVENT_REMOVE),
 (namu : 'event.remove.esc'; code : WOP_EVENT_REMOVE_ESC),
@@ -542,17 +538,14 @@ begin
  ss_rwopparams[WOP_EVENT_CREATE_TIMER][WOPP_LABEL] := ss_rwoppargtype[WOPP_LABEL] or $C0;
  // default: 1000 msec
  ss_rwopparams[WOP_EVENT_CREATE_TIMER][WOPP_FREQ] := ss_rwoppargtype[WOPP_FREQ];
- // default: empty string, mouse off fails
- ss_rwopparams[WOP_EVENT_MOUSEOFF][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME] or $F0;
- ss_rwopparams[WOP_EVENT_MOUSEOFF][WOPP_LABEL] := ss_rwoppargtype[WOPP_LABEL] or $C0;
- // default: empty string, mouse on fails
- ss_rwopparams[WOP_EVENT_MOUSEON][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME] or $F0;
- ss_rwopparams[WOP_EVENT_MOUSEON][WOPP_LABEL] := ss_rwoppargtype[WOPP_LABEL] or $C0;
  // default: empty string, remove all events
  ss_rwopparams[WOP_EVENT_REMOVE][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME];
  // default: empty string, set label fails
- ss_rwopparams[WOP_EVENT_SETLABEL][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME] or $F0;
- ss_rwopparams[WOP_EVENT_SETLABEL][WOPP_LABEL] := ss_rwoppargtype[WOPP_LABEL] or $C0;
+ ss_rwopparams[WOP_EVENT_SETLABEL][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME];
+ // default: no change
+ ss_rwopparams[WOP_EVENT_SETLABEL][WOPP_LABEL] := ss_rwoppargtype[WOPP_LABEL];
+ ss_rwopparams[WOP_EVENT_SETLABEL][WOPP_MOUSEON] := ss_rwoppargtype[WOPP_MOUSEON];
+ ss_rwopparams[WOP_EVENT_SETLABEL][WOPP_MOUSEOFF] := ss_rwoppargtype[WOPP_MOUSEOFF];
 
  // === Fiber commands ===
  // default: empty string, all fibers get a signal
@@ -1349,8 +1342,7 @@ var linestart : pointer;
        //WOP_MUS_PLAY, WOP_MUS_STOP,
        WOP_EVENT_CREATE_AREA,
        WOP_EVENT_CREATE_ESC, WOP_EVENT_CREATE_GOB, WOP_EVENT_CREATE_INT,
-       WOP_EVENT_CREATE_TIMER, WOP_EVENT_MOUSEOFF, WOP_EVENT_MOUSEON,
-       WOP_EVENT_REMOVE, WOP_EVENT_SETLABEL,
+       WOP_EVENT_CREATE_TIMER, WOP_EVENT_REMOVE, WOP_EVENT_SETLABEL,
        WOP_FIBER_START, WOP_FIBER_STOP,
        WOP_GFX_ADOPT, WOP_GFX_BASH, WOP_GFX_FLASH, WOP_GFX_GETFRAME,
        WOP_GFX_GETSEQUENCE, WOP_GFX_MOVE, WOP_GFX_PRECACHE,
