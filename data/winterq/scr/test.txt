@@ -279,16 +279,42 @@ gfx.show CUBERT1 locx 256
 gfx.show CUBERTA1 type sprite locx 256
 gfx.show NUM name NUM1 type sprite locx -960 locy -1280
 gfx.show NUM name NUM2 type sprite locx 31680 locy 31147
-gfx.transition 0
-print "Mess with Cubert's face!\nClick the kids to quit."
+
 event.create.gob AREA1 CUBERTA1 test.a1click test.a1on test.a1off
 event.create.area AREA2 locx 18432 locy 14336 sizex 9932 sizey 4710 test.a2click
-event.mouseon AREA2 test.a2on
-event.mouseoff AREA2 test.a2off
+event.setlabel AREA2 mouseon=test.a2on mouseoff:test.a2off
 event.create.gob NUM1 NUM1 test.num1click
 event.create.gob NUM2 NUM2 test.num2click
+
+gfx.show EMO name EMO7 type sprite frame 1 x 12000 y 10000
+gfx.show EMO name EMO9 type sprite frame 2 x 16000 y 10000
+gfx.show EMO name EMO4 type sprite frame 3 x 11000 y 13000
+gfx.show EMO name EMO5 type sprite frame 0 x 14000 y 13000
+gfx.show EMO name EMO6 type sprite frame 3 x 17000 y 13000
+gfx.show EMO name EMO1 type sprite frame 2 x 12000 y 16000
+gfx.show EMO name EMO3 type sprite frame 1 x 16000 y 16000
+gfx.show WISP x -32000
+
+event.create.gob etopleft EMO7
+event.create.gob etopright EMO9
+event.create.gob eleft EMO4
+event.create.gob emiddle EMO5
+event.create.gob eright EMO6
+event.create.gob ebottomleft EMO1
+event.create.gob ebottomright EMO3
+
+event.setlabel etopleft mouseon test.e7 mouseoff test.e0
+event.setlabel etopright mouseon test.e9 mouseoff test.e0
+event.setlabel eleft mouseon test.e4 mouseoff test.e0
+event.setlabel emiddle mouseon test.e5 mouseoff test.e0
+event.setlabel eright mouseon test.e6 mouseoff test.e0
+event.setlabel ebottomleft mouseon test.e1 mouseoff test.e0
+event.setlabel ebottomright mouseon test.e3 mouseoff test.e0
+
+gfx.transition 0
 $v0 := 0
 $v302 := 0
+print "Mess with Cubert's face!\nClick the kids to quit."
 
 waitsig
 
@@ -338,6 +364,32 @@ fiber.stop
   gfx.setframe NUM2 ((gfx.getframe NUM2) + 1) and 3
 fiber.stop
 
+@e0:
+  gfx.move WISP x -32000
+stop
+@e7:
+  gfx.move WISP 12000 10000
+stop
+@e9:
+  gfx.move WISP 16000 10000
+stop
+@e4:
+  gfx.move WISP 11000 13000
+stop
+@e5:
+  gfx.move WISP 14000 13000
+stop
+@e6:
+  gfx.move WISP 17000 13000
+stop
+@e1:
+  gfx.move WISP 12000 16000
+stop
+@e3:
+  gfx.move WISP 16000 16000
+stop
+
+# -------------------------------------------------------------------
 @testevent2:
 event.create.interrupt intclick
 event.create.esc intesc
