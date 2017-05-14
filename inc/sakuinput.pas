@@ -78,14 +78,31 @@ begin
  // Summon the metamenu.
 end;
 
-procedure UserInput_Up; inline;
+procedure UserInput_Up;
+var ivar : dword;
 begin
- if choicematic.active then MoveChoiceHighlightUp;
+ if choicematic.active then begin MoveChoiceHighlightUp; exit; end;
+ // Scroll freescrollable boxes.
+ for ivar := high(TBox) downto 0 do with TBox[ivar] do
+  if (style.freescrollable) and (contentwinscrollofsp > 0) then begin
+   if contentwinscrollofsp > fontheightp
+   then ScrollBoxTo(ivar, contentwinscrollofsp - fontheightp)
+   else ScrollBoxTo(ivar, 0);
+   exit;
+  end;
 end;
 
-procedure UserInput_Down; inline;
+procedure UserInput_Down;
+var ivar : dword;
 begin
- if choicematic.active then MoveChoiceHighlightDown;
+ if choicematic.active then begin MoveChoiceHighlightDown; exit; end;
+ // Scroll freescrollable boxes.
+ for ivar := high(TBox) downto 0 do with TBox[ivar] do
+  if (style.freescrollable)
+  and (contentwinscrollofsp + contentwinsizeyp < contentfullheightp) then begin
+   ScrollBoxTo(ivar, contentwinscrollofsp + fontheightp);
+   exit;
+  end;
 end;
 
 procedure UserInput_Left; inline;
