@@ -766,7 +766,7 @@ end;
 
 procedure Invoke_GFX_SHOW; inline;
 var nam : UTF8string;
-    x, y, z : longint;
+    x, y, z, frame : longint;
     gobtype : byte;
 begin
  if FetchParam(WOPP_GOB) = FALSE then fibererror('gfx.show without gob') else begin
@@ -784,10 +784,17 @@ begin
 
   numvalue := 0; FetchParam(WOPP_LOCX); x := numvalue;
   numvalue := 0; FetchParam(WOPP_LOCY); y := numvalue;
+  numvalue := 0; FetchParam(WOPP_FRAME); frame := numvalue;
   numvalue := gamevar.defaultviewport; FetchParam(WOPP_VIEWPORT); numvalue2 := numvalue;
   numvalue := 0; FetchParam(WOPP_ZLEVEL); z := numvalue;
 
   CreateGob(nam, strvalue[0], gobtype, numvalue2, x, y, z);
+
+  // Set the frame if needed.
+  if frame <> 0 then begin
+   numvalue2 := GetGob(strvalue[0]);
+   if IsGobValid(numvalue2) then gob[numvalue2].drawframe := frame;
+  end;
  end;
 end;
 

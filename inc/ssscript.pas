@@ -615,9 +615,11 @@ begin
  ss_rwopparams[WOP_GFX_SHOW][WOPP_LOCX] := ss_rwoppargtype[WOPP_LOCX] or $D0;
  ss_rwopparams[WOP_GFX_SHOW][WOPP_LOCY] := ss_rwoppargtype[WOPP_LOCY] or $C0;
  // default: gamevar.defaultviewport
- ss_rwopparams[WOP_GFX_SHOW][WOPP_VIEWPORT] := ss_rwoppargtype[WOPP_VIEWPORT] or $80;
+ ss_rwopparams[WOP_GFX_SHOW][WOPP_VIEWPORT] := ss_rwoppargtype[WOPP_VIEWPORT];
+ // default: frame 0
+ ss_rwopparams[WOP_GFX_SHOW][WOPP_FRAME] := ss_rwoppargtype[WOPP_FRAME];
  // default: 0
- ss_rwopparams[WOP_GFX_SHOW][WOPP_ZLEVEL] := ss_rwoppargtype[WOPP_ZLEVEL] or $10;
+ ss_rwopparams[WOP_GFX_SHOW][WOPP_ZLEVEL] := ss_rwoppargtype[WOPP_ZLEVEL];
  // default: 0 for instant
  ss_rwopparams[WOP_GFX_TRANSITION][WOPP_INDEX] := ss_rwoppargtype[WOPP_INDEX];
  // default: 768 msec
