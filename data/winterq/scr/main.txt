@@ -113,18 +113,6 @@ tbox.setparam 4 marginbottom 80
 tbox.setparam 4 bevel 1
 tbox.setparam 4 basecolor 0xFFF7
 
-// Bark box
-#tbox.style.copy 6, 2
-#tbox.style.set 6: basetype 4
-#tbox.style.set 6: bkgcolor = 0000C0FF, 1020A0FF, 0000B0FF, 103080FF
-#tbox.style.set 6: loc = 10000, 10000; fontheight = 2100
-#tbox.style.set 6: autofit 1; alwaysrebuild 1; transition 1
-
-// Verb selection box
-#tbox.style.set 5: reset; basetype 8; textcolor 0; margins = 160, 200, 64, 80
-#tbox.style.set 5: bkgcolor = 1028B0B0, 00000000, 1018A0A0, 00000000
-#tbox.style.set 5: autofit 1 alwaysrebuild 1 alphalighten 1 hidable 1
-
 // ==================================================================
 // Title screen
 

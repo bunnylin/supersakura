@@ -23,13 +23,28 @@ choice.go
 
 // ------------------------------------------------------------------
 @testboxes:
+tbox.setparam 5 lx 2048
+tbox.setparam 5 ly 1024
+tbox.setparam 5 minrows 4
+tbox.setparam 5 maxrows 4
+tbox.setparam 5 fontheight 1600
+tbox.setparam 5 poptype 0
+tbox.setparam 5 freescrollable 1
+print 5 ~"---"
+print 5 "\nMultiline test\nScrollable box\nBleep-bloop\nIn vellum we trust\nCuddly megalodon\nWomp rat womps you\n"
+print 5 ~"---"
+
 print 2 "Quotes and escapes"
 print "Acquired \\\";)\"-emoticon!\\"
-waitkey
+waitkey noclear=1
+tbox.clear 1
+tbox.clear 2
 print 2 "Glyph printing"
 print "\gEMO:0 Oh yes! \gEMO:0\n"
 print "ehehehe. \gEMO:3\gEMO:1 *innocent whistling* \gEMO:2"
-waitkey
+waitkey noclear=1
+tbox.clear 1
+tbox.clear 2
 print 2 "Color test"
 print "This is a color test. Fuhuhu! \cF00F;Red! "
 print "\cFF0F;Yellow! \c0F0F;Green! \c00FF;Blue! \cF0FF;Violet!\n"
@@ -39,7 +54,9 @@ print "Next to test special cases."
 print "This will also break if controls are not overflown right.\n"
 print "Shortened version: ABC\cF;DEF \ ...\cFF;...\n"
 print "Full 8 hexes: ABC\cFFFF4242;DEF"
-waitkey
+waitkey noclear=1
+tbox.clear 1
+tbox.clear 2
 
 @testboxesback:
 print "Test box transitions?"
@@ -49,6 +66,10 @@ choice.set "No" .testclasses
 choice.go
 
 @testboxes2:
+print 5 ~"---"
+print 5 "\nMultiline test\nScrollable box\nBleep-bloop\nIn vellum we trust\nCuddly megalodon\nWomp rat womps you\n"
+print 5 ~"---"
+
 tbox.setparam 6 lx 16384
 tbox.setparam 6 ly 10200
 tbox.setparam 6 minsizex 28000
@@ -67,7 +88,8 @@ tbox.setparam 6 textalign 1
 print 6 '"Just popping by," he intoned in an intense tone.'
 waitkey noclear=1
 tbox.popout 6
-waitkey
+waitkey noclear=1
+tbox.clear 1
 print "Transition 2, fade in/out"
 waitkey noclear=1
 
@@ -77,7 +99,8 @@ tbox.clear 6
 print 6 "Those who would know themselves . . .\nmust first know arithmetics."
 waitkey noclear=1
 tbox.popout 6
-waitkey
+waitkey noclear=1
+tbox.clear 1
 print "Transition 3, sweep in/out"
 waitkey noclear=1
 
@@ -87,7 +110,8 @@ tbox.clear 6
 print 6 "Look into your heart\n\nyou KNOW this to be true!"
 waitkey noclear=1
 tbox.popout 6
-waitkey
+waitkey noclear=1
+tbox.clear 1
 
 tbox.setparam 1 poptype 0
 tbox.setparam 6 poptype 0
@@ -118,9 +142,11 @@ tbox.setloc 6 locx 24000 locy 16000 time 3200 style=halfcos
 tbox.setsize 6 sizex 10000 sizey 5600 time 3200 style=halfcos
 sleep
 
-tbox.clear
+tbox.clear 1
+tbox.clear 6
 print "Done!"
-waitkey
+waitkey noclear=1
+tbox.clear 1
 
 goto testboxesback
 
