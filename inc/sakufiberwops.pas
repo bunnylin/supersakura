@@ -263,10 +263,12 @@ begin
    if FetchParam(WOPP_LABEL) then elabel := strvalue[0];
    if FetchParam(WOPP_MOUSEON) then emouseon := strvalue[0];
    if FetchParam(WOPP_MOUSEOFF) then emouseoff := strvalue[0];
+   numvalue := 0;
+   FetchParam(WOPP_MOUSEONLY);
 
-   numvalue := length(event.area);
+   numvalue2 := length(event.area);
    setlength(event.area, length(event.area) + 1);
-   with event.area[numvalue] do begin
+   with event.area[numvalue2] do begin
     namu := upcase(enamu);
     inviewport := eport;
     x1 := elx;
@@ -289,6 +291,7 @@ begin
     mouseonlabel := emouseon;
     mouseofflabel := emouseoff;
     state := 0;
+    mouseonly := numvalue <> 0;
    end;
   end;
  end;
@@ -316,16 +319,19 @@ begin
    if FetchParam(WOPP_LABEL) then elabel := strvalue[0];
    if FetchParam(WOPP_MOUSEON) then emouseon := strvalue[0];
    if FetchParam(WOPP_MOUSEOFF) then emouseoff := strvalue[0];
+   numvalue := 0;
+   FetchParam(WOPP_MOUSEONLY);
 
-   numvalue := length(event.gob);
+   numvalue2 := length(event.gob);
    setlength(event.gob, length(event.gob) + 1);
-   with event.gob[numvalue] do begin
+   with event.gob[numvalue2] do begin
     namu := upcase(enamu);
     gobnamu := upcase(egob);
     triggerlabel := elabel;
     mouseonlabel := emouseon;
     mouseofflabel := emouseoff;
     state := 0;
+    mouseonly := numvalue <> 0;
    end;
   end;
  end;

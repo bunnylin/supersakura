@@ -44,6 +44,7 @@ WOPP_LOCX = 32;
 WOPP_LOCY = 33;
 WOPP_MOUSEOFF = 35;
 WOPP_MOUSEON = 36;
+WOPP_MOUSEONLY = 37;
 WOPP_NAME = 38;
 WOPP_NOCLEAR = 40;
 WOPP_PARENT = 42;
@@ -63,7 +64,7 @@ WOPP_ZLEVEL = 63;
 
 // Word of power parameter definitions
 // Must be arranged in ascending ascii order!
-const ss_rwopplist : array[0..38] of record
+const ss_rwopplist : array[0..39] of record
   id : string[13];
   code : byte;
 end = (
@@ -86,6 +87,7 @@ end = (
 (id : 'locy';          code : WOPP_LOCY),
 (id : 'mouseoff';      code : WOPP_MOUSEOFF),
 (id : 'mouseon';       code : WOPP_MOUSEON),
+(id : 'mouseonly';     code : WOPP_MOUSEONLY),
 (id : 'name';          code : WOPP_NAME),
 (id : 'noclear';       code : WOPP_NOCLEAR),
 (id : 'ofsx';          code : WOPP_LOCX),
@@ -522,7 +524,9 @@ begin
  ss_rwopparams[WOP_EVENT_CREATE_AREA][WOPP_SIZEX] := ss_rwoppargtype[WOPP_SIZEX] or $90;
  ss_rwopparams[WOP_EVENT_CREATE_AREA][WOPP_SIZEY] := ss_rwoppargtype[WOPP_SIZEY] or $80;
  // default: gamevar.defaultviewport
- ss_rwopparams[WOP_EVENT_CREATE_AREA][WOPP_VIEWPORT] := ss_rwoppargtype[WOPP_VIEWPORT] or $40;
+ ss_rwopparams[WOP_EVENT_CREATE_AREA][WOPP_VIEWPORT] := ss_rwoppargtype[WOPP_VIEWPORT];
+ // default: mouseonly=0
+ ss_rwopparams[WOP_EVENT_CREATE_AREA][WOPP_MOUSEONLY] := ss_rwoppargtype[WOPP_MOUSEONLY];
  ss_rwopparams[WOP_EVENT_CREATE_ESC][WOPP_LABEL] := ss_rwoppargtype[WOPP_LABEL];
  // default: empty string, create event fails
  ss_rwopparams[WOP_EVENT_CREATE_GOB][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME] or $F0;
@@ -532,6 +536,8 @@ begin
  // default: no mouseoverables
  ss_rwopparams[WOP_EVENT_CREATE_GOB][WOPP_MOUSEON] := ss_rwoppargtype[WOPP_MOUSEON] or $80;
  ss_rwopparams[WOP_EVENT_CREATE_GOB][WOPP_MOUSEOFF] := ss_rwoppargtype[WOPP_MOUSEOFF] or $70;
+ // default: mouseonly=0
+ ss_rwopparams[WOP_EVENT_CREATE_GOB][WOPP_MOUSEONLY] := ss_rwoppargtype[WOPP_MOUSEONLY];
  ss_rwopparams[WOP_EVENT_CREATE_INT][WOPP_LABEL] := ss_rwoppargtype[WOPP_LABEL];
  // default: empty string, create event fails
  ss_rwopparams[WOP_EVENT_CREATE_TIMER][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME] or $F0;

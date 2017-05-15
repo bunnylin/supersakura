@@ -542,6 +542,7 @@ var // Script execution fibers.
         x1p, y1p, x2p, y2p : longint; // pixel values relative to game window
         triggerlabel, mouseonlabel, mouseofflabel : UTF8string;
         state : byte; // 1 if currently overed, 0 if not
+        mouseonly : boolean;
       end;
       gob : array of record
         namu : UTF8string;
@@ -549,6 +550,7 @@ var // Script execution fibers.
         gobnum : dword;
         triggerlabel, mouseonlabel, mouseofflabel : UTF8string;
         state : byte; // 1 if currently overed, 0 if not
+        mouseonly : boolean;
       end;
       timer : array of record
         namu : UTF8string;
