@@ -308,13 +308,14 @@ end;
 
 procedure Invoke_EVENT_CREATE_GOB;
 var enamu, egob, elabel, emouseon, emouseoff : UTF8string;
+    num : dword;
 begin
- if FetchParam(WOPP_NAME) = FALSE then fibererror('event.create.area without name')
+ if FetchParam(WOPP_NAME) = FALSE then fibererror('event.create.gob without name')
  else begin
-  enamu := strvalue[0];
+  enamu := upcase(strvalue[0]);
   if FetchParam(WOPP_GOB) = FALSE then fibererror('event.create.gob without gob')
   else begin
-   egob := strvalue[0];
+   egob := upcase(strvalue[0]);
    elabel := ''; emouseon := ''; emouseoff := '';
    if FetchParam(WOPP_LABEL) then elabel := strvalue[0];
    if FetchParam(WOPP_MOUSEON) then emouseon := strvalue[0];
@@ -322,16 +323,21 @@ begin
    numvalue := 0;
    FetchParam(WOPP_MOUSEONLY);
 
-   numvalue2 := length(event.gob);
-   setlength(event.gob, length(event.gob) + 1);
-   with event.gob[numvalue2] do begin
-    namu := upcase(enamu);
-    gobnamu := upcase(egob);
-    triggerlabel := elabel;
-    mouseonlabel := emouseon;
-    mouseofflabel := emouseoff;
-    state := 0;
-    mouseonly := numvalue <> 0;
+   num := GetGob(egob);
+   if num >= length(gob) then fibererror('event.create.gob with invalid gob')
+   else begin
+    numvalue2 := length(event.gob);
+    setlength(event.gob, length(event.gob) + 1);
+    with event.gob[numvalue2] do begin
+     namu := enamu;
+     gobnum := num;
+     gobnamu := egob;
+     triggerlabel := elabel;
+     mouseonlabel := emouseon;
+     mouseofflabel := emouseoff;
+     state := 0;
+     mouseonly := numvalue <> 0;
+    end;
    end;
   end;
  end;
