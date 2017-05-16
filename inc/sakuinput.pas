@@ -228,6 +228,31 @@ begin
  end;
 end;
 
+procedure UserInput_Wheel(y : longint);
+// Input positive numbers to scroll up/away, negative to scroll down/toward.
+var ivar : dword;
+    newpos : longint;
+begin
+ // If choicematic is active, move the highlight forward/backward directly.
+ if choicematic.active then with choicematic do begin
+  newpos := highlightindex - y;
+  if newpos >= showcount then highlightindex := showcount - 1
+  else if newpos < 0 then highlightindex := 0
+  else highlightindex := newpos;
+  HighlightChoice(MOVETYPE_HALFCOS);
+  exit;
+ end;
+
+ // Scroll freescrollable boxes.
+ for ivar := high(TBox) downto 0 do with TBox[ivar] do
+  if (style.freescrollable) then begin
+   newpos := contentwinscrollofsp - y * fontheightp;
+   if newpos + contentwinsizeyp > contentfullheightp then newpos := contentfullheightp - contentwinsizeyp;
+   if newpos < 0 then newpos := 0;
+   ScrollBoxTo(ivar, newpos);
+  end;
+end;
+
 procedure UserInput_Enter;
 var ivar, jvar : dword;
 begin
