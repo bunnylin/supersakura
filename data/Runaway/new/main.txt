@@ -4,7 +4,9 @@
 sys.settitle "Runaway City"
 $s1 := "Hiroaki"
 
-// 480x296 view in 640x400 frame @ 80,16
+// ==================================================================
+// Viewport setup
+
 viewport.setparams viewport:1 parent:0, ratiox = 16, ratioy = 10
 viewport.setparams viewport:2 parent:1, locx 0 locy 0 sizex 32768 sizey 32768
 viewport.setdefault 2 // all game graphics will go in viewport 2
@@ -12,10 +14,59 @@ viewport.setdefault 2 // all game graphics will go in viewport 2
 viewport.setbkgindex viewport:1 index 0
 viewport.setbkgindex viewport:2 index 1
 
-#gfx.show MEIF bkg viewport 1
+
+// ===== Opening Animation =====
+
+// ===== Title Screen =====
+gfx.show OP_013 bkg
+gfx.transition 4
+sleep
 
 
-// Textbox setup
+// ===== Main Menu =====
+@mainmenu:
+event.clear
+gfx.show OP_013A0 anim
+
+choice.setchoicebox 1
+choice.sethighlightbox 2
+choice.columns 1
+tbox.setnumboxes 0
+tbox.setnumboxes 3
+tbox.setparam 1 ax 16384
+tbox.setparam 1 ay 32768
+tbox.setparam 1 lx 16384
+tbox.setparam 1 ly 32000
+tbox.setparam 1 margintop 0
+tbox.setparam 1 marginleft 0
+tbox.setparam 1 marginright 0
+tbox.setparam 1 marginbottom 0
+tbox.setparam 1 textcolor 0x68FF
+tbox.setparam 1 basecolor 0
+tbox.setparam 1 basefill 1
+tbox.setparam 1 textalign 1
+tbox.setparam 2 basecolor 0xFFF4
+tbox.setparam 2 margintop 180
+tbox.setparam 2 marginbottom 180
+tbox.setparam 2 marginleft 480
+tbox.setparam 2 marginright 480
+
+choice.reset
+choice.set "New Game" newgame
+choice.set "Load Game" loadgame
+choice.set "Gallery" gallery
+choice.set "Quit Game" quitgame
+choice.go
+
+
+// ===== New Game =====
+@newgame:
+event.clear
+gfx.clearall
+gfx.transition
+sleep
+
+tbox.setnumboxes 0
 tbox.setnumboxes 5
 choice.setpartbox 3
 choice.setchoicebox 3
@@ -67,10 +118,12 @@ tbox.setparam 2 bevel 1
 tbox.setparam 3 maxrows 10
 tbox.setparam 3 mincols 6
 tbox.setparam 3 lx 640
-tbox.setparam 3 ly 18000
-tbox.setparam 3 ay 6400
-tbox.setparam 3 margintop 512
-tbox.setparam 3 marginbottom 512
+tbox.setparam 3 ly 20000
+tbox.setparam 3 ay 20000
+tbox.setparam 3 margintop 640
+tbox.setparam 3 marginleft 900
+tbox.setparam 3 marginbottom 640
+tbox.setparam 3 marginright 900
 
 tbox.setparam 3 textcolor 0xFFFF
 tbox.setparam 3 basecolor 0x000F
@@ -83,101 +136,24 @@ tbox.setparam 3 texbottomedge 13
 tbox.setparam 3 bevel 0
 
 // 4: Highlight box
-tbox.setparam 4 marginleft 320
-tbox.setparam 4 marginright 320
+tbox.setparam 4 marginleft 240
+tbox.setparam 4 marginright 240
 tbox.setparam 4 margintop 80
 tbox.setparam 4 marginbottom 80
 tbox.setparam 4 bevel 1
 tbox.setparam 4 basecolor 0xFFF7
 
-
-// ===== Opening Animation =====
-// skip the animation if it's already been shown once?
-
-// ===== Title Screen =====
-gfx.show OP_013 bkg
-gfx.transition 4
-sleep
-gfx.show OP_013A0 anim
-
-gfx.show TCHOICE1
-gfx.show TCHOICE2
-gfx.show TCHOICE3
-gfx.show TCHOICE4
-gfx.setframe TCHOICE2 4
-gfx.transition 0 // instantly transitioned in
-#fx.gobslidealpha TCHOICE1; 0; 0 // instantly fully transparent
-#fx.gobslidealpha TCHOICE2; 0; 0
-#fx.gobslidealpha TCHOICE3; 0; 0
-#fx.gobslidealpha TCHOICE4; 0; 0
-// fade choices to full visibility one at a time
-#fx.gobslidealpha TCHOICE1; 255; 500
-#sleep 100
-#fx.gobslidealpha TCHOICE2; 255; 500
-#sleep 100
-#fx.gobslidealpha TCHOICE3; 255; 500
-#sleep 100
-#fx.gobslidealpha TCHOICE4; 255; 500
-sleep
+goto MT_0101.
 
 
-// ===== Main Menu =====
-waitkey
-goto ngclick
+// ===== Load Game =====
+@loadgame:
+choice.go
 
-@mainmenu:
-event.clear
-// clickable areas in 948x592 resolution:
-// 380,426; 570,462
-// 374,466; 570,500
-// 410,504; 538,546
-// 434,547; 512,582
-#event.create NEWGAME; area; 13135,23580, 19702,25572 ; ngclick
-#event.mouseon NEWGAME; ngon
-#event.mouseoff NEWGAME; ngoff
-//event.create LOADGAME; area; 12927,25794, 19702,27676 ; lgclick
-//event.mouseon LOADGAME; lgon
-//event.mouseoff LOADGAME; lgoff
-#event.create GALLERY; area; 14172,27897, 18596,30222 ; galclick
-#event.mouseon GALLERY; galon
-#event.mouseoff GALLERY; galoff
-#event.create QUITGAME; area; 15001,30277, 17697,32214 ; qgclick
-#event.mouseon QUITGAME; qgon
-#event.mouseoff QUITGAME; qgoff
-#waitevent
-
-@ngon:
-gfx.setsequence TCHOICE1; 1
-fiber.stop
-@ngoff:
-gfx.setsequence TCHOICE1; 4
-fiber.stop
-@galon:
-gfx.setsequence TCHOICE3; 1
-fiber.stop
-@galoff:
-gfx.setsequence TCHOICE3; 4
-fiber.stop
-@qgon:
-gfx.setsequence TCHOICE4; 1
-fiber.stop
-@qgoff:
-gfx.setsequence TCHOICE4; 4
-fiber.stop
-
-@galclick:
-return
-
-// ===== New Game =====
-@ngclick:
-event.clear
-gfx.clearall
-gfx.transition
-
-#gfx.show MEIF bkg viewport 1
-
-call MT_0101.
+// ===== Gallery =====
+@gallery:
+choice.go
 
 // ===== Quit Game =====
-@qgclick:
+@quitgame:
 sys.quit

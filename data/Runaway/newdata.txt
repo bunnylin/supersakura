@@ -1,34 +1,8 @@
 language English
 
-file TCHOICE1
-ofs 556,630
-res 1408x880
-framecount 4
-sequence 0:0,stop; 1:1,70; 2:2,70; 3:3,stop; 4:2,80; 5:1,80; 6:jump 0;
-
-file TCHOICE2
-ofs 554,690
-res 1408x880
-framecount 5
-sequence 0:0,stop; 1:1,70; 2:2,70; 3:3,stop; 4:2,80; 5:1,80; 6:jump 0;
-
-file TCHOICE3
-ofs 606,751
-res 1408x880
-framecount 4
-sequence 0:0,stop; 1:1,70; 2:2,70; 3:3,stop; 4:2,80; 5:1,80; 6:jump 0;
-
-file TCHOICE4
-ofs 641,804
-res 1408x880
-framecount 4
-sequence 0:0,stop; 1:1,70; 2:2,70; 3:3,stop; 4:2,80; 5:1,80; 6:jump 0;
-
 file RUNBOX
 res 800x600
-integerscaling
 
 file RUNBOX2
 res 800x600
-integerscaling
 
