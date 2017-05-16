@@ -982,6 +982,8 @@ begin
          else DrawRGBA32(@clipsi);
        end;
       end
+      else if TBox[ivar].style.boxblendmode = BLENDMODE_HARDLIGHT
+      then DrawRGBA32Hardlight(@clipsi)
       else DrawRGBA32(@clipsi);
      end;
 
