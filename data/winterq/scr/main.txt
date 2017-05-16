@@ -90,7 +90,7 @@ tbox.setparam 2 bevel 0
 
 // 3: Choice box
 tbox.setparam 3 minrows 1
-tbox.setparam 3 maxrows 10
+tbox.setparam 3 maxrows 8
 tbox.setparam 3 mincols 6
 tbox.setparam 3 textalign 1
 tbox.setparam 3 lx 640
