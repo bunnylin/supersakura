@@ -129,17 +129,21 @@ WOP_RETURN = 39;
 WOP_CHOICE_CALL = 40;
 WOP_CHOICE_CANCEL = 41;
 WOP_CHOICE_COLUMNS = 42;
-WOP_CHOICE_GET = 43;
-WOP_CHOICE_GOTO = 44;
-WOP_CHOICE_OFF = 45;
-WOP_CHOICE_ON = 46;
-WOP_CHOICE_PRINTPARENT = 47;
-WOP_CHOICE_REMOVE = 48;
-WOP_CHOICE_RESET = 49;
-WOP_CHOICE_SET = 50;
-WOP_CHOICE_SETCHOICEBOX = 51;
-WOP_CHOICE_SETHIGHLIGHTBOX = 52;
-WOP_CHOICE_SETPARTBOX = 53;
+WOP_CHOICE_ENDTYPING = 43;
+WOP_CHOICE_GET = 44;
+WOP_CHOICE_GETHIGHLIGHT = 45;
+WOP_CHOICE_GOTO = 46;
+WOP_CHOICE_OFF = 47;
+WOP_CHOICE_ON = 48;
+WOP_CHOICE_ONHIGHLIGHT = 49;
+WOP_CHOICE_PRINTPARENT = 50;
+WOP_CHOICE_REMOVE = 51;
+WOP_CHOICE_RESET = 52;
+WOP_CHOICE_SET = 53;
+WOP_CHOICE_SETCHOICEBOX = 54;
+WOP_CHOICE_SETHIGHLIGHTBOX = 55;
+WOP_CHOICE_SETPARTBOX = 56;
+WOP_CHOICE_TYPEINBOX = 57;
 
 WOP_GFX_ADOPT = 80;
 WOP_GFX_BASH = 81;
@@ -158,22 +162,24 @@ WOP_GFX_SETFRAME = 93;
 WOP_GFX_SETSEQUENCE = 94;
 WOP_GFX_SETSOLIDBLIT = 95;
 WOP_GFX_SHOW = 96;
-WOP_GFX_TRANSITION = 97;
+WOP_GFX_STASHTHUMBNAIL = 97;
+WOP_GFX_TRANSITION = 98;
 
 WOP_TBOX_CLEAR = 120;
 WOP_TBOX_DECORATE = 121;
-WOP_TBOX_OUTLINE = 122;
-WOP_TBOX_POPIN = 123;
-WOP_TBOX_POPOUT = 124;
-WOP_TBOX_PRINT = 125;
-WOP_TBOX_REMOVEDECOR = 126;
-WOP_TBOX_REMOVEOUTLINES = 127;
-WOP_TBOX_SETDEFAULT = 128;
-WOP_TBOX_SETLOC = 129;
-WOP_TBOX_SETNUMBOXES = 130;
-WOP_TBOX_SETPARAM = 131;
-WOP_TBOX_SETSIZE = 132;
-WOP_TBOX_SETTEXTURE = 133;
+WOP_TBOX_GETLASTLINE = 122;
+WOP_TBOX_OUTLINE = 123;
+WOP_TBOX_POPIN = 124;
+WOP_TBOX_POPOUT = 125;
+WOP_TBOX_PRINT = 126;
+WOP_TBOX_REMOVEDECOR = 127;
+WOP_TBOX_REMOVEOUTLINES = 128;
+WOP_TBOX_SETDEFAULT = 129;
+WOP_TBOX_SETLOC = 130;
+WOP_TBOX_SETNUMBOXES = 131;
+WOP_TBOX_SETPARAM = 132;
+WOP_TBOX_SETSIZE = 133;
+WOP_TBOX_SETTEXTURE = 134;
 
 WOP_FIBER_GETID = 160;
 WOP_FIBER_SIGNAL = 161;
@@ -182,7 +188,8 @@ WOP_FIBER_STOP = 163;
 WOP_FIBER_WAIT = 164;
 WOP_FIBER_WAITKEY = 165;
 WOP_FIBER_WAITSIG = 166;
-WOP_FIBER_YIELD = 167;
+WOP_FIBER_WAITTYPING = 167;
+WOP_FIBER_YIELD = 168;
 
 WOP_EVENT_CREATE_AREA = 191;
 WOP_EVENT_CREATE_ESC = 192;
@@ -199,15 +206,38 @@ WOP_VIEWPORT_SETDEFAULT = 201;
 WOP_VIEWPORT_SETGAMMA = 202;
 WOP_VIEWPORT_SETPARAMS = 203;
 
+WOP_SYS_CLOSEMETAMENU = 229;
+WOP_SYS_GETDATNAME = 230;
+WOP_SYS_GETKEYDOWN = 231;
+WOP_SYS_GETKEYLEFT = 232;
+WOP_SYS_GETKEYRIGHT = 233;
+WOP_SYS_GETKEYUP = 234;
+WOP_SYS_GETMOUSEX = 235;
+WOP_SYS_GETMOUSEY = 236;
+WOP_SYS_GETNUMDATS = 237;
+WOP_SYS_GETNUMSAVES = 238;
+WOP_SYS_GETSAVEDATE = 239;
+WOP_SYS_GETSAVENAME = 240;
+WOP_SYS_ISFULLSCREEN = 241;
+WOP_SYS_ISSKIPPING = 242;
+WOP_SYS_LOADSAVETHUMB = 243;
+WOP_SYS_LOADSTATE = 244;
+WOP_SYS_LOADDAT = 245;
+WOP_SYS_LOADDATBANNER = 246;
+WOP_SYS_PAUSE = 247;
+WOP_SYS_RESTARTGAME = 248;
+WOP_SYS_SAVESTATE = 249;
+WOP_SYS_SETCURSOR = 250;
+WOP_SYS_SETFULLSCREEN = 251;
+WOP_SYS_SETSKIPPING = 252;
+WOP_SYS_SETTITLE = 253;
+WOP_SYS_SHOWHISTORY = 254;
 WOP_SYS_QUIT = 255;
-WOP_SYS_PAUSE = 254;
-WOP_SYS_SETCURSOR = 253;
-WOP_SYS_SETTITLE = 252;
 
 // Reserved words of power
 // Table mapping word of power strings to bytecode values
 // Must be arranged in ascending ascii order!
-var ss_rwoplist : array[0..121] of record
+var ss_rwoplist : array[0..152] of record
   namu : string[22];
   code : byte;
 end = (
@@ -222,12 +252,15 @@ end = (
 (namu : 'choice.columns'; code : WOP_CHOICE_COLUMNS),
 (namu : 'choice.disable'; code : WOP_CHOICE_OFF),
 (namu : 'choice.enable'; code : WOP_CHOICE_ON),
+(namu : 'choice.endtyping'; code : WOP_CHOICE_ENDTYPING),
 (namu : 'choice.get'; code : WOP_CHOICE_GET),
+(namu : 'choice.gethighlight'; code : WOP_CHOICE_GETHIGHLIGHT),
 (namu : 'choice.go'; code : WOP_CHOICE_GOTO),
 (namu : 'choice.goto'; code : WOP_CHOICE_GOTO),
 (namu : 'choice.jump'; code : WOP_CHOICE_GOTO),
 (namu : 'choice.off'; code : WOP_CHOICE_OFF),
 (namu : 'choice.on'; code : WOP_CHOICE_ON),
+(namu : 'choice.onhighlight'; code : WOP_CHOICE_ONHIGHLIGHT),
 (namu : 'choice.printparent'; code : WOP_CHOICE_PRINTPARENT),
 (namu : 'choice.remove'; code : WOP_CHOICE_REMOVE),
 (namu : 'choice.reset'; code : WOP_CHOICE_RESET),
@@ -235,6 +268,7 @@ end = (
 (namu : 'choice.setchoicebox'; code : WOP_CHOICE_SETCHOICEBOX),
 (namu : 'choice.sethighlightbox'; code : WOP_CHOICE_SETHIGHLIGHTBOX),
 (namu : 'choice.setpartbox'; code : WOP_CHOICE_SETPARTBOX),
+(namu : 'choice.typeinbox'; code : WOP_CHOICE_TYPEINBOX),
 (namu : 'dec'; code : WOP_DEC),
 (namu : 'event.clear'; code : WOP_EVENT_REMOVE),
 (namu : 'event.create.area'; code : WOP_EVENT_CREATE_AREA),
@@ -259,6 +293,7 @@ end = (
 (namu : 'fiber.waitkey'; code : WOP_FIBER_WAITKEY),
 (namu : 'fiber.waitsig'; code : WOP_FIBER_WAITSIG),
 (namu : 'fiber.waitsignal'; code : WOP_FIBER_WAITSIG),
+(namu : 'fiber.waittyping'; code : WOP_FIBER_WAITTYPING),
 (namu : 'fiber.yield'; code : WOP_FIBER_YIELD),
 (namu : 'gfx.adopt'; code : WOP_GFX_ADOPT),
 (namu : 'gfx.bash'; code : WOP_GFX_BASH),
@@ -287,6 +322,7 @@ end = (
 (namu : 'gfx.setsequence'; code : WOP_GFX_SETSEQUENCE),
 (namu : 'gfx.setsolidblit'; code : WOP_GFX_SETSOLIDBLIT),
 (namu : 'gfx.show'; code : WOP_GFX_SHOW),
+(namu : 'gfx.stashthumbnail'; code : WOP_GFX_STASHTHUMBNAIL),
 (namu : 'gfx.transition'; code : WOP_GFX_TRANSITION),
 (namu : 'goto'; code : WOP_GOTO),
 (namu : 'inc'; code : WOP_INC),
@@ -301,13 +337,37 @@ end = (
 (namu : 'signal'; code : WOP_FIBER_SIGNAL),
 (namu : 'sleep'; code : WOP_FIBER_WAIT),
 (namu : 'stop'; code : WOP_FIBER_STOP),
+(namu : 'sys.closemetamenu'; code : WOP_SYS_CLOSEMETAMENU),
+(namu : 'sys.getdatname'; code : WOP_SYS_GETDATNAME),
+(namu : 'sys.getkeydown'; code : WOP_SYS_GETKEYDOWN),
+(namu : 'sys.getkeyleft'; code : WOP_SYS_GETKEYLEFT),
+(namu : 'sys.getkeyright'; code : WOP_SYS_GETKEYRIGHT),
+(namu : 'sys.getkeyup'; code : WOP_SYS_GETKEYUP),
+(namu : 'sys.getmousex'; code : WOP_SYS_GETMOUSEX),
+(namu : 'sys.getmousey'; code : WOP_SYS_GETMOUSEY),
+(namu : 'sys.getnumdats'; code : WOP_SYS_GETNUMDATS),
+(namu : 'sys.getnumsaves'; code : WOP_SYS_GETNUMSAVES),
+(namu : 'sys.getsavedate'; code : WOP_SYS_GETSAVEDATE),
+(namu : 'sys.getsavename'; code : WOP_SYS_GETSAVENAME),
+(namu : 'sys.isfullscreen'; code : WOP_SYS_ISFULLSCREEN),
+(namu : 'sys.isskipping'; code : WOP_SYS_ISSKIPPING),
+(namu : 'sys.loaddat'; code : WOP_SYS_LOADDAT),
+(namu : 'sys.loaddatbanner'; code : WOP_SYS_LOADDATBANNER),
+(namu : 'sys.loadsavethumb'; code : WOP_SYS_LOADSAVETHUMB),
+(namu : 'sys.loadstate'; code : WOP_SYS_LOADSTATE),
 (namu : 'sys.pause'; code : WOP_SYS_PAUSE),
 (namu : 'sys.quit'; code : WOP_SYS_QUIT),
+(namu : 'sys.restartgame'; code : WOP_SYS_RESTARTGAME),
+(namu : 'sys.savestate'; code : WOP_SYS_SAVESTATE),
 (namu : 'sys.setcursor'; code : WOP_SYS_SETCURSOR),
+(namu : 'sys.setfullscreen'; code : WOP_SYS_SETFULLSCREEN),
+(namu : 'sys.setskipping'; code : WOP_SYS_SETSKIPPING),
 (namu : 'sys.settitle'; code : WOP_SYS_SETTITLE),
+(namu : 'sys.showhistory'; code : WOP_SYS_SHOWHISTORY),
 (namu : 'tbox.addoutline'; code : WOP_TBOX_OUTLINE),
 (namu : 'tbox.clear'; code : WOP_TBOX_CLEAR),
 (namu : 'tbox.decorate'; code : WOP_TBOX_DECORATE),
+(namu : 'tbox.getlastline'; code : WOP_TBOX_GETLASTLINE),
 (namu : 'tbox.move'; code : WOP_TBOX_SETLOC),
 (namu : 'tbox.outline'; code : WOP_TBOX_OUTLINE),
 (namu : 'tbox.popin'; code : WOP_TBOX_POPIN),
@@ -332,6 +392,7 @@ end = (
 (namu : 'waitkey'; code : WOP_FIBER_WAITKEY),
 (namu : 'waitsig'; code : WOP_FIBER_WAITSIG),
 (namu : 'waitsignal'; code : WOP_FIBER_WAITSIG),
+(namu : 'waittyping'; code : WOP_FIBER_WAITTYPING),
 (namu : 'yield'; code : WOP_FIBER_YIELD)
 );
 
@@ -398,6 +459,35 @@ begin
  ss_rwopparams[WOP_SYS_SETCURSOR][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB];
  // default: empty title string
  ss_rwopparams[WOP_SYS_SETTITLE][WOPP_TEXT] := ss_rwoppargtype[WOPP_TEXT];
+ // default: no change
+ ss_rwopparams[WOP_SYS_SETFULLSCREEN][WOPP_VALUE] := ss_rwoppargtype[WOPP_VALUE];
+ // default: no change
+ ss_rwopparams[WOP_SYS_SETSKIPPING][WOPP_VALUE] := ss_rwoppargtype[WOPP_VALUE];
+ // default: default viewport
+ ss_rwopparams[WOP_SYS_GETMOUSEX][WOPP_VIEWPORT] := ss_rwoppargtype[WOPP_VIEWPORT];
+ ss_rwopparams[WOP_SYS_GETMOUSEY][WOPP_VIEWPORT] := ss_rwoppargtype[WOPP_VIEWPORT];
+ // default: index 0
+ ss_rwopparams[WOP_SYS_GETSAVENAME][WOPP_INDEX] := ss_rwoppargtype[WOPP_INDEX];
+ // default: index 0
+ ss_rwopparams[WOP_SYS_GETSAVEDATE][WOPP_INDEX] := ss_rwoppargtype[WOPP_INDEX];
+ // default: index 0
+ ss_rwopparams[WOP_SYS_LOADSAVETHUMB][WOPP_INDEX] := ss_rwoppargtype[WOPP_INDEX];
+ // default: "thumb"
+ ss_rwopparams[WOP_SYS_LOADSAVETHUMB][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME];
+ // default: index 0
+ ss_rwopparams[WOP_SYS_LOADSTATE][WOPP_INDEX] := ss_rwoppargtype[WOPP_INDEX];
+ // default: index 0
+ ss_rwopparams[WOP_SYS_SAVESTATE][WOPP_INDEX] := ss_rwoppargtype[WOPP_INDEX];
+ // default: "Saved Game"
+ ss_rwopparams[WOP_SYS_SAVESTATE][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME];
+ // default: empty name, loaddat fails
+ ss_rwopparams[WOP_SYS_LOADDAT][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME];
+ // default: index 0
+ ss_rwopparams[WOP_SYS_GETDATNAME][WOPP_INDEX] := ss_rwoppargtype[WOPP_INDEX];
+ // default: index 0
+ ss_rwopparams[WOP_SYS_LOADDATBANNER][WOPP_INDEX] := ss_rwoppargtype[WOPP_INDEX];
+ // default: "banner"
+ ss_rwopparams[WOP_SYS_LOADDATBANNER][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME];
 
  // === Textbox commands === (wopp_box defaults to gamevar.defaulttextbox)
  ss_rwopparams[WOP_TBOX_PRINT][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
@@ -409,23 +499,23 @@ begin
  ss_rwopparams[WOP_TBOX_SETDEFAULT][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
  // default: 3 boxes, which is also the minimum
  ss_rwopparams[WOP_TBOX_SETNUMBOXES][WOPP_INDEX] := ss_rwoppargtype[WOPP_INDEX];
- ss_rwopparams[WOP_TBOX_SETLOC][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX] or $F0;
+ ss_rwopparams[WOP_TBOX_SETLOC][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
  // default: current location or 0,0
- ss_rwopparams[WOP_TBOX_SETLOC][WOPP_LOCX] := ss_rwoppargtype[WOPP_LOCX] or $E0;
- ss_rwopparams[WOP_TBOX_SETLOC][WOPP_LOCY] := ss_rwoppargtype[WOPP_LOCY] or $D0;
+ ss_rwopparams[WOP_TBOX_SETLOC][WOPP_LOCX] := ss_rwoppargtype[WOPP_LOCX];
+ ss_rwopparams[WOP_TBOX_SETLOC][WOPP_LOCY] := ss_rwoppargtype[WOPP_LOCY];
  // default: 0 msec
- ss_rwopparams[WOP_TBOX_SETLOC][WOPP_TIME] := ss_rwoppargtype[WOPP_TIME] or $A0;
+ ss_rwopparams[WOP_TBOX_SETLOC][WOPP_TIME] := ss_rwoppargtype[WOPP_TIME];
  // default: current anchor or 0,0
- ss_rwopparams[WOP_TBOX_SETLOC][WOPP_ANCHORX] := ss_rwoppargtype[WOPP_ANCHORX] or $60;
- ss_rwopparams[WOP_TBOX_SETLOC][WOPP_ANCHORY] := ss_rwoppargtype[WOPP_ANCHORY] or $50;
+ ss_rwopparams[WOP_TBOX_SETLOC][WOPP_ANCHORX] := ss_rwoppargtype[WOPP_ANCHORX];
+ ss_rwopparams[WOP_TBOX_SETLOC][WOPP_ANCHORY] := ss_rwoppargtype[WOPP_ANCHORY];
  // default: "linear"
  ss_rwopparams[WOP_TBOX_SETLOC][WOPP_STYLE] := ss_rwoppargtype[WOPP_STYLE];
- ss_rwopparams[WOP_TBOX_SETSIZE][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX] or $F0;
+ ss_rwopparams[WOP_TBOX_SETSIZE][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
  // default: current size or 0,0
- ss_rwopparams[WOP_TBOX_SETSIZE][WOPP_SIZEX] := ss_rwoppargtype[WOPP_SIZEX] or $E0;
- ss_rwopparams[WOP_TBOX_SETSIZE][WOPP_SIZEY] := ss_rwoppargtype[WOPP_SIZEY] or $D0;
+ ss_rwopparams[WOP_TBOX_SETSIZE][WOPP_SIZEX] := ss_rwoppargtype[WOPP_SIZEX];
+ ss_rwopparams[WOP_TBOX_SETSIZE][WOPP_SIZEY] := ss_rwoppargtype[WOPP_SIZEY];
  // default: 0 msec
- ss_rwopparams[WOP_TBOX_SETSIZE][WOPP_TIME] := ss_rwoppargtype[WOPP_TIME] or $A0;
+ ss_rwopparams[WOP_TBOX_SETSIZE][WOPP_TIME] := ss_rwoppargtype[WOPP_TIME];
  // default: "linear"
  ss_rwopparams[WOP_TBOX_SETSIZE][WOPP_STYLE] := ss_rwoppargtype[WOPP_STYLE];
  ss_rwopparams[WOP_TBOX_SETTEXTURE][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
@@ -437,37 +527,39 @@ begin
  ss_rwopparams[WOP_TBOX_SETTEXTURE][WOPP_TYPE] := ss_rwoppargtype[WOPP_TYPE];
  // default: frame 0
  ss_rwopparams[WOP_TBOX_SETTEXTURE][WOPP_FRAME] := ss_rwoppargtype[WOPP_FRAME];
- ss_rwopparams[WOP_TBOX_DECORATE][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX] or $F0;
+ ss_rwopparams[WOP_TBOX_DECORATE][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
  // default: empty gob name, decorate fails
- ss_rwopparams[WOP_TBOX_DECORATE][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB] or $D0;
+ ss_rwopparams[WOP_TBOX_DECORATE][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB];
  // default: 0,0
- ss_rwopparams[WOP_TBOX_DECORATE][WOPP_LOCX] := ss_rwoppargtype[WOPP_LOCX] or $B0;
- ss_rwopparams[WOP_TBOX_DECORATE][WOPP_LOCY] := ss_rwoppargtype[WOPP_LOCY] or $A0;
+ ss_rwopparams[WOP_TBOX_DECORATE][WOPP_LOCX] := ss_rwoppargtype[WOPP_LOCX];
+ ss_rwopparams[WOP_TBOX_DECORATE][WOPP_LOCY] := ss_rwoppargtype[WOPP_LOCY];
  // default: 0,0
- ss_rwopparams[WOP_TBOX_DECORATE][WOPP_SIZEX] := ss_rwoppargtype[WOPP_SIZEX] or $B0;
- ss_rwopparams[WOP_TBOX_DECORATE][WOPP_SIZEY] := ss_rwoppargtype[WOPP_SIZEY] or $A0;
+ ss_rwopparams[WOP_TBOX_DECORATE][WOPP_SIZEX] := ss_rwoppargtype[WOPP_SIZEX];
+ ss_rwopparams[WOP_TBOX_DECORATE][WOPP_SIZEY] := ss_rwoppargtype[WOPP_SIZEY];
  // default: 0,0
- ss_rwopparams[WOP_TBOX_DECORATE][WOPP_ANCHORX] := ss_rwoppargtype[WOPP_ANCHORX] or $60;
- ss_rwopparams[WOP_TBOX_DECORATE][WOPP_ANCHORY] := ss_rwoppargtype[WOPP_ANCHORY] or $50;
+ ss_rwopparams[WOP_TBOX_DECORATE][WOPP_ANCHORX] := ss_rwoppargtype[WOPP_ANCHORX];
+ ss_rwopparams[WOP_TBOX_DECORATE][WOPP_ANCHORY] := ss_rwoppargtype[WOPP_ANCHORY];
+ // default: choicebox
+ ss_rwopparams[WOP_TBOX_GETLASTLINE][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
 
- ss_rwopparams[WOP_TBOX_OUTLINE][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX] or $F0;
+ ss_rwopparams[WOP_TBOX_OUTLINE][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
  // default: black
- ss_rwopparams[WOP_TBOX_OUTLINE][WOPP_COLOR] := ss_rwoppargtype[WOPP_COLOR] or $D0;
+ ss_rwopparams[WOP_TBOX_OUTLINE][WOPP_COLOR] := ss_rwoppargtype[WOPP_COLOR];
  // default: 256
- ss_rwopparams[WOP_TBOX_OUTLINE][WOPP_THICKNESS] := ss_rwoppargtype[WOPP_THICKNESS] or $A0;
+ ss_rwopparams[WOP_TBOX_OUTLINE][WOPP_THICKNESS] := ss_rwoppargtype[WOPP_THICKNESS];
  // default: 0,0
- ss_rwopparams[WOP_TBOX_OUTLINE][WOPP_LOCX] := ss_rwoppargtype[WOPP_LOCX] or $60;
- ss_rwopparams[WOP_TBOX_OUTLINE][WOPP_LOCY] := ss_rwoppargtype[WOPP_LOCY] or $50;
+ ss_rwopparams[WOP_TBOX_OUTLINE][WOPP_LOCX] := ss_rwoppargtype[WOPP_LOCX];
+ ss_rwopparams[WOP_TBOX_OUTLINE][WOPP_LOCY] := ss_rwoppargtype[WOPP_LOCY];
  // default: 0
- ss_rwopparams[WOP_TBOX_OUTLINE][WOPP_ALPHA] := ss_rwoppargtype[WOPP_ALPHA] or $20;
+ ss_rwopparams[WOP_TBOX_OUTLINE][WOPP_ALPHA] := ss_rwoppargtype[WOPP_ALPHA];
 
  ss_rwopparams[WOP_TBOX_POPIN][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
  ss_rwopparams[WOP_TBOX_POPOUT][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
 
  ss_rwopparams[WOP_TBOX_REMOVEOUTLINES][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
- ss_rwopparams[WOP_TBOX_REMOVEDECOR][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX] or $F0;
+ ss_rwopparams[WOP_TBOX_REMOVEDECOR][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
  // default: empty gob name, removes all decorations
- ss_rwopparams[WOP_TBOX_REMOVEDECOR][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB] or $B0;
+ ss_rwopparams[WOP_TBOX_REMOVEDECOR][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB];
  // default: box 1
  ss_rwopparams[WOP_TBOX_SETPARAM][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
  ss_rwopparams[WOP_TBOX_SETPARAM][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME];
@@ -487,11 +579,11 @@ begin
  // default: first free index
  ss_rwopparams[WOP_CHOICE_SET][WOPP_INDEX] := ss_rwoppargtype[WOPP_INDEX];
  // default: empty string, choice set fails
- ss_rwopparams[WOP_CHOICE_SET][WOPP_TEXT] := ss_rwoppargtype[WOPP_TEXT] or $F0;
+ ss_rwopparams[WOP_CHOICE_SET][WOPP_TEXT] := ss_rwoppargtype[WOPP_TEXT];
  // default: undefined labels
- ss_rwopparams[WOP_CHOICE_SET][WOPP_LABEL] := ss_rwoppargtype[WOPP_LABEL] or $E0;
+ ss_rwopparams[WOP_CHOICE_SET][WOPP_LABEL] := ss_rwoppargtype[WOPP_LABEL];
  // default: undefined tracking var
- ss_rwopparams[WOP_CHOICE_SET][WOPP_VAR] := ss_rwoppargtype[WOPP_VAR] or $B0;
+ ss_rwopparams[WOP_CHOICE_SET][WOPP_VAR] := ss_rwoppargtype[WOPP_VAR];
  // default: box 1
  ss_rwopparams[WOP_CHOICE_SETCHOICEBOX][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
  // default: box 1
@@ -500,6 +592,10 @@ begin
  ss_rwopparams[WOP_CHOICE_SETHIGHLIGHTBOX][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
  // default: 0, disabled
  ss_rwopparams[WOP_CHOICE_PRINTPARENT][WOPP_VALUE] := ss_rwoppargtype[WOPP_VALUE];
+ // default: empty label, no trigger on highlight change
+ ss_rwopparams[WOP_CHOICE_ONHIGHLIGHT][WOPP_LABEL] := ss_rwoppargtype[WOPP_LABEL];
+ // default: choicebox
+ ss_rwopparams[WOP_CHOICE_TYPEINBOX][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
 
  // === Various jump commands === (wopp_label defaults to empty/fail)
  ss_rwopparams[WOP_CALL][WOPP_LABEL] := ss_rwoppargtype[WOPP_LABEL];
@@ -512,36 +608,36 @@ begin
 
  // === Event commands === (wopp_label defaults to empty, no trigger)
  // default: empty string, create event fails
- ss_rwopparams[WOP_EVENT_CREATE_AREA][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME] or $F0;
- ss_rwopparams[WOP_EVENT_CREATE_AREA][WOPP_LABEL] := ss_rwoppargtype[WOPP_LABEL] or $C0;
+ ss_rwopparams[WOP_EVENT_CREATE_AREA][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME];
+ ss_rwopparams[WOP_EVENT_CREATE_AREA][WOPP_LABEL] := ss_rwoppargtype[WOPP_LABEL];
  // default: no mouseoverables
- ss_rwopparams[WOP_EVENT_CREATE_AREA][WOPP_MOUSEON] := ss_rwoppargtype[WOPP_MOUSEON] or $80;
- ss_rwopparams[WOP_EVENT_CREATE_AREA][WOPP_MOUSEOFF] := ss_rwoppargtype[WOPP_MOUSEOFF] or $70;
+ ss_rwopparams[WOP_EVENT_CREATE_AREA][WOPP_MOUSEON] := ss_rwoppargtype[WOPP_MOUSEON];
+ ss_rwopparams[WOP_EVENT_CREATE_AREA][WOPP_MOUSEOFF] := ss_rwoppargtype[WOPP_MOUSEOFF];
  // default: location 0,0
- ss_rwopparams[WOP_EVENT_CREATE_AREA][WOPP_LOCX] := ss_rwoppargtype[WOPP_LOCX] or $D0;
- ss_rwopparams[WOP_EVENT_CREATE_AREA][WOPP_LOCY] := ss_rwoppargtype[WOPP_LOCY] or $C0;
+ ss_rwopparams[WOP_EVENT_CREATE_AREA][WOPP_LOCX] := ss_rwoppargtype[WOPP_LOCX];
+ ss_rwopparams[WOP_EVENT_CREATE_AREA][WOPP_LOCY] := ss_rwoppargtype[WOPP_LOCY];
  // default: size 32768,32768
- ss_rwopparams[WOP_EVENT_CREATE_AREA][WOPP_SIZEX] := ss_rwoppargtype[WOPP_SIZEX] or $90;
- ss_rwopparams[WOP_EVENT_CREATE_AREA][WOPP_SIZEY] := ss_rwoppargtype[WOPP_SIZEY] or $80;
+ ss_rwopparams[WOP_EVENT_CREATE_AREA][WOPP_SIZEX] := ss_rwoppargtype[WOPP_SIZEX];
+ ss_rwopparams[WOP_EVENT_CREATE_AREA][WOPP_SIZEY] := ss_rwoppargtype[WOPP_SIZEY];
  // default: gamevar.defaultviewport
  ss_rwopparams[WOP_EVENT_CREATE_AREA][WOPP_VIEWPORT] := ss_rwoppargtype[WOPP_VIEWPORT];
  // default: mouseonly=0
  ss_rwopparams[WOP_EVENT_CREATE_AREA][WOPP_MOUSEONLY] := ss_rwoppargtype[WOPP_MOUSEONLY];
  ss_rwopparams[WOP_EVENT_CREATE_ESC][WOPP_LABEL] := ss_rwoppargtype[WOPP_LABEL];
  // default: empty string, create event fails
- ss_rwopparams[WOP_EVENT_CREATE_GOB][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME] or $F0;
+ ss_rwopparams[WOP_EVENT_CREATE_GOB][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME];
  // default: empty string, create event fails
- ss_rwopparams[WOP_EVENT_CREATE_GOB][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB] or $E0;
- ss_rwopparams[WOP_EVENT_CREATE_GOB][WOPP_LABEL] := ss_rwoppargtype[WOPP_LABEL] or $C0;
+ ss_rwopparams[WOP_EVENT_CREATE_GOB][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB];
+ ss_rwopparams[WOP_EVENT_CREATE_GOB][WOPP_LABEL] := ss_rwoppargtype[WOPP_LABEL];
  // default: no mouseoverables
- ss_rwopparams[WOP_EVENT_CREATE_GOB][WOPP_MOUSEON] := ss_rwoppargtype[WOPP_MOUSEON] or $80;
- ss_rwopparams[WOP_EVENT_CREATE_GOB][WOPP_MOUSEOFF] := ss_rwoppargtype[WOPP_MOUSEOFF] or $70;
+ ss_rwopparams[WOP_EVENT_CREATE_GOB][WOPP_MOUSEON] := ss_rwoppargtype[WOPP_MOUSEON];
+ ss_rwopparams[WOP_EVENT_CREATE_GOB][WOPP_MOUSEOFF] := ss_rwoppargtype[WOPP_MOUSEOFF];
  // default: mouseonly=0
  ss_rwopparams[WOP_EVENT_CREATE_GOB][WOPP_MOUSEONLY] := ss_rwoppargtype[WOPP_MOUSEONLY];
  ss_rwopparams[WOP_EVENT_CREATE_INT][WOPP_LABEL] := ss_rwoppargtype[WOPP_LABEL];
  // default: empty string, create event fails
- ss_rwopparams[WOP_EVENT_CREATE_TIMER][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME] or $F0;
- ss_rwopparams[WOP_EVENT_CREATE_TIMER][WOPP_LABEL] := ss_rwoppargtype[WOPP_LABEL] or $C0;
+ ss_rwopparams[WOP_EVENT_CREATE_TIMER][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME];
+ ss_rwopparams[WOP_EVENT_CREATE_TIMER][WOPP_LABEL] := ss_rwoppargtype[WOPP_LABEL];
  // default: 1000 msec
  ss_rwopparams[WOP_EVENT_CREATE_TIMER][WOPP_FREQ] := ss_rwoppargtype[WOPP_FREQ];
  // default: empty string, remove all events
@@ -557,9 +653,9 @@ begin
  // default: empty string, all fibers get a signal
  ss_rwopparams[WOP_FIBER_SIGNAL][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME];
  // default: empty string, fiber start fails
- ss_rwopparams[WOP_FIBER_START][WOPP_LABEL] := ss_rwoppargtype[WOPP_LABEL] or $F0;
+ ss_rwopparams[WOP_FIBER_START][WOPP_LABEL] := ss_rwoppargtype[WOPP_LABEL];
  // default: same name as label string
- ss_rwopparams[WOP_FIBER_START][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME] or $C0;
+ ss_rwopparams[WOP_FIBER_START][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME];
  // default: stop self
  ss_rwopparams[WOP_FIBER_STOP][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME];
  // default: 0 msec, fiber waits for all effects to end, or signal
@@ -569,22 +665,22 @@ begin
 
  // === Graphics commands === (wopp_gob defaults to empty, fail)
  // default: empty string, gfx.adopt fails
- ss_rwopparams[WOP_GFX_ADOPT][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB] or $F0;
+ ss_rwopparams[WOP_GFX_ADOPT][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB];
  // default: empty string, gob is orphaned
- ss_rwopparams[WOP_GFX_ADOPT][WOPP_PARENT] := ss_rwoppargtype[WOPP_PARENT] or $C0;
+ ss_rwopparams[WOP_GFX_ADOPT][WOPP_PARENT] := ss_rwoppargtype[WOPP_PARENT];
  ss_rwopparams[WOP_GFX_BASH][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB];
  ss_rwopparams[WOP_GFX_CLEARKIDS][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB];
  ss_rwopparams[WOP_GFX_FLASH][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB];
  ss_rwopparams[WOP_GFX_GETFRAME][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB];
  ss_rwopparams[WOP_GFX_GETSEQUENCE][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB];
- ss_rwopparams[WOP_GFX_MOVE][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB] or $F0;
+ ss_rwopparams[WOP_GFX_MOVE][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB];
  // default: "linear"
- ss_rwopparams[WOP_GFX_MOVE][WOPP_STYLE] := ss_rwoppargtype[WOPP_STYLE] or $80;
+ ss_rwopparams[WOP_GFX_MOVE][WOPP_STYLE] := ss_rwoppargtype[WOPP_STYLE];
  // default: current location
- ss_rwopparams[WOP_GFX_MOVE][WOPP_LOCX] := ss_rwoppargtype[WOPP_LOCX] or $C0;
- ss_rwopparams[WOP_GFX_MOVE][WOPP_LOCY] := ss_rwoppargtype[WOPP_LOCY] or $B0;
+ ss_rwopparams[WOP_GFX_MOVE][WOPP_LOCX] := ss_rwoppargtype[WOPP_LOCX];
+ ss_rwopparams[WOP_GFX_MOVE][WOPP_LOCY] := ss_rwoppargtype[WOPP_LOCY];
  // default: 0 msec
- ss_rwopparams[WOP_GFX_MOVE][WOPP_TIME] := ss_rwoppargtype[WOPP_TIME] or $80;
+ ss_rwopparams[WOP_GFX_MOVE][WOPP_TIME] := ss_rwoppargtype[WOPP_TIME];
  // default: empty string, gfx precache fails
  ss_rwopparams[WOP_GFX_PRECACHE][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB];
  // default: default viewport
@@ -605,26 +701,28 @@ begin
  // default: 0, disables solid blit effect
  ss_rwopparams[WOP_GFX_SETSOLIDBLIT][WOPP_COLOR] := ss_rwoppargtype[WOPP_COLOR];
  // default: empty string, gfx show fails
- ss_rwopparams[WOP_GFX_SHOW][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB] or $F0;
+ ss_rwopparams[WOP_GFX_SHOW][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB];
  // default: sprite, or anim if an animation is defined for this graphic
- ss_rwopparams[WOP_GFX_SHOW][WOPP_TYPE] := ss_rwoppargtype[WOPP_TYPE] or $C0;
+ ss_rwopparams[WOP_GFX_SHOW][WOPP_TYPE] := ss_rwoppargtype[WOPP_TYPE];
  // default: same name as gob resource
- ss_rwopparams[WOP_GFX_SHOW][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME] or $80;
+ ss_rwopparams[WOP_GFX_SHOW][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME];
  // default: 0,0
- ss_rwopparams[WOP_GFX_SHOW][WOPP_LOCX] := ss_rwoppargtype[WOPP_LOCX] or $D0;
- ss_rwopparams[WOP_GFX_SHOW][WOPP_LOCY] := ss_rwoppargtype[WOPP_LOCY] or $C0;
+ ss_rwopparams[WOP_GFX_SHOW][WOPP_LOCX] := ss_rwoppargtype[WOPP_LOCX];
+ ss_rwopparams[WOP_GFX_SHOW][WOPP_LOCY] := ss_rwoppargtype[WOPP_LOCY];
  // default: gamevar.defaultviewport
  ss_rwopparams[WOP_GFX_SHOW][WOPP_VIEWPORT] := ss_rwoppargtype[WOPP_VIEWPORT];
  // default: frame 0
  ss_rwopparams[WOP_GFX_SHOW][WOPP_FRAME] := ss_rwoppargtype[WOPP_FRAME];
  // default: 0
  ss_rwopparams[WOP_GFX_SHOW][WOPP_ZLEVEL] := ss_rwoppargtype[WOPP_ZLEVEL];
+ // default: "thumb"
+ ss_rwopparams[WOP_GFX_STASHTHUMBNAIL][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME];
  // default: 0 for instant
  ss_rwopparams[WOP_GFX_TRANSITION][WOPP_INDEX] := ss_rwoppargtype[WOPP_INDEX];
  // default: 768 msec
- ss_rwopparams[WOP_GFX_TRANSITION][WOPP_TIME] := ss_rwoppargtype[WOPP_TIME] or $C0;
+ ss_rwopparams[WOP_GFX_TRANSITION][WOPP_TIME] := ss_rwoppargtype[WOPP_TIME];
  // default: gamevar.defaultviewport
- ss_rwopparams[WOP_GFX_TRANSITION][WOPP_VIEWPORT] := ss_rwoppargtype[WOPP_VIEWPORT] or $80;
+ ss_rwopparams[WOP_GFX_TRANSITION][WOPP_VIEWPORT] := ss_rwoppargtype[WOPP_VIEWPORT];
 
  // === Viewport commands ===
  // default: slot 0
@@ -634,24 +732,24 @@ begin
  // default: viewport 0, which is equal to the whole game window
  ss_rwopparams[WOP_VIEWPORT_SETDEFAULT][WOPP_VIEWPORT] := ss_rwoppargtype[WOPP_VIEWPORT];
  // default: gamma 1.0
- ss_rwopparams[WOP_VIEWPORT_SETGAMMA][WOPP_GAMMA] := ss_rwoppargtype[WOPP_GAMMA] or $C0;
+ ss_rwopparams[WOP_VIEWPORT_SETGAMMA][WOPP_GAMMA] := ss_rwoppargtype[WOPP_GAMMA];
  // default: viewport 0
- ss_rwopparams[WOP_VIEWPORT_SETGAMMA][WOPP_VIEWPORT] := ss_rwoppargtype[WOPP_VIEWPORT] or $A0;
+ ss_rwopparams[WOP_VIEWPORT_SETGAMMA][WOPP_VIEWPORT] := ss_rwoppargtype[WOPP_VIEWPORT];
  // default: 0 msec
- ss_rwopparams[WOP_VIEWPORT_SETGAMMA][WOPP_TIME] := ss_rwoppargtype[WOPP_TIME] or $80;
+ ss_rwopparams[WOP_VIEWPORT_SETGAMMA][WOPP_TIME] := ss_rwoppargtype[WOPP_TIME];
  // default: viewport 1, can't modify viewport 0
- ss_rwopparams[WOP_VIEWPORT_SETPARAMS][WOPP_VIEWPORT] := ss_rwoppargtype[WOPP_VIEWPORT] or $C0;
+ ss_rwopparams[WOP_VIEWPORT_SETPARAMS][WOPP_VIEWPORT] := ss_rwoppargtype[WOPP_VIEWPORT];
  // default: current parent
- ss_rwopparams[WOP_VIEWPORT_SETPARAMS][WOPP_PARENT] := ss_rwoppargtype[WOPP_PARENT] or $10;
+ ss_rwopparams[WOP_VIEWPORT_SETPARAMS][WOPP_PARENT] := ss_rwoppargtype[WOPP_PARENT];
  // default: current location
- ss_rwopparams[WOP_VIEWPORT_SETPARAMS][WOPP_LOCX] := ss_rwoppargtype[WOPP_LOCX] or $90;
- ss_rwopparams[WOP_VIEWPORT_SETPARAMS][WOPP_LOCY] := ss_rwoppargtype[WOPP_LOCY] or $80;
+ ss_rwopparams[WOP_VIEWPORT_SETPARAMS][WOPP_LOCX] := ss_rwoppargtype[WOPP_LOCX];
+ ss_rwopparams[WOP_VIEWPORT_SETPARAMS][WOPP_LOCY] := ss_rwoppargtype[WOPP_LOCY];
  // default: current size
- ss_rwopparams[WOP_VIEWPORT_SETPARAMS][WOPP_SIZEX] := ss_rwoppargtype[WOPP_SIZEX] or $50;
- ss_rwopparams[WOP_VIEWPORT_SETPARAMS][WOPP_SIZEY] := ss_rwoppargtype[WOPP_SIZEY] or $40;
+ ss_rwopparams[WOP_VIEWPORT_SETPARAMS][WOPP_SIZEX] := ss_rwoppargtype[WOPP_SIZEX];
+ ss_rwopparams[WOP_VIEWPORT_SETPARAMS][WOPP_SIZEY] := ss_rwoppargtype[WOPP_SIZEY];
  // default: current ratio
- ss_rwopparams[WOP_VIEWPORT_SETPARAMS][WOPP_RATIOX] := ss_rwoppargtype[WOPP_RATIOX] or $30;
- ss_rwopparams[WOP_VIEWPORT_SETPARAMS][WOPP_RATIOY] := ss_rwoppargtype[WOPP_RATIOY] or $20;
+ ss_rwopparams[WOP_VIEWPORT_SETPARAMS][WOPP_RATIOX] := ss_rwoppargtype[WOPP_RATIOX];
+ ss_rwopparams[WOP_VIEWPORT_SETPARAMS][WOPP_RATIOY] := ss_rwoppargtype[WOPP_RATIOY];
 
  // === Sound commands ===
 
