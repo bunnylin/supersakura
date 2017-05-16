@@ -870,6 +870,12 @@ begin
  ScriptReturn(fiberid);
 end;
 
+procedure Invoke_SYS_ISFULLSCREEN; inline;
+begin
+ if sysvar.fullscreen then PushInt(1) else PushInt(0);
+ PushInt(STACK_TOKEN_NUMBER);
+end;
+
 procedure Invoke_SYS_PAUSE; inline;
 begin
  SetPauseState(PAUSESTATE_PAUSED);
@@ -887,6 +893,13 @@ procedure Invoke_SYS_SETCURSOR; inline;
 begin
  if FetchParam(WOPP_GOB) then log('set cursor to ' + strvalue[0])
  else log('remove cursor override');
+end;
+
+procedure Invoke_SYS_SETFULLSCREEN; inline;
+begin
+ {$ifndef sakucon}
+ if FetchParam(WOPP_VALUE) then ScreenModeSwitch(numvalue <> 0);
+ {$endif}
 end;
 
 procedure Invoke_SYS_SETTITLE; inline;
@@ -1287,9 +1300,11 @@ begin
    WOP_INC: Invoke_INC;
    WOP_RETURN: Invoke_RETURN;
 
+   WOP_SYS_ISFULLSCREEN: Invoke_SYS_ISFULLSCREEN;
    WOP_SYS_PAUSE: Invoke_SYS_PAUSE;
    WOP_SYS_QUIT: Invoke_SYS_QUIT;
    WOP_SYS_SETCURSOR: Invoke_SYS_SETCURSOR;
+   WOP_SYS_SETFULLSCREEN: Invoke_SYS_SETFULLSCREEN;
    WOP_SYS_SETTITLE: Invoke_SYS_SETTITLE;
 
    WOP_TBOX_CLEAR: Invoke_TBOX_CLEAR;

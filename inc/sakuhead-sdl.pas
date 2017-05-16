@@ -22,6 +22,9 @@ var mv_MainWinH : PSDL_Window;
     mv_MainTexH : PSDL_Texture;
     mv_GamepadH : PSDL_GameController;
 
+procedure ScreenModeSwitch(usefull : boolean); forward;
+
+
 procedure Log(const ert : UTF8string); inline;
 begin writeln(logfile, ert); end;
 procedure LogError(const ert : UTF8string); inline;
