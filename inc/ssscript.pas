@@ -2137,7 +2137,7 @@ begin
      case strip[1] of
        '!':
        if char(inbuf^) = '=' then opstackpush(TOKEN_NE)
-       else begin dec(inbuf); opstackpush(TOKEN_NEG); end;
+       else begin dec(inbuf); opstackpush(TOKEN_NOT); end;
        '+':
        if char(inbuf^) = '=' then opstackpush(TOKEN_INC)
        else begin dec(inbuf); opstackpush(TOKEN_PLUS); end;
