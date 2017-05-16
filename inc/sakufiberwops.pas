@@ -1088,10 +1088,10 @@ procedure Invoke_TBOX_SETNUMBOXES; inline;
 begin
  numvalue := 3;
  FetchParam(WOPP_INDEX);
- if numvalue < 3 then numvalue := 3; // minimum is 3
  log('setnumboxes=' + strdec(numvalue));
- if numvalue < length(TBox) then DestroyTextbox(numvalue)
- else if numvalue > length(TBox) then InitTextbox(numvalue);
+ if numvalue < length(TBox) then DestroyTextbox(numvalue);
+ if numvalue < 3 then numvalue := 3; // minimum is 3
+ if numvalue > length(TBox) then InitTextbox(numvalue);
 end;
 
 procedure Invoke_TBOX_SETPARAM; inline;
