@@ -53,6 +53,9 @@ begin
   // Update related effects.
   for jvar := high(fx) downto 0 do
    if fx[jvar].fxgob = ivar then inc(fx[jvar].fxgob);
+  // Update events.
+  if length(event.gob) <> 0 then for jvar := high(event.gob) downto 0 do
+   if event.gob[jvar].gobnum = ivar then inc(event.gob[jvar].gobnum);
  end;
 
  // Zero out the freed index.
@@ -89,6 +92,9 @@ begin
     // Update related effects.
     for jvar := high(fx) downto 0 do
      if fx[jvar].fxgob = srci then fx[jvar].fxgob := desti;
+    // Update events.
+    if length(event.gob) <> 0 then for jvar := high(event.gob) downto 0 do
+     if event.gob[jvar].gobnum = srci then event.gob[jvar].gobnum := desti;
    end;
    inc(desti);
   end;

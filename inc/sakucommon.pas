@@ -1332,6 +1332,15 @@ begin
    if fx[ivar].poku <> NIL then begin freemem(fx[ivar].poku); fx[ivar].poku := NIL; end;
    fx[ivar].kind := 0;
   end;
+ // Kill events.
+ ivar := length(event.gob);
+ while ivar <> 0 do begin
+  dec(ivar);
+  if event.gob[ivar].gobnum = gobnum then begin
+   if ivar < high(event.gob) then event.gob[ivar] := event.gob[high(event.gob)];
+   setlength(event.gob, length(event.gob) - 1);
+  end;
+ end;
 end;
 
 procedure UpdateGobLocp(gobnum : dword);
