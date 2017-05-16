@@ -595,7 +595,6 @@ var // Commandline parameters.
       defaulttextbox : dword; // print commands default to this TBox[]
       defaultviewport : dword; // new gobs are relative to this by default
       mouseX, mouseY : longint; // straight px coord within program window
-      mousecheck : byte;
       savestate : byte;
       hideboxes : byte; // 1 = hidden, 0 = visible
       numlang : byte; // number of languages
@@ -1899,7 +1898,6 @@ begin
   defaulttextbox := 1;
   defaultviewport := 0;
   mouseX := 0; mouseY := 0;
-  mousecheck := 0;
   savestate := 1;
   hideboxes := 0;
   numlang := 1;

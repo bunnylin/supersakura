@@ -431,13 +431,6 @@ begin
    end;
 
   // User input etc.
-  if gamevar.mousecheck <> 0 then begin
-   evd.type_ := SDL_MOUSEMOTION;
-   evd.motion.x := gamevar.mouseX;
-   evd.motion.y := gamevar.mouseY;
-   HandleSDLevent(@evd);
-   gamevar.mousecheck := 0;
-  end;
   while SDL_PollEvent(@evd) <> 0 do HandleSDLevent(@evd);
 
   // if we gained focus just now, stop dropping events as of the next frame
