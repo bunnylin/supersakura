@@ -465,7 +465,7 @@ begin
   Renderer;
 
   // Frame limiter... wait for it.
-  tickcount := SDL_GetTicks - tickmark;
+  tickcount := dword(SDL_GetTicks - tickmark);
   if tickcount < sysvar.resttime then SDL_Delay(sysvar.resttime - tickcount);
 
   // Ask the renderer to finally display the new frame.
