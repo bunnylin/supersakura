@@ -1650,6 +1650,11 @@ begin
   if rowbuf <> NIL then begin freemem(rowbuf); rowbuf := NIL; end;
   if finalbuf <> NIL then begin freemem(finalbuf); finalbuf := NIL; end;
 
+  setlength(txtcontent, 0);
+  setlength(txtescapelist, 0);
+  setlength(txtlinebreaklist, 0);
+  setlength(style.decorlist, 0);
+  setlength(style.outline, 0);
   fillbyte(TBox[ivar], sizeof(boxtype), 0);
 
   // safeties

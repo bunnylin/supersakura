@@ -489,18 +489,7 @@ begin
  sysvar.quit := TRUE;
 
  // Free textboxes.
- if length(TBox) <> 0 then
- for ivar := high(TBox) downto 0 do with TBox[ivar] do begin
-  if fonth <> NIL then begin TTF_CloseFont(fonth); fonth := NIL; end;
-  if basebuf <> NIL then begin freemem(basebuf); basebuf := NIL; end;
-  if contentfullbuf <> NIL then begin freemem(contentfullbuf); contentfullbuf := NIL; end;
-  if rowbuf <> NIL then begin freemem(rowbuf); rowbuf := NIL; end;
-  if finalbuf <> NIL then begin freemem(finalbuf); finalbuf := NIL; end;
-  setlength(txtcontent, 0);
-  setlength(txtescapelist, 0);
-  setlength(style.decorlist, 0);
-  setlength(style.outline, 0);
- end;
+ DestroyTextbox(0);
 
  // Release SDL resources.
  if mv_GamepadH <> NIL then SDL_GameControllerClose(mv_GamepadH);

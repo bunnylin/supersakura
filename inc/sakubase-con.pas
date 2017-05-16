@@ -202,17 +202,7 @@ begin
  if stashbuffy <> NIL then begin freemem(stashbuffy); stashbuffy := NIL; end;
 
  // Free textboxes.
- if length(TBox) <> 0 then
- for ivar := high(TBox) downto 0 do with TBox[ivar] do begin
-  if basebuf <> NIL then begin freemem(basebuf); basebuf := NIL; end;
-  if contentfullbuf <> NIL then begin freemem(contentfullbuf); contentfullbuf := NIL; end;
-  if rowbuf <> NIL then begin freemem(rowbuf); rowbuf := NIL; end;
-  if finalbuf <> NIL then begin freemem(finalbuf); finalbuf := NIL; end;
-  setlength(txtcontent, 0);
-  setlength(txtescapelist, 0);
-  setlength(style.decorlist, 0);
-  setlength(style.outline, 0);
- end;
+ DestroyTextbox(0);
 
  // Free whatever other memory was reserved.
  if seengfxp <> NIL then begin freemem(seengfxp); seengfxp := NIL; end;
