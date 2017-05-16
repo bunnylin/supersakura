@@ -803,7 +803,6 @@ var boxnum : dword;
     // extra box bits get drawn over.
     if (oldcxp <> contentwinsizexp) or (oldcyp <> contentwinsizeyp)
     then basebufvalid := FALSE;
-    contentbuftextvalid := TRUE;
     finalbufvalid := FALSE;
     needsredraw := TRUE;
    end;
@@ -815,7 +814,6 @@ var boxnum : dword;
     {$ifndef sakucon}
     BuildBoxBase(boxnum, FALSE);
     {$endif}
-    basebufvalid := TRUE;
     finalbufvalid := FALSE;
     needsredraw := TRUE;
    end;
@@ -850,6 +848,12 @@ begin
        popruntime := style.poptime;
        finalbufvalid := FALSE;
        boxstate := BOXSTATE_SHOWTEXT;
+       {$ifndef sakucon}
+       // Set the highlight box immediately if the choicebox just finished
+       // appearing.
+       if (choicematic.active) and (boxnum = choicematic.choicebox)
+       then HighlightChoice(MOVETYPE_INSTANT);
+       {$endif}
       end;
       needsredraw := TRUE;
      end;
@@ -890,7 +894,7 @@ begin
       boxlocyp_r := boxlocyp - (longint(boxsizeyp) * anchory) shr 15 + (boxsizeyp - boxsizeyp_r) shr 1;
       {$ifndef sakucon}
       BuildBoxBase(boxnum, TRUE);
-      TBox[boxnum].finalbufvalid := TRUE;
+      finalbufvalid := TRUE;
       {$endif}
      end;
     end;
@@ -904,8 +908,10 @@ begin
     then AddRefresh(oldx1p, oldy1p, oldx1p + longint(oldsxp), oldy1p + longint(oldsyp));
 
     {$ifndef sakucon}
-    // If this is the choicebox, set the highlight.
+    // If this is the choicebox, which just got its contents redrawn, then
+    // update the highlight box immediately.
     if (choicematic.active) and (boxnum = choicematic.choicebox)
+    and (contentbuftextvalid and basebufvalid = FALSE)
     and (boxstate = BOXSTATE_SHOWTEXT)
     then HighlightChoice(MOVETYPE_INSTANT);
 
@@ -913,8 +919,6 @@ begin
      // Graphical textboxes get drawn like any gob, so just add the box's
      // position as a refresh region.
      AddRefresh(boxlocxp_r, boxlocyp_r, boxlocxp_r + longint(boxsizexp_r), boxlocyp_r + longint(boxsizeyp_r));
-
-    needsredraw := FALSE;
     {$else}
     if gamevar.hideboxes = 0 then
      // Console textboxes get special treatment. Because of the difficulty in
@@ -923,6 +927,9 @@ begin
      // and then refreshed, exclude those refresh rects.
      RemoveRefresh(boxlocxp_r, boxlocyp_r, boxlocxp_r + longint(boxsizexp_r), boxlocyp_r + longint(boxsizeyp_r));
     {$endif}
+
+    contentbuftextvalid := TRUE; basebufvalid := TRUE;
+    needsredraw := FALSE;
    end;
   end;
 end;

@@ -45,6 +45,7 @@ procedure HighlightChoice(style : byte);
 // Sets the higlight box over the highlighted choice index. If style is 0,
 // the change is immediate, else the box slides over with the given style.
 // Generally, you'll want MOVETYPE_HALFCOS.
+// Scrolls the choicebox if the highlighted choice is currently out of view.
 var x1, y1, x2, y2 : longint;
     ivar : dword;
 begin
@@ -52,15 +53,26 @@ begin
   TBox[highlightbox].boxstate := BOXSTATE_APPEARING;
 
   // The showlist coords are pixel values relative to the box's sizexyp.
+  // The top and left margins of the choicebox are included in these.
   x1 := showlist[highlightindex].slx1p;
   y1 := showlist[highlightindex].sly1p;
   x2 := showlist[highlightindex].slx2p;
   y2 := showlist[highlightindex].sly2p;
 
   with TBox[choicebox] do begin
+   // Scroll the box if needed.
+   ivar := contentwinscrollofsp;
+   if y1 - margintopp < contentwinscrollofsp then begin
+    ivar := y1 - margintopp;
+    ScrollBoxTo(choicebox, ivar);
+   end else
+   if y2 - margintopp > contentwinscrollofsp + contentwinsizeyp then begin
+    ivar := y2 - margintopp - contentwinsizeyp;
+    ScrollBoxTo(choicebox, ivar);
+   end;
    // Deduct the box's scrolling offset.
-   dec(y1, contentwinscrollofsp);
-   dec(y2, contentwinscrollofsp);
+   dec(y1, ivar);
+   dec(y2, ivar);
    // Add the box's true coordinates.
    inc(x1, boxlocxp_r);
    inc(x2, boxlocxp_r);
