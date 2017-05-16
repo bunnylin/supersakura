@@ -5,6 +5,9 @@ sys.settitle "Season of the Sakura"
 $s1 := "Shuji"
 $s2 := "Shu"
 
+// ==================================================================
+// Viewport setup
+
 // 480x296 view in 640x400 frame @ 80,16
 viewport.setparams viewport:1 parent:0, ratiox = 16, ratioy = 10
 viewport.setparams viewport:2 parent:1, locx 0 locy 0 sizex 32768 sizey 32768
@@ -13,10 +16,82 @@ viewport.setdefault 2 // all game graphics will go in viewport 2
 viewport.setbkgindex viewport:1 index 0
 viewport.setbkgindex viewport:2 index 1
 
-#gfx.show FREFRE bkg viewport 1
 
+// ===== Title Screen =====
+gfx.clearall
+gfx.transition
+event.create.int skiptitle
+event.create.esc skiptitle
+fiber.start main.titlefiber
+waitsig
+goto mainmenu
+
+@titlefiber:
+gfx.show SAKU_P bkg
+gfx.transition 4
+sleep
+gfx.show NEWLOGO2
+gfx.transition 4
+sleep
+signal main
+stop
+
+@skiptitle:
+stop main.titlefiber
+gfx.show NEWLOGO2
+gfx.transition
+signal main
+stop
+
+
+// ===== Main Menu =====
+@mainmenu:
+event.clear
+//fx.precipitate.init SAKURA; SAKURA; snow; 12
+
+choice.setchoicebox 1
+choice.sethighlightbox 2
+choice.columns 1
+tbox.setnumboxes 0
+tbox.setnumboxes 3
+tbox.setparam 1 ax 16384
+tbox.setparam 1 ay 32768
+tbox.setparam 1 lx 16384
+tbox.setparam 1 ly 32000
+tbox.setparam 1 margintop 0
+tbox.setparam 1 marginleft 0
+tbox.setparam 1 marginright 0
+tbox.setparam 1 marginbottom 0
+tbox.setparam 1 textcolor 0x88FF
+tbox.setparam 1 basecolor 0
+tbox.setparam 1 basefill 1
+tbox.setparam 1 textalign 1
+tbox.setparam 1 fontheight 1600
+tbox.setparam 2 basecolor 0xFFF4
+tbox.setparam 2 margintop 180
+tbox.setparam 2 marginbottom 180
+tbox.setparam 2 marginleft 480
+tbox.setparam 2 marginright 480
+
+choice.reset
+choice.set "New Game" newgame
+choice.set "Load Game" loadgame
+choice.set "Gallery" gallery
+choice.set "Quit Game" quitgame
+choice.go
+
+
+// ===== New Game =====
+@newgame:
+event.clear
+//fx.precipitate.end
+call INTRO.
+gfx.clearall
+gfx.transition 4
+sleep
 
 // Textbox setup
+tbox.setnumboxes 0
 tbox.setnumboxes 4
 choice.setchoicebox 1
 choice.setpartbox 2
@@ -31,11 +106,10 @@ tbox.setparam 1 ax 16384
 tbox.setparam 1 ay 32768
 tbox.setparam 1 lx 16384
 tbox.setparam 1 ly 32000
-
-tbox.setparam 1 textcolor 0xFFFF
 tbox.setparam 1 margintop 512
 tbox.setparam 1 marginbottom 512
 
+tbox.setparam 1 textcolor 0xFFFF
 tbox.setparam 1 basecolor0 0x8BEC
 tbox.setparam 1 basecolor1 0x8BEC
 tbox.setparam 1 basecolor2 0x69FC
@@ -47,10 +121,8 @@ tbox.setparam 1 texrightedge 20
 tbox.setparam 1 textopedge 20
 tbox.setparam 1 texbottomedge 20
 tbox.setparam 1 bevel 0
-
 tbox.decorate 1 MAINBOXDECORLEFT x 0 y 32768 anchorx 0 anchory 32768
 tbox.decorate 1 MAINBOXDECORRIGHT x 32768 y 0 anchorx 32768 anchory 0
-
 tbox.setparam 1 autowaitkey 1
 
 // 2: Dialogue title box
@@ -74,99 +146,17 @@ tbox.setparam 3 marginbottom 80
 tbox.setparam 3 bevel 1
 tbox.setparam 3 basecolor 0xFFF7
 
-
-// ===== the title screen =====
-gfx.clearall
-gfx.transition 0
-#event.create SKIPIT; interrupt; skiptitle
-
-gfx.show SAKU_P bkg
-gfx.transition 4
-sleep
-gfx.show NEWLOGO2
-gfx.transition 4
-sleep
-//fx.precipitate.init SAKURA; SAKURA; snow; 12
-gfx.show ofsx 11904 ofsy 21504 TCHOICE1
-gfx.show ofsx 11904 ofsy 24166 TCHOICE2
-gfx.show ofsx 13440 ofsy 26993 TCHOICE4
-gfx.show ofsx 14336 ofsy 29450 TCHOICE5
-gfx.setframe TCHOICE2 4
-gfx.transition 4
-sleep
-goto mainmenu
-
-@skiptitle:
-gfx.clearkids
-gfx.show NEWLOGO2
-gfx.show ofsx 11904 ofsy 21504 TCHOICE1
-gfx.show ofsx 11904 ofsy 24166 TCHOICE2
-gfx.show ofsx 13440 ofsy 26993 TCHOICE4
-gfx.show ofsx 14336 ofsy 29450 TCHOICE5
-gfx.setframe TCHOICE2 4
-gfx.transition
-sleep 100
+goto CS101.
 
 
-// ===== the main menu =====
-@mainmenu:
-event.clear
-waitkey
-goto ngclick
+// ===== Load Game =====
+@loadgame:
+choice.go
 
-// Clickable areas in a 948 x 592 view
-// 365,398; 582,443
-// 361,444; 586,489
-// 398,490; 550,543
-// 429,544; 519,585
-#event.create NEWGAME; area; 12616, 22030, 20117, 24520; ngclick
-#event.mouseon NEWGAME; ngon
-#event.mouseoff NEWGAME; ngoff
-//event.create LOADGAME; area; 12478, 24576, 20255, 27066; lgclick
-//event.mouseon LOADGAME; lgon
-//event.mouseoff LOADGAME; lgoff
-#event.create GALLERY; area; 13757, 27122, 19011, 30055; galclick
-#event.mouseon GALLERY; galon
-#event.mouseoff GALLERY; galoff
-#event.create QUITGAME; area; 14828, 30111, 17939, 32380; qgclick
-#event.mouseon QUITGAME; qgon
-#event.mouseoff QUITGAME; qgoff
-#waitevent
-
-@ngon:
-gfx.setsequence TCHOICE1; 1
-exit
-@ngoff:
-gfx.setsequence TCHOICE1; 4
-exit
-@galon:
-gfx.setsequence TCHOICE4; 1
-exit
-@galoff:
-gfx.setsequence TCHOICE4; 4
-exit
-@qgon:
-gfx.setsequence TCHOICE5; 1
-exit
-@qgoff:
-gfx.setsequence TCHOICE5; 4
-exit
-
-@galclick:
-exit
-
-// ===== New Game =====
-@ngclick:
-event.clear
-//fx.precipitate.end
-call INTRO.
-gfx.clearall
-gfx.transition 4
-sleep
-
-call CS101.
-
+// ===== Gallery =====
+@gallery:
+choice.go
 
 // ===== Quit Game =====
-@qgclick:
+@quitgame:
 sys.quit
