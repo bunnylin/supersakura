@@ -14,11 +14,11 @@ choice.set "\cF80F;Events"
 choice.set "\cFF0F;Textboxes"
 choice.set "\c0F0F;Variables"
 choice.set "\c0FFF;Strings"
-choice.set "\c00FF;Other"
+choice.set "\c00FF;System"
 choice.set "\c80FF;Exit"
 $v1 := (choice.get)
 
-case $v1 ."effys:testevents:testboxes:testvars:teststrings:testother:farewell"
+case $v1 ."effys:testevents:testboxes:testvars:teststrings:testsys:farewell"
 choice.go
 
 // ------------------------------------------------------------------
@@ -863,14 +863,21 @@ goto effys
 goto effys
 
 // ------------------------------------------------------------------
-@testother:
-  print "Now attempting to execute a runscript with a string ref! If successful, the print 2 box will show it."
-  waitkey noclear=1
-  $s5 := "calls"
-  call $s5 + "."
-  print "Atsa'all."
+@testsys:
+  choice.reset
+  choice.set "Fullscreen switch" testfullscr
+  choice.set "Back" testclasses
+choice.go
+
+@testfullscr:
+  tbox.clear
+  $v0 := (sys.isfullscreen)
+  print "isfullscreen: " + $v0 + "\nNow switching..."
   waitkey
-goto testclasses
+  sys.setfullscreen !$v0
+  print "Howzat?"
+  waitkey
+goto testsys
 
 // ------------------------------------------------------------------
 @farewell:
