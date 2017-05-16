@@ -118,10 +118,6 @@ begin
 
   if com = '*' then UserInput_HideBoxes else
   if com = '@' then Debug_PrintGobs;
-
-  if (choicematic.active = FALSE) or (pausestate <> PAUSESTATE_NORMAL) then exit;
-  ivar := byte(com[1]) or $20;
-  if char(ivar) in ['a'..'z'] then SelectChoice(ivar - 97);
  end;
 end;
 

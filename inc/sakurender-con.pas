@@ -129,7 +129,7 @@ end;
 
 procedure BlitzBox(boxnum : dword);
 // Entirely reprints a box in a console.
-var ivar, jvar, breakindex, escindex : dword;
+var ivar, jvar, breakindex, escindex, choiceindex : dword;
     textpal, backpal : dword;
     txtofs, txtmark : dword;
     txt : UTF8string;
@@ -137,7 +137,9 @@ var ivar, jvar, breakindex, escindex : dword;
   procedure newcolor(c : dword); inline;
   begin
    textpal := xpal[(c shr 20) and $F][(c shr 12) and $F][(c shr 4) and $F] and $F;
-   SetColor(textpal + backpal shl 4);
+   if (choicematic.active) and (choiceindex = choicematic.highlightindex)
+   then SetColor(backpal + textpal shl 4)
+   else SetColor(textpal + backpal shl 4);
   end;
 
 begin
@@ -167,7 +169,7 @@ begin
   // If the box is showing text, write the text one line at a time, starting
   // from the scroll-offset line.
   if boxstate = BOXSTATE_SHOWTEXT then begin
-   txtofs := 0; escindex := 0; txt := '';
+   txtofs := 0; escindex := 0; choiceindex := 0; txt := '';
    breakindex := contentwinscrollofsp;
    if breakindex > txtlinebreakcount then txtofs := txtlength
    else if breakindex <> 0 then txtofs := txtlinebreaklist[breakindex - 1];
@@ -202,8 +204,19 @@ begin
        byte('C'): ; // center
        byte('R'): ; // right
        byte(':'): ;
-       byte('?'): ;
-       byte('.'): ;
+       byte('?'): begin
+        if choiceindex = choicematic.highlightindex then SetColor(backpal + textpal shl 4);
+        with choicematic.showlist[choiceindex] do begin
+         slx1p := choiceindex mod choicematic.numcolumns + marginleftp;
+         sly1p := choiceindex div choicematic.numcolumns + margintopp;
+         slx2p := slx1p + 1;
+         sly2p := sly1p + 1;
+        end;
+       end;
+       byte('.'): begin
+        if choiceindex = choicematic.highlightindex then SetColor(textpal + backpal shl 4);
+        inc(choiceindex);
+       end;
      end;
      inc(escindex);
     end;

@@ -303,13 +303,10 @@ begin
  if jvar <> 0 then exit;
 
  // If choicematic is active, select the highlighted choice.
- // (Console mode uses a different choice paradigm, so skip this.)
- {$ifndef sakucon}
  if choicematic.active then begin
   SelectChoice(choicematic.highlightindex);
   exit;
  end;
- {$endif}
 
  // If choicematic typeinbox is valid, resume any waittyping fibers.
 

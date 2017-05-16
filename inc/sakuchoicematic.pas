@@ -50,8 +50,6 @@ var x1, y1, x2, y2 : longint;
     ivar : dword;
 begin
  with choicematic do begin
-  TBox[highlightbox].boxstate := BOXSTATE_APPEARING;
-
   // The showlist coords are pixel values relative to the box's sizexyp.
   // The top and left margins of the choicebox are included in these.
   x1 := showlist[highlightindex].slx1p;
@@ -79,6 +77,11 @@ begin
    inc(y1, boxlocyp_r);
    inc(y2, boxlocyp_r);
   end;
+
+  {$ifdef sakucon}
+  TBox[choicebox].needsredraw := TRUE;
+  {$else}
+
   with TBox[highlightbox] do begin
    // safety
    if x1 < 0 then x1 := 0;
@@ -97,10 +100,13 @@ begin
    dec(x2, marginleft);
    dec(y1, margintop);
    dec(y2, margintop);
+   // Make sure the highlight box pops in.
+   boxstate := BOXSTATE_APPEARING;
   end;
 
   AddBoxMoveEffect(highlightbox, -1, x1, y1, 0, 0, 160, style);
   AddBoxSizeEffect(highlightbox, -1, x2 - x1, y2 - y1, 160, style);
+  {$endif}
  end;
 end;
 
@@ -280,13 +286,11 @@ begin
   for ivar := 0 to showcount - 1 do begin
    {$ifdef sakucon}
    if ivar <> 0 then
-    if numcolumns = 1
+    if ivar mod numcolumns = 0
      then PrintBox(choicebox, '\n')
      else PrintBox(choicebox, ' ');
-   PrintBox(choicebox, chr(65 + ivar) + ') ' + showlist[ivar].showtxt);
-   {$else}
-   PrintBox(choicebox, '\?' + showlist[ivar].showtxt + '\.');
    {$endif}
+   PrintBox(choicebox, '\?' + showlist[ivar].showtxt + '\.');
   end;
  end;
 end;
