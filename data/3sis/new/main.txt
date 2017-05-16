@@ -23,11 +23,7 @@ $s1 := "Koichi"
 // 312 / 400 * 32768 = 25559.04
 // 
 // viewport.setparams viewport:2 locx 4096 locy 1311 sizex 28672 sizey 25559
-// That command is used in CALLS.TXT to turn on the viewframe.
-// Of course, we don't need a viewframe yet in the main menu!
-// So for now, viewport 2 can cover the entire viewport 1.
 
-// 480x296 view in 640x400 frame @ 80,16
 viewport.setparams viewport:1 parent:0, ratiox = 16, ratioy = 10
 viewport.setparams viewport:2 parent:1, locx 0 locy 0 sizex 32768 sizey 32768
 
@@ -35,11 +31,67 @@ viewport.setdefault 2 // all game graphics will go in viewport 2
 viewport.setbkgindex viewport:1 index 0
 viewport.setbkgindex viewport:2 index 1
 
-#gfx.show FLERIN bkg viewport 1 // frame behind other graphics
 
-// ==================================================================
-// Textbox setup
+// ===== Title Screen =====
+gfx.clearall
+gfx.transition
+event.create.interrupt skiptitle
 
+gfx.show SANSI bkg
+gfx.show NEWLOGO
+gfx.transition 4 time 1280
+sleep
+goto mainmenu
+
+@skiptitle:
+gfx.transition
+stop
+
+
+// ===== Main Menu =====
+@mainmenu:
+event.clear
+
+choice.setchoicebox 1
+choice.sethighlightbox 2
+choice.columns 1
+tbox.setnumboxes 0
+tbox.setnumboxes 3
+tbox.setparam 1 ax 32768
+tbox.setparam 1 ay 16384
+tbox.setparam 1 lx 30000
+tbox.setparam 1 ly 16384
+tbox.setparam 1 margintop 0
+tbox.setparam 1 marginleft 0
+tbox.setparam 1 marginright 0
+tbox.setparam 1 marginbottom 0
+tbox.setparam 1 textcolor 0xEDAF
+tbox.setparam 1 basecolor 0
+tbox.setparam 1 basefill 1
+tbox.setparam 1 textalign 2
+tbox.setparam 2 basecolor 0xFFF4
+tbox.setparam 2 margintop 180
+tbox.setparam 2 marginbottom 180
+tbox.setparam 2 marginleft 480
+tbox.setparam 2 marginright 480
+
+choice.reset
+choice.set "New Game" newgame
+choice.set "Load Game" loadgame
+choice.set "Gallery" gallery
+choice.set "Quit Game" quitgame
+choice.go
+
+// ===== New Game =====
+@newgame:
+event.clear
+gfx.clearall
+call INTRO.
+gfx.clearall
+gfx.transition 4
+sleep
+
+tbox.setnumboxes 0
 tbox.setnumboxes 5
 choice.setpartbox 3
 choice.setchoicebox 3
@@ -118,105 +170,17 @@ tbox.setparam 4 marginbottom 80
 tbox.setparam 4 bevel 1
 tbox.setparam 4 basecolor 0xFFF7
 
-
-// ===== Title Screen =====
-gfx.clearall
-gfx.transition
-event.create.interrupt skiptitle
-
-gfx.show SANSI bkg
-gfx.show NEWLOGO
-gfx.transition 4 time 1200
-sleep
-gfx.show ofsx 24576 ofsy 13517 TCHOICE1
-gfx.transition 4 time 500
-sleep 100
-gfx.show ofsx 24346 ofsy 16138 TCHOICE2
-gfx.setframe TCHOICE2 4
-gfx.transition 4 time 500
-sleep 100
-gfx.show ofsx 26931 ofsy 18964 TCHOICE3
-gfx.transition 4 time 500
-sleep 100
-gfx.show ofsx 28723 ofsy 21340 TCHOICE4
-gfx.transition 4 time 500
-sleep
-goto mainmenu
-
-@skiptitle:
-gfx.clearkids
-gfx.show NEWLOGO
-gfx.show ofsx 24576 ofsy 13517 TCHOICE1
-gfx.show ofsx 24346 ofsy 16138 TCHOICE2
-gfx.show ofsx 26931 ofsy 18964 TCHOICE3
-gfx.show ofsx 28723 ofsy 21340 TCHOICE4
-gfx.setframe TCHOICE2 4
-gfx.transition 0
-sleep 100
+goto SK_101.
 
 
-// ===== Main Menu =====
-@mainmenu:
-event.clear
-waitkey
-call SK_101.
+// ===== Load Game =====
+@loadgame:
+choice.go
 
-// clickable areas in 948x592 resolution:
-// 717,245; 924,282
-// 706,294; 924,330
-// 780,343; 924,389
-// 834,391; 924,430
-event.create.area NEWGAME; 24783,13561, 31938,15609; 2 ; ngclick
-event.mouseon NEWGAME; ngon
-event.mouseoff NEWGAME; ngoff
-//event.create.area LOADGAME; 24403,16273, 31938,18266; 2 ; lgclick
-//event.mouseon LOADGAME; lgon
-//event.mouseoff LOADGAME; lgoff
-event.create.area GALLERY; 26961,18986, 31938,21532; 2 ; galclick
-event.mouseon GALLERY; galon
-event.mouseoff GALLERY; galoff
-event.create.area QUITGAME; 28828,21642, 31938,23801; 2 ; qgclick
-event.mouseon QUITGAME; qgon
-event.mouseoff QUITGAME; qgoff
-fiber.stop
-#waitevent
-
-@ngon:
-gfx.setsequence TCHOICE1; 1
-exit
-@ngoff:
-gfx.setsequence TCHOICE1; 4
-exit
-@galon:
-gfx.setsequence TCHOICE3; 1
-exit
-@galoff:
-gfx.setsequence TCHOICE3; 4
-exit
-@qgon:
-gfx.setsequence TCHOICE4; 1
-exit
-@qgoff:
-gfx.setsequence TCHOICE4; 4
-exit
-
-@galclick:
-exit
-
-
-// ===== New Game =====
-@ngclick:
-event.clear
-gfx.clearall
-call INTRO.
-gfx.clearall
-gfx.transition 4
-sleep
-
-#gfx.show FLERIN bkg viewport 1
-
-call SK_101.
+// ===== Gallery =====
+@gallery:
+choice.go
 
 // ===== Quit Game =====
-@qgclick:
+@quitgame:
 sys.quit

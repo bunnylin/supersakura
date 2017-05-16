@@ -1,2 +1,11 @@
 language English
 
+file NEWLOGO
+res 1280x800
+ofs 80,78
+
+file SISBOX
+res 832x520
+
+file SISBOX2
+res 1152x720
