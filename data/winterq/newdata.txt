@@ -18,10 +18,13 @@ file KURSORI
 dontresize
 
 file EMO
-dontresize
+res 2048x1536
 framecount 4
 sequence 0:0,stop; 1:1,stop; 2:2,stop; 3:3,stop
 sequence 4:1,500; 5:2,500; 6:r4,500; 7:jump -3
+
+file WISP
+res 2048x1536
 
 file NUM
 res 1024x768
