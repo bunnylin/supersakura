@@ -17,6 +17,13 @@
 { along with SuperSakura.  If not, see <https://www.gnu.org/licenses/>.     }
 {                                                                           }
 
+procedure addBoxScrollEffect(boxnum : dword; fibernum, toy, msecs : longint; style : byte); forward;
+
+procedure ScrollBoxTo(boxnum : dword; scrollto : dword; style : byte); inline;
+begin
+ addBoxScrollEffect(boxnum, -1, scrollto, 160, style);
+end;
+
 procedure HideBoxes(dohide : boolean);
 var ivar : dword;
     hideval : byte;
@@ -96,16 +103,6 @@ begin
  end;
 end;
 
-procedure ScrollBoxTo(boxnum : dword; scrollto : dword); inline;
-begin
- //if boxnum >= dword(length(TBox)) then exit;
- with TBox[boxnum] do begin
-  contentwinscrollofsp := scrollto;
-  finalbufvalid := FALSE;
-  needsredraw := TRUE;
- end;
-end;
-
 function CheckPageableBoxes : boolean;
 // Checks all boxes for undisplayed content, where the box is not freely
 // scrollable and has autowaitkey enabled. If any such box exists, it is
@@ -119,7 +116,7 @@ begin
    and (style.freescrollable = FALSE) and (style.autowaitkey)
    and (contentwinscrollofsp + contentwinsizeyp < contentfullheightp)
    then begin
-    ScrollBoxTo(ivar, contentwinscrollofsp + contentwinsizeyp);
+    ScrollBoxTo(ivar, contentwinscrollofsp + contentwinsizeyp, MOVETYPE_INSTANT);
     CheckPageableBoxes := TRUE;
    end;
   end;

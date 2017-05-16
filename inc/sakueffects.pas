@@ -85,6 +85,14 @@ begin
      end;
     end;
 
+    FX_BOXSCROLL: begin
+     with TBox[fxbox] do begin
+      contentwinscrollofsp := y2;
+      finalbufvalid := FALSE;
+      needsredraw := TRUE;
+     end;
+    end;
+
     FX_GOBMOVE: MoveGob(fxgob, x2 - gob[fxgob].locx, y2 - gob[fxgob].locy);
 
     FX_GOBALPHA: begin
@@ -336,6 +344,36 @@ begin
  end;
 end;
 
+procedure addBoxScrollEffect(boxnum : dword; fibernum, toy, msecs : longint; style : byte);
+// Scrolls a box from its current pixel ofs to a new pixel ofs, over a period
+// of msecs.
+var fxvar : dword;
+begin
+ if boxnum >= dword(length(TBox)) then exit;
+ if style = MOVETYPE_INSTANT then msecs := 0;
+ // If a scroll effect on this box is already live, co-opt it.
+ fxvar := 0;
+ while fxvar < fxcount do begin
+  if (fx[fxvar].kind = FX_BOXSCROLL) and (fx[fxvar].fxbox = boxnum) then break;
+  inc(fxvar);
+ end;
+ if fxvar >= fxcount then fxvar := NewFx(fibernum);
+
+ // Set up the effect.
+ with fx[fxvar] do begin
+  kind := FX_BOXSCROLL;
+  fxbox := boxnum;
+  y1 := TBox[boxnum].contentwinscrollofsp; // source scrollpos
+  y2 := toy; // target scrollpos
+
+  time := msecs; // remaining msecs
+  time2 := msecs; // full msecs
+  data2 := style;
+  // End the effect immediately if time is 0.
+  if msecs = 0 then DeleteFx(fxvar);
+ end;
+end;
+
 procedure AddGobAlphaEffect(gobnum : dword; fibernum : longint; toalpha : byte; msecs : dword);
 // Creates an effect that slides the given gob's alphaness from its current
 // value to a new value, over a duration of msecs.
@@ -576,8 +614,44 @@ begin
        contentwinmaxsizexp := contentwinminsizexp;
        contentwinminsizeyp := (contentwinminsizey * viewport[inviewport].viewportsizeyp + 16384) shr 15;
        contentwinmaxsizeyp := contentwinminsizeyp;
-       TBox[fxbox].contentbuftextvalid := FALSE;
+       contentbuftextvalid := FALSE;
       end;
+     end;
+    end;
+
+    FX_BOXSCROLL: begin
+     if tickcount >= fx[fxi].time then DeleteFx(fxi)
+     else with fx[fxi] do begin
+      dec(fx[fxi].time, tickcount);
+      case data2 of
+        MOVETYPE_LINEAR: begin
+         ivar := time2 - time;
+         with TBox[fxbox] do begin
+          contentwinscrollofsp := (y2 * ivar + y1 * longint(time)) div longint(time2);
+         end;
+        end;
+
+        MOVETYPE_COSCOS: begin
+         ivar := dword(high(coscos)) * time div time2;
+         jvar := coscos[high(coscos) - ivar];
+         ivar := jvar xor $FFFF;
+         with TBox[fxbox] do begin
+          contentwinscrollofsp := (y2 * ivar + y1 * jvar) div $FFFF;
+         end;
+        end;
+
+        MOVETYPE_HALFCOS: begin
+         ivar := dword(high(coscos) shr 1) * time div time2;
+         jvar := $FFFF - coscos[ivar];
+         ivar := jvar xor $7FFF;
+         with TBox[fxbox] do begin
+          contentwinscrollofsp := (y2 * ivar + y1 * jvar) div $7FFF;
+         end;
+        end;
+      end;
+
+      TBox[fxbox].finalbufvalid := FALSE;
+      TBox[fxbox].needsredraw := TRUE;
      end;
     end;
 

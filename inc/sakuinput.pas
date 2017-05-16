@@ -255,7 +255,7 @@ begin
    newpos := contentwinscrollofsp - y * fontheightp;
    if newpos + contentwinsizeyp > contentfullheightp then newpos := contentfullheightp - contentwinsizeyp;
    if newpos < 0 then newpos := 0;
-   ScrollBoxTo(ivar, newpos);
+   ScrollBoxTo(ivar, newpos, MOVETYPE_HALFCOS);
   end;
 end;
 
@@ -403,8 +403,8 @@ begin
  for ivar := high(TBox) downto 0 do with TBox[ivar] do
   if (style.freescrollable) and (contentwinscrollofsp > 0) then begin
    if contentwinscrollofsp > fontheightp
-   then ScrollBoxTo(ivar, contentwinscrollofsp - fontheightp)
-   else ScrollBoxTo(ivar, 0);
+   then ScrollBoxTo(ivar, contentwinscrollofsp - fontheightp, MOVETYPE_HALFCOS)
+   else ScrollBoxTo(ivar, 0, MOVETYPE_HALFCOS);
    exit;
   end;
  // Move to closest mouseoverable.
@@ -419,7 +419,7 @@ begin
  for ivar := high(TBox) downto 0 do with TBox[ivar] do
   if (style.freescrollable)
   and (contentwinscrollofsp + contentwinsizeyp < contentfullheightp) then begin
-   ScrollBoxTo(ivar, contentwinscrollofsp + fontheightp);
+   ScrollBoxTo(ivar, contentwinscrollofsp + fontheightp, MOVETYPE_HALFCOS);
    exit;
   end;
  // Move to closest mouseoverable.

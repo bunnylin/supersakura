@@ -62,11 +62,11 @@ begin
    ivar := contentwinscrollofsp;
    if y1 - margintopp < contentwinscrollofsp then begin
     ivar := y1 - margintopp;
-    ScrollBoxTo(choicebox, ivar);
+    ScrollBoxTo(choicebox, ivar, MOVETYPE_HALFCOS);
    end else
    if y2 - margintopp > contentwinscrollofsp + contentwinsizeyp then begin
     ivar := y2 - margintopp - contentwinsizeyp;
-    ScrollBoxTo(choicebox, ivar);
+    ScrollBoxTo(choicebox, ivar, MOVETYPE_HALFCOS);
    end;
    // Deduct the box's scrolling offset.
    dec(y1, ivar);
