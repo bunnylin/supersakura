@@ -194,7 +194,10 @@ begin
   if ClearWaitKey then exit;
 
   // Trigger the normal interrupt, if defined.
-  if event.normalint.triggerlabel <> '' then StartFiber(event.normalint.triggerlabel, '');
+  if (event.normalint.triggerlabel <> '') and (event.triggeredint = FALSE) then begin
+   event.triggeredint := TRUE;
+   StartFiber(event.normalint.triggerlabel, '');
+  end;
 
  end else
 
@@ -222,7 +225,10 @@ begin
       end;
 
   // Trigger the esc-interrupt, if defined.
-  if event.escint.triggerlabel <> '' then StartFiber(event.escint.triggerlabel, '');
+  if (event.escint.triggerlabel <> '') and (event.triggeredint = FALSE) then begin
+   event.triggeredint := TRUE;
+   StartFiber(event.escint.triggerlabel, '');
+  end;
 
   // Summon the metamenu.
  end;
@@ -311,7 +317,10 @@ begin
  if ClearWaitKey then exit;
 
  // If a normal interrupt is defined, trigger it.
- if event.normalint.triggerlabel <> '' then StartFiber(event.normalint.triggerlabel, '');
+ if (event.normalint.triggerlabel <> '') and (event.triggeredint = FALSE) then begin
+  event.triggeredint := TRUE;
+  StartFiber(event.normalint.triggerlabel, '');
+ end;
 end;
 
 procedure UserInput_Esc;
@@ -333,7 +342,8 @@ begin
  end;
 
  // If esc-interrupt is defined, trigger it.
- if event.escint.triggerlabel <> '' then begin
+ if (event.escint.triggerlabel <> '') and (event.triggeredint = FALSE) then begin
+  event.triggeredint := TRUE;
   StartFiber(event.escint.triggerlabel, '');
   exit;
  end;

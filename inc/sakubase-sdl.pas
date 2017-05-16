@@ -431,6 +431,7 @@ begin
    end;
 
   // User input etc.
+  event.triggeredint := FALSE;
   while SDL_PollEvent(@evd) <> 0 do HandleSDLevent(@evd);
 
   // if we gained focus just now, stop dropping events as of the next frame

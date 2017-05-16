@@ -564,6 +564,7 @@ var // Script execution fibers.
       escint : record
         triggerlabel : UTF8string;
       end;
+      triggeredint : boolean; // TRUE if an int was triggered this frame
     end;
 
 var // Commandline parameters.

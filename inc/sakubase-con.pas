@@ -151,6 +151,7 @@ begin
    end;
 
   // User input etc.
+  event.triggeredint := FALSE;
   while KeyPressed do HandleConEvent(ReadKey);
 
   // if we just entered single-stepping mode...
