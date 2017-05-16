@@ -920,6 +920,8 @@ begin
      // Graphical textboxes get drawn like any gob, so just add the box's
      // position as a refresh region.
      AddRefresh(boxlocxp_r, boxlocyp_r, boxlocxp_r + longint(boxsizexp_r), boxlocyp_r + longint(boxsizeyp_r));
+
+    needsredraw := FALSE;
     {$else}
     if gamevar.hideboxes = 0 then
      // Console textboxes get special treatment. Because of the difficulty in
@@ -930,7 +932,6 @@ begin
     {$endif}
 
     contentbuftextvalid := TRUE; basebufvalid := TRUE;
-    needsredraw := FALSE;
    end;
   end;
 end;
