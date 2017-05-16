@@ -324,7 +324,7 @@ begin
    FetchParam(WOPP_MOUSEONLY);
 
    num := GetGob(egob);
-   if num >= length(gob) then fibererror('event.create.gob with invalid gob')
+   if num >= dword(length(gob)) then fibererror('event.create.gob with invalid gob')
    else begin
     numvalue2 := length(event.gob);
     setlength(event.gob, length(event.gob) + 1);

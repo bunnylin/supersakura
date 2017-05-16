@@ -242,7 +242,7 @@ begin
  // If choicematic is active, move the highlight forward/backward directly.
  if choicematic.active then with choicematic do begin
   newpos := highlightindex - y;
-  if newpos >= showcount then highlightindex := showcount - 1
+  if newpos >= longint(showcount) then highlightindex := showcount - 1
   else if newpos < 0 then highlightindex := 0
   else highlightindex := newpos;
   HighlightChoice(MOVETYPE_HALFCOS);
@@ -252,8 +252,8 @@ begin
  // Scroll freescrollable boxes.
  for ivar := high(TBox) downto 0 do with TBox[ivar] do
   if (style.freescrollable) then begin
-   newpos := contentwinscrollofsp - y * fontheightp;
-   if newpos + contentwinsizeyp > contentfullheightp then newpos := contentfullheightp - contentwinsizeyp;
+   newpos := longint(contentwinscrollofsp) - y * longint(fontheightp);
+   if newpos + longint(contentwinsizeyp) > longint(contentfullheightp) then newpos := contentfullheightp - contentwinsizeyp;
    if newpos < 0 then newpos := 0;
    ScrollBoxTo(ivar, newpos, MOVETYPE_HALFCOS);
   end;
@@ -386,8 +386,8 @@ begin
  while ivar <> 0 do begin
   dec(ivar);
   with event.gob[ivar] do if mouseonly = FALSE then begin
-   x := gob[gobnum].locxp + gob[gobnum].sizexp shr 1 - gamevar.mousex;
-   y := gob[gobnum].locyp + gob[gobnum].sizeyp shr 1 - gamevar.mousey;
+   x := gob[gobnum].locxp + longint(gob[gobnum].sizexp shr 1) - gamevar.mousex;
+   y := gob[gobnum].locyp + longint(gob[gobnum].sizeyp shr 1) - gamevar.mousey;
    trynewbest;
   end;
  end;
