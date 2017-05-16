@@ -852,6 +852,7 @@ begin
        // Set the highlight box immediately if the choicebox just finished
        // appearing.
        if (choicematic.active) and (boxnum = choicematic.choicebox)
+       and (contentbuftextvalid) and (basebufvalid)
        then HighlightChoice(MOVETYPE_INSTANT);
        {$endif}
       end;
