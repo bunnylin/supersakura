@@ -398,6 +398,9 @@ end;
 procedure UserInput_Up;
 var ivar : dword;
 begin
+ {$ifdef sakucon}
+ gamevar.keysdown := gamevar.keysdown or 8;
+ {$endif}
  if choicematic.active then begin MoveChoiceHighlightUp; exit; end;
  // Scroll freescrollable boxes.
  for ivar := high(TBox) downto 0 do with TBox[ivar] do
@@ -414,6 +417,9 @@ end;
 procedure UserInput_Down;
 var ivar : dword;
 begin
+ {$ifdef sakucon}
+ gamevar.keysdown := gamevar.keysdown or 1;
+ {$endif}
  if choicematic.active then begin MoveChoiceHighlightDown; exit; end;
  // Scroll freescrollable boxes.
  for ivar := high(TBox) downto 0 do with TBox[ivar] do
@@ -428,6 +434,9 @@ end;
 
 procedure UserInput_Left; inline;
 begin
+ {$ifdef sakucon}
+ gamevar.keysdown := gamevar.keysdown or 2;
+ {$endif}
  if (choicematic.active) and (choicematic.numcolumns > 1) then begin
   MoveChoiceHighlightLeft;
   exit;
@@ -438,6 +447,9 @@ end;
 
 procedure UserInput_Right; inline;
 begin
+ {$ifdef sakucon}
+ gamevar.keysdown := gamevar.keysdown or 4;
+ {$endif}
  if (choicematic.active) and (choicematic.numcolumns > 1) then begin
   MoveChoiceHighlightRight;
   exit;

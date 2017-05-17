@@ -870,6 +870,69 @@ begin
  ScriptReturn(fiberid);
 end;
 
+procedure Invoke_SYS_GETKEYDOWN; inline;
+begin
+ {$ifndef sakucon}
+ PushInt(byte((mv_PKeystate + SDL_SCANCODE_DOWN)^));
+ {$note Add gamepad poll here, SDL_GameControllerGetButton}
+ {$else}
+ PushInt(gamevar.keysdown and 1);
+ {$endif}
+ PushInt(STACK_TOKEN_NUMBER);
+end;
+
+procedure Invoke_SYS_GETKEYLEFT; inline;
+begin
+ {$ifndef sakucon}
+ PushInt(byte((mv_PKeystate + SDL_SCANCODE_LEFT)^));
+ {$else}
+ PushInt(gamevar.keysdown and 2);
+ {$endif}
+ PushInt(STACK_TOKEN_NUMBER);
+end;
+
+procedure Invoke_SYS_GETKEYRIGHT; inline;
+begin
+ {$ifndef sakucon}
+ PushInt(byte((mv_PKeystate + SDL_SCANCODE_RIGHT)^));
+ {$else}
+ PushInt(gamevar.keysdown and 4);
+ {$endif}
+ PushInt(STACK_TOKEN_NUMBER);
+end;
+
+procedure Invoke_SYS_GETKEYUP; inline;
+begin
+ {$ifndef sakucon}
+ PushInt(byte((mv_PKeystate + SDL_SCANCODE_UP)^));
+ {$else}
+ PushInt(gamevar.keysdown and 8);
+ {$endif}
+ PushInt(STACK_TOKEN_NUMBER);
+end;
+
+procedure Invoke_SYS_GETMOUSEX; inline;
+begin
+ numvalue := gamevar.defaultviewport;
+ FetchParam(WOPP_VIEWPORT);
+ if numvalue >= length(viewport) then fibererror('GetMouseXY: bad viewport: ' + strdec(numvalue))
+ else begin
+  PushInt((gamevar.mousex - viewport[numvalue].viewportx1p) * 32768 div longint(viewport[numvalue].viewportsizexp));
+  PushInt(STACK_TOKEN_NUMBER);
+ end;
+end;
+
+procedure Invoke_SYS_GETMOUSEY; inline;
+begin
+ numvalue := gamevar.defaultviewport;
+ FetchParam(WOPP_VIEWPORT);
+ if numvalue >= length(viewport) then fibererror('GetMouseXY: bad viewport: ' + strdec(numvalue))
+ else begin
+  PushInt((gamevar.mousey - viewport[numvalue].viewporty1p) * 32768 div longint(viewport[numvalue].viewportsizeyp));
+  PushInt(STACK_TOKEN_NUMBER);
+ end;
+end;
+
 procedure Invoke_SYS_ISFULLSCREEN; inline;
 begin
  if sysvar.fullscreen then PushInt(1) else PushInt(0);
@@ -1300,6 +1363,12 @@ begin
    WOP_INC: Invoke_INC;
    WOP_RETURN: Invoke_RETURN;
 
+   WOP_SYS_GETKEYDOWN: Invoke_SYS_GETKEYDOWN;
+   WOP_SYS_GETKEYLEFT: Invoke_SYS_GETKEYLEFT;
+   WOP_SYS_GETKEYRIGHT: Invoke_SYS_GETKEYRIGHT;
+   WOP_SYS_GETKEYUP: Invoke_SYS_GETKEYUP;
+   WOP_SYS_GETMOUSEX: Invoke_SYS_GETMOUSEX;
+   WOP_SYS_GETMOUSEY: Invoke_SYS_GETMOUSEY;
    WOP_SYS_ISFULLSCREEN: Invoke_SYS_ISFULLSCREEN;
    WOP_SYS_PAUSE: Invoke_SYS_PAUSE;
    WOP_SYS_QUIT: Invoke_SYS_QUIT;

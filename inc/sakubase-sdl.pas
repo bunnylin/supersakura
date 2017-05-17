@@ -622,6 +622,9 @@ begin
  end;
  log('Using driver: ' + SDL_GetCurrentVideoDriver);
 
+ mv_PKeystate := SDL_GetKeyboardState(NIL);
+ if mv_PKeystate = NIL then begin LogError('SDL_GetKbState: ' + SDL_GetError); exit; end;
+
  // Basic variable init. Sysvars carry over even when returning to a game's
  // main script. Some of these get saved in a configuration file.
  with sysvar do begin

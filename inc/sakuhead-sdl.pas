@@ -21,6 +21,7 @@ var mv_MainWinH : PSDL_Window;
     mv_RendererH : PSDL_Renderer;
     mv_MainTexH : PSDL_Texture;
     mv_GamepadH : PSDL_GameController;
+    mv_PKeystate : pointer;
 
 procedure ScreenModeSwitch(usefull : boolean); forward;
 

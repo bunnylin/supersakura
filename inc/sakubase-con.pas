@@ -148,6 +148,7 @@ begin
 
   // User input etc.
   event.triggeredint := FALSE;
+  gamevar.keysdown := 0;
   while KeyPressed do HandleConEvent(ReadKey);
 
   // if we just entered single-stepping mode...
