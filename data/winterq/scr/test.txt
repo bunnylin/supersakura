@@ -866,11 +866,11 @@ goto effys
 @testsys:
   choice.reset
   choice.set "Fullscreen switch" testfullscr
+  choice.set "Direct input" testdirectinput
   choice.set "Back" testclasses
 choice.go
 
 @testfullscr:
-  tbox.clear
   $v0 := (sys.isfullscreen)
   print "isfullscreen: " + $v0 + "\nNow switching..."
   waitkey
@@ -878,6 +878,43 @@ choice.go
   print "Howzat?"
   waitkey
 goto testsys
+
+@testdirectinput:
+  event.create.int testdiint
+  event.create.esc testdiint
+  start testdifiber
+  waitsig
+  event.clear
+  tbox.clear
+  stop test.testdifiber
+goto testsys
+
+  @testdiint:
+    stop test.testdifiber
+    signal main
+  stop
+
+  @testdifiber:
+  while 1 do
+    $v0 := (sys.getmousex)
+    $v1 := (sys.getmousey)
+    $v2 := (sys.getkeydown)
+    $v3 := (sys.getkeyleft)
+    $v4 := (sys.getkeyright)
+    $v5 := (sys.getkeyup)
+    $v6 := 0
+    if $v0 <> $v7 then (inc v6) $v7 := $v0 end
+    if $v1 <> $v8 then (inc v6) $v8 := $v1 end
+    if $v2 <> $v9 then (inc v6) $v9 := $v2 end
+    if $v3 <> $v10 then (inc v6) $v10 := $v3 end
+    if $v4 <> $v11 then (inc v6) $v11 := $v4 end
+    if $v5 <> $v12 then (inc v6) $v12 := $v5 end
+    if $v6 <> 0 then
+      tbox.clear 1
+      print "Mouse: \$v0;,\$v1;\nDown: \$v2; Left: \$v3; Right: \$v4; Up: \$v5;"
+    end
+    yield
+  end
 
 // ------------------------------------------------------------------
 @farewell:

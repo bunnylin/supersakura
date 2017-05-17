@@ -98,8 +98,8 @@ tbox.setparam 3 ly 19000
 tbox.setparam 3 ay 4800
 tbox.setparam 3 margintop 512
 tbox.setparam 3 marginbottom 512
-tbox.setparam 3 marginleft 350
-tbox.setparam 3 marginright 300
+tbox.setparam 3 marginleft 512
+tbox.setparam 3 marginright 512
 tbox.setparam 3 basecolor0 0x479D
 tbox.setparam 3 basecolor1 0x477A
 tbox.setparam 3 basecolor2 0x487B
