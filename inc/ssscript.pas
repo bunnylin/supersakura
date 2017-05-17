@@ -237,7 +237,7 @@ WOP_SYS_QUIT = 255;
 // Reserved words of power
 // Table mapping word of power strings to bytecode values
 // Must be arranged in ascending ascii order!
-var ss_rwoplist : array[0..152] of record
+var ss_rwoplist : array[0..153] of record
   namu : string[22];
   code : byte;
 end = (
@@ -336,6 +336,7 @@ end = (
 (namu : 'return'; code : WOP_RETURN),
 (namu : 'signal'; code : WOP_FIBER_SIGNAL),
 (namu : 'sleep'; code : WOP_FIBER_WAIT),
+(namu : 'start'; code : WOP_FIBER_START),
 (namu : 'stop'; code : WOP_FIBER_STOP),
 (namu : 'sys.closemetamenu'; code : WOP_SYS_CLOSEMETAMENU),
 (namu : 'sys.getdatname'; code : WOP_SYS_GETDATNAME),
