@@ -589,6 +589,7 @@ var // Commandline parameters.
       fullscreen : boolean;
       havefocus : byte; // 0 = no, 1 = almost, 2 = yes
       WinSizeAuto : boolean; // use default winsize values?
+      usevsync : boolean;
       quit : boolean; // set to TRUE when quitting
     end;
 
@@ -1784,6 +1785,14 @@ begin
    end;
    {$endif}
 
+   // Vsync setting.
+   if lowercase(copy(cline, 1, 6)) = 'vsync ' then begin
+    txt := lowercase(copy(cline, 7, length(cline)));
+    if (txt = 'on') or (txt = '1') or (txt = 'true') or (txt = 'enabled')
+    or (txt = 'yes') or (txt = 'auto') then sysvar.usevsync := TRUE
+    else sysvar.usevsync := FALSE;
+   end;
+
    // Game window size.
    cline := lowercase(cline);
    if copy(cline, 1, 8) = 'winsize ' then begin
@@ -1862,6 +1871,11 @@ begin
   if length(fontlist) <> 0 then
    for ivar := 0 to high(fontlist) do
     writeln(cfile, 'font ', fontlist[ivar].fontlang, ' ', fontlist[ivar].fontmatch);
+
+  writeln(cfile, '');
+  writeln(cfile, '# Vertical sync. Enabling this may reduce the frame rate, but looks nicer.');
+  if sysvar.usevsync then writeln(cfile, 'vsync on')
+  else writeln(cfile, 'vsync off');
   {$endif}
   // audio settings
   // other settings

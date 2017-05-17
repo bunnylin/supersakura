@@ -48,7 +48,9 @@ begin
  if mv_RendererH <> NIL then begin SDL_DestroyRenderer(mv_RendererH); mv_RendererH := NIL; end;
 
  // Create the renderer!
- mv_RendererH := SDL_CreateRenderer(mv_MainWinH, -1, 0);
+ ivar := 0;
+ if sysvar.usevsync then ivar := SDL_RENDERER_PRESENTVSYNC;
+ mv_RendererH := SDL_CreateRenderer(mv_MainWinH, -1, ivar);
  if mv_RendererH = NIL then begin
   LogError('Failed to create SDL renderer: ' + SDL_GetError);
   exit;
@@ -371,7 +373,8 @@ begin
   SDL_CONTROLLERDEVICEREMOVED: begin log('Controller removed!'); InitGamepad; end;
 
   // If this happens, the renderer has been wrecked? Can happen when the user
-  // task switches while in fullscreen mode. The renderer must be renewed.
+  // task switches while in fullscreen mode. Redrawing the whole screen
+  // should set things right.
   SDL_RENDER_TARGETS_RESET: begin
    log('RENDER TARGETS RESET');
    numfresh := 0;
@@ -636,6 +639,7 @@ begin
   fullscreen := FALSE; // meaningless on consoles
   havefocus := 2; // consoles always have focus
   WinSizeAuto := TRUE;
+  usevsync := TRUE;
   quit := FALSE; // set to TRUE to quit
  end;
 
