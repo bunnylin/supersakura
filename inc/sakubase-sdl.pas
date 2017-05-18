@@ -405,65 +405,75 @@ var evd : TSDL_event;
     ivar : dword;
 begin
  tickmark := SDL_GetTicks;
- while NOT sysvar.quit do begin
-  // How long has it been since the last frame?
-  tickcount := tickmark;
-  tickmark := SDL_GetTicks;
-  tickcount := (tickmark - tickcount) and $FFFF;
-  // If we are paused, then override elapsed time with 0.
-  if pausestate = PAUSESTATE_PAUSED then tickcount := 0;
+ while TRUE do begin
+  while NOT sysvar.quit do begin
+   // How long has it been since the last frame?
+   tickcount := tickmark;
+   tickmark := SDL_GetTicks;
+   tickcount := (tickmark - tickcount) and $FFFF;
+   // If we are paused, then override elapsed time with 0.
+   if pausestate = PAUSESTATE_PAUSED then tickcount := 0;
 
-  // Process timer events, if any.
-  if (length(event.timer) <> 0) and (tickcount <> 0) then
-   for ivar := high(event.timer) downto 0 do with event.timer[ivar] do begin
-    inc(timercounter, tickcount);
-    while timercounter >= triggerfreq do begin
-     dec(timercounter, triggerfreq);
-     StartFiber(triggerlabel, '');
+   // Process timer events, if any.
+   if (length(event.timer) <> 0) and (tickcount <> 0) then
+    for ivar := high(event.timer) downto 0 do with event.timer[ivar] do begin
+     inc(timercounter, tickcount);
+     while timercounter >= triggerfreq do begin
+      dec(timercounter, triggerfreq);
+      StartFiber(triggerlabel, '');
+     end;
     end;
+
+   // User input etc.
+   event.triggeredint := FALSE;
+   while SDL_PollEvent(@evd) <> 0 do HandleSDLevent(@evd);
+
+   // if we just entered single-stepping mode...
+   if pausestate = PAUSESTATE_SINGLE then begin
+    // override elapsed time
+    tickcount := sysvar.resttime;
+    // should also forward a single piece of user input from all devices...?
    end;
 
-  // User input etc.
-  event.triggeredint := FALSE;
-  while SDL_PollEvent(@evd) <> 0 do HandleSDLevent(@evd);
+   // Script logic.
+   if pausestate <> PAUSESTATE_PAUSED then RunFibers;
 
-  // if we just entered single-stepping mode...
-  if pausestate = PAUSESTATE_SINGLE then begin
-   // override elapsed time
-   tickcount := sysvar.resttime;
-   // should also forward a single piece of user input from all devices...?
+   // If, as far as we can tell, absolutely no time has passed since the last
+   // time we rendered stuff, then nothing can have changed on-screen, and we
+   // may as well not bother drawing the exact same stuff again.
+   if tickcount <> 0 then begin
+
+    // Update display structures.
+    UpdateVisuals(tickcount);
+    // Update various effects.
+    if fxcount <> 0 then Effector(tickcount);
+   end;
+
+   // Update textbox data and prepare to draw them a little later.
+   TextBoxer(tickcount);
+
+   // Update the screen.
+   Renderer;
+
+   // Frame limiter... wait for it.
+   tickcount := dword(SDL_GetTicks - tickmark);
+   if tickcount < sysvar.resttime then SDL_Delay(sysvar.resttime - tickcount);
+
+   // Ask the renderer to finally display the new frame.
+   // (or, admit it in the display queue anyway, if double/triple buffering)
+   SDL_RenderPresent(mv_RendererH);
+
+   // If single-stepping, our step is done, so re-pause the game.
+   if pausestate = PAUSESTATE_SINGLE then SetPauseState(PAUSESTATE_PAUSED);
   end;
 
-  // Script logic.
-  if pausestate <> PAUSESTATE_PAUSED then RunFibers;
-
-  // If, as far as we can tell, absolutely no time has passed since the last
-  // time we rendered stuff, then nothing can have changed on-screen, and we
-  // may as well not bother drawing the exact same stuff again.
-  if tickcount <> 0 then begin
-
-   // Update display structures.
-   UpdateVisuals(tickcount);
-   // Update various effects.
-   if fxcount <> 0 then Effector(tickcount);
-  end;
-
-  // Update textbox data and prepare to draw them a little later.
-  TextBoxer(tickcount);
-
-  // Update the screen.
-  Renderer;
-
-  // Frame limiter... wait for it.
-  tickcount := dword(SDL_GetTicks - tickmark);
-  if tickcount < sysvar.resttime then SDL_Delay(sysvar.resttime - tickcount);
-
-  // Ask the renderer to finally display the new frame.
-  // (or, admit it in the display queue anyway, if double/triple buffering)
-  SDL_RenderPresent(mv_RendererH);
-
-  // If single-stepping, our step is done, so re-pause the game.
-  if pausestate = PAUSESTATE_SINGLE then SetPauseState(PAUSESTATE_PAUSED);
+  // Quitting the main loop; if restart is not true, shut down.
+  if sysvar.restart = FALSE then exit;
+  // If restart is true, re-init and return to the main loop.
+  sysvar.restart := FALSE;
+  sysvar.quit := FALSE;
+  ResetDefaults;
+  StartFiber(mainscriptname, 'MAIN');
  end;
 end;
 
@@ -629,6 +639,7 @@ begin
   fullscreen := FALSE;
   WinSizeAuto := TRUE;
   usevsync := TRUE;
+  restart := FALSE;
   quit := FALSE; // set to TRUE to quit
  end;
 

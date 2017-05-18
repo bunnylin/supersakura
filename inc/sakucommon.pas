@@ -593,7 +593,8 @@ var // Commandline parameters.
       WinSizeAuto : boolean; // use default winsize values?
       usevsync : boolean;
       skipseentext : boolean;
-      quit : boolean; // set to TRUE when quitting
+      restart : boolean; // set to TRUE to restart main script
+      quit : boolean; // set to TRUE when quitting or restarting
     end;
 
     // Game session variables, imported/exported in save states.

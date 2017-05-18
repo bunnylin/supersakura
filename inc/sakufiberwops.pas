@@ -958,6 +958,14 @@ begin
  fibercount := 0;
 end;
 
+procedure Invoke_SYS_RESTARTGAME; inline;
+begin
+ sysvar.quit := TRUE;
+ sysvar.restart := TRUE;
+ yieldnow := TRUE;
+ fibercount := 0;
+end;
+
 procedure Invoke_SYS_SETCURSOR; inline;
 begin
  if FetchParam(WOPP_GOB) then log('set cursor to ' + strvalue[0])
@@ -1387,6 +1395,7 @@ begin
    WOP_SYS_ISSKIPPING: Invoke_SYS_ISSKIPPING;
    WOP_SYS_PAUSE: Invoke_SYS_PAUSE;
    WOP_SYS_QUIT: Invoke_SYS_QUIT;
+   WOP_SYS_RESTARTGAME: Invoke_SYS_RESTARTGAME;
    WOP_SYS_SETCURSOR: Invoke_SYS_SETCURSOR;
    WOP_SYS_SETFULLSCREEN: Invoke_SYS_SETFULLSCREEN;
    WOP_SYS_SETSKIPPING: Invoke_SYS_SETSKIPPING;
