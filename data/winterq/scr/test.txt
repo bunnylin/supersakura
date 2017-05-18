@@ -867,6 +867,7 @@ goto effys
   choice.reset
   choice.set "Fullscreen switch" testfullscr
   choice.set "Direct input" testdirectinput
+  choice.set "Restart game" testrestart
   choice.set "Back" testclasses
 choice.go
 
@@ -915,6 +916,11 @@ goto testsys
     end
     yield
   end
+
+@testrestart:
+  sys.restartgame
+  print "If you see this, the restart failed."
+goto testsys
 
 // ------------------------------------------------------------------
 @farewell:
