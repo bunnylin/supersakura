@@ -867,6 +867,7 @@ goto effys
   choice.reset
   choice.set "Fullscreen switch" testfullscr
   choice.set "Direct input" testdirectinput
+  choice.set "Highlight callback" testonhighlight
   choice.set "Restart game" testrestart
   choice.set "Back" testclasses
 choice.go
@@ -916,6 +917,27 @@ goto testsys
     end
     yield
   end
+
+@testonhighlight:
+  choice.reset
+  print 3 "---\n\?VER\.\n\?AMO\.\n\?COR\.\n---\n"
+  print 3 "\?SIN\.\n\?ACE\.\n\?DEW\.\n---"
+  choice.set "VER"
+  choice.set "AMO"
+  choice.set "COR"
+  choice.set "SIN"
+  choice.set "ACE"
+  choice.set "DEW"
+  choice.onhighlight test.onhilitecallback
+  choice.get noclear=1 noprint=1
+  tbox.clear
+goto testsys
+
+  @onhilitecallback:
+    tbox.clear 1
+    $v0 := (choice.gethighlight)
+    print "Current highlight: \$v0;"
+  stop
 
 @testrestart:
   sys.restartgame
