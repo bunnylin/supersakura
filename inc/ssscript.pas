@@ -985,8 +985,8 @@ var linestart : pointer;
   {$endif}
 
    // If this is an expression right after if or while, only one such is
-   // allows before a corresponding then or do must be present.
-   if ifwhileexpr <> 0 then begin
+   // allowed before a corresponding then or do must be present.
+   if (lasttoken <> parenopen) and (ifwhileexpr <> 0) then begin
     if (ifwhileexpr and $1 <> 0) then begin
      if ifwhileexpr and $80 <> 0 then error('expected do, instead of a wop')
      else error('expected then, instead of a wop');
@@ -1079,28 +1079,30 @@ var linestart : pointer;
 
   procedure startnewexpr(maybeprint : boolean);
   begin
-   // If this is an expression right after if or while, only one such is
-   // allows before a corresponding then or do must be present.
-   if ifwhileexpr <> 0 then begin
-    if (ifwhileexpr and $1 <> 0) then begin
-     if ifwhileexpr and $80 <> 0 then error('expected do, instead of an expression')
-     else error('expected then, instead of an expression');
-    end
-    else inc(ifwhileexpr);
-   end;
-
    // If this is on the same line as a wop, then generate an implicit dynamic
    // parameter tag; otherwise terminate the current wop if any.
    // If maybeprint is true, then a print command is issued.
    if acceptnamelessparams then opstackpushwopp(WOPP_DYNAMIC)
    else begin
-    opstackpop(11);
-    if opstackcount <> 0 then
-     if opstack[opstackcount - 1].optoken = TOKEN_PARENOPEN
-     then error('expected ) instead of new expression');
-    if maybeprint then begin
-     opstackpushwop(WOP_TBOX_PRINT);
-     opstackpushwopp(WOPP_DYNAMIC);
+    // If this is an expression right after if or while, only one such is
+    // allowed before a corresponding then or do must be present.
+    if ifwhileexpr <> 0 then begin
+     if (ifwhileexpr and $1 <> 0) then begin
+      if ifwhileexpr and $80 <> 0 then error('expected do, instead of an expression')
+      else error('expected then, instead of an expression');
+     end
+     else inc(ifwhileexpr);
+    end
+
+    else begin
+     opstackpop(11);
+     if opstackcount <> 0 then
+      if opstack[opstackcount - 1].optoken = TOKEN_PARENOPEN
+      then error('expected ) instead of new expression');
+     if maybeprint then begin
+      opstackpushwop(WOP_TBOX_PRINT);
+      opstackpushwopp(WOPP_DYNAMIC);
+     end;
     end;
    end;
   end;
