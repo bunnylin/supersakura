@@ -1957,6 +1957,7 @@ begin
  end;
  setlength(fx, 6);
  fxcount := 0;
+ transitionactive := $FFFFFFFF;
 
  // Reset all textboxes.
  ResetAllBoxes;
@@ -1970,5 +1971,8 @@ begin
  end;
 
  // Clear the screen too.
+ setlength(refresh, 16); numfresh := 0;
  AddRefresh(0, 0, sysvar.mv_WinSizeX, sysvar.mv_WinSizeY);
+
+ randomize;
 end;

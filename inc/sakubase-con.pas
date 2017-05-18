@@ -368,9 +368,6 @@ begin
  if stashbuffy <> NIL then begin freemem(stashbuffy); stashbuffy := NIL; end;
  getmem(stashbuffy, ivar);
 
- setlength(refresh, 16); numfresh := 0;
- transitionactive := $FFFFFFFF;
-
  // One meg should be plenty for console graphics caching.
  asman_gfxmemlimit := 1048576;
 
@@ -380,7 +377,6 @@ begin
  // This must be called every time before booting the main script.
  ResetDefaults;
 
- randomize;
  StartFiber(mainscriptname, 'MAIN');
  InitEverything := TRUE;
 end;

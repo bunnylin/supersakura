@@ -693,17 +693,14 @@ begin
  // Pop up the game window.
  SpawnWindow;
 
- setlength(refresh, 16); numfresh := 0;
- transitionactive := $FFFFFFFF;
-
  // The wop param list may need initing.
  if ss_rwopparams[WOP_TBOX_PRINT][WOPP_BOX] = 0 then ss_rwopparams_init;
 
  // This must be called every time before booting the main script.
  ResetDefaults;
 
- randomize;
  StartFiber(mainscriptname, 'MAIN');
+
  InitEverything := TRUE;
 end;
 
