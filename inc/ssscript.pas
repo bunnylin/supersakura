@@ -26,27 +26,27 @@
 // Word of power parameter enums
 const
 WOPP_DYNAMIC = 0; // autofit to next appropriate parameter type
-WOPP_ALLFX = 3;
-WOPP_ALPHA = 5;
-WOPP_ANCHORX = 7;
-WOPP_ANCHORY = 8;
-WOPP_BOX = 10;
-WOPP_BY = 12;
-WOPP_COLOR = 16;
-WOPP_FIBER = 18;
-WOPP_FRAME = 20;
-WOPP_FREQ = 22;
-WOPP_GAMMA = 24;
-WOPP_GOB = 26;
-WOPP_INDEX = 28;
-WOPP_LABEL = 30;
-WOPP_LOCX = 32;
-WOPP_LOCY = 33;
-WOPP_MOUSEOFF = 35;
-WOPP_MOUSEON = 36;
-WOPP_MOUSEONLY = 37;
-WOPP_NAME = 38;
-WOPP_NOCLEAR = 40;
+WOPP_ALPHA = 3;
+WOPP_ANCHORX = 6;
+WOPP_ANCHORY = 7;
+WOPP_BOX = 9;
+WOPP_BY = 11;
+WOPP_COLOR = 14;
+WOPP_FIBER = 16;
+WOPP_FRAME = 18;
+WOPP_FREQ = 20;
+WOPP_GAMMA = 22;
+WOPP_GOB = 24;
+WOPP_INDEX = 26;
+WOPP_LABEL = 28;
+WOPP_LOCX = 30;
+WOPP_LOCY = 31;
+WOPP_MOUSEOFF = 33;
+WOPP_MOUSEON = 34;
+WOPP_MOUSEONLY = 35;
+WOPP_NAME = 37;
+WOPP_NOCLEAR = 39;
+WOPP_NOPRINT = 40;
 WOPP_PARENT = 42;
 WOPP_RATIOX = 44;
 WOPP_RATIOY = 45;
@@ -69,7 +69,6 @@ const ss_rwopplist : array[0..39] of record
   code : byte;
 end = (
 // WOPP_DYNAMIC has special handling, so it's not listed among these
-(id : 'allfx';         code : WOPP_ALLFX),
 (id : 'alpha';         code : WOPP_ALPHA),
 (id : 'anchorx';       code : WOPP_ANCHORX),
 (id : 'anchory';       code : WOPP_ANCHORY),
@@ -90,6 +89,7 @@ end = (
 (id : 'mouseonly';     code : WOPP_MOUSEONLY),
 (id : 'name';          code : WOPP_NAME),
 (id : 'noclear';       code : WOPP_NOCLEAR),
+(id : 'noprint';       code : WOPP_NOPRINT),
 (id : 'ofsx';          code : WOPP_LOCX),
 (id : 'ofsy';          code : WOPP_LOCY),
 (id : 'parent';        code : WOPP_PARENT),
@@ -420,7 +420,6 @@ begin
  filldword(ss_rwoppargtype, length(ss_rwoppargtype) shr 2, 0);
 
  // Set up the argument types for all parameters
- ss_rwoppargtype[WOPP_ALLFX] := ARG_NUM;
  ss_rwoppargtype[WOPP_ALPHA] := ARG_NUM;
  ss_rwoppargtype[WOPP_ANCHORX] := ARG_NUM;
  ss_rwoppargtype[WOPP_ANCHORY] := ARG_NUM;
@@ -440,6 +439,7 @@ begin
  ss_rwoppargtype[WOPP_MOUSEON] := ARG_STR;
  ss_rwoppargtype[WOPP_NAME] := ARG_STR;
  ss_rwoppargtype[WOPP_NOCLEAR] := ARG_NUM;
+ ss_rwoppargtype[WOPP_NOPRINT] := ARG_NUM;
  ss_rwoppargtype[WOPP_PARENT] := ARG_STR;
  ss_rwoppargtype[WOPP_RATIOX] := ARG_NUM;
  ss_rwoppargtype[WOPP_RATIOY] := ARG_NUM;
@@ -571,6 +571,10 @@ begin
  ss_rwopparams[WOP_CHOICE_CALL][WOPP_NOCLEAR] := ss_rwoppargtype[WOPP_NOCLEAR];
  ss_rwopparams[WOP_CHOICE_GET][WOPP_NOCLEAR] := ss_rwoppargtype[WOPP_NOCLEAR];
  ss_rwopparams[WOP_CHOICE_GOTO][WOPP_NOCLEAR] := ss_rwoppargtype[WOPP_NOCLEAR];
+ // default: noprint=0, choices are automatically printed in the box
+ ss_rwopparams[WOP_CHOICE_CALL][WOPP_NOPRINT] := ss_rwoppargtype[WOPP_NOPRINT];
+ ss_rwopparams[WOP_CHOICE_GET][WOPP_NOPRINT] := ss_rwoppargtype[WOPP_NOPRINT];
+ ss_rwopparams[WOP_CHOICE_GOTO][WOPP_NOPRINT] := ss_rwoppargtype[WOPP_NOPRINT];
  // default: empty string, all choices
  ss_rwopparams[WOP_CHOICE_OFF][WOPP_TEXT] := ss_rwoppargtype[WOPP_TEXT];
  ss_rwopparams[WOP_CHOICE_ON][WOPP_TEXT] := ss_rwoppargtype[WOPP_TEXT];

@@ -19,9 +19,6 @@
 
 // SuperSakura text box functions
 
-// A choicematic proc called from RenderTextboxContent.
-procedure HighlightChoice(style : byte); forward;
-
 // ------------------------------------------------------------------
 
 procedure GetNewFont(boxnum, heightp : dword);

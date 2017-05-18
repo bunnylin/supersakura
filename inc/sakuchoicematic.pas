@@ -107,6 +107,9 @@ begin
   AddBoxMoveEffect(highlightbox, -1, x1, y1, 0, 0, 160, style);
   AddBoxSizeEffect(highlightbox, -1, x2 - x1, y2 - y1, 160, style);
   {$endif}
+
+  // Trigger the on-highlight callback if defined.
+  if onhighlight <> '' then StartFiber(onhighlight, '');
  end;
 end;
 
@@ -222,9 +225,9 @@ begin
  end;
 end;
 
-procedure PrintActiveChoices;
+procedure PrintActiveChoices(noprint : longint);
 // Builds a list of currently displayed choices from the total set of enabled
-// choices, and prints them in the choicebox.
+// choices, and if noprint=0, prints them in the choicebox.
 var ivar, jvar, lvar : dword;
     tempstr : UTF8string;
 begin
@@ -276,7 +279,7 @@ begin
    end;
   end;
 
-  if showcount = 0 then exit;
+  if (showcount = 0) or (noprint <> 0) then exit;
 
   // Print the parent choice level, if appropriate.
   if (printchoiceparent) and (choiceparent <> '') then
@@ -311,7 +314,7 @@ begin
   // Print the next level of sub-choices, if any.
   ClearTextbox(choicebox);
   if choicepartbox <> choicebox then ClearTextbox(choicepartbox);
-  PrintActiveChoices;
+  PrintActiveChoices(0);
   if showcount <> 0 then exit;
 
   // No available sub-choices, finalise this choice.
@@ -344,7 +347,7 @@ begin
   // Reprint choices.
   ClearTextbox(choicebox);
   if choicepartbox <> choicebox then ClearTextbox(choicepartbox);
-  PrintActiveChoices;
+  PrintActiveChoices(0);
   if showcount = 0 then begin
    LogError('RevertChoice: no choices showable');
    DeactivateChoicematic(TRUE);
@@ -352,10 +355,15 @@ begin
  end;
 end;
 
-procedure ActivateChoicematic(fibernum : dword);
+procedure ActivateChoicematic(fibernum, noclear, noprint : longint);
 // Prints out choices in a textbox and sets the triggering fiber to rest.
 // Stops the fiber if any errors occur.
 begin
+ if (fibernum < 0) or (dword(fibernum) >= fibercount) then begin
+  LogError('ActivateChoicematic: bad fiber: ' + strdec(fibernum));
+  exit;
+ end;
+
  with choicematic do begin
   if choicelistcount = 0 then begin
    LogError('Fiber ' + strdec(fibernum) + ':' + fiber[fibernum].fibername + ': empty choicematic');
@@ -363,8 +371,14 @@ begin
    exit;
   end;
 
+  if noclear = 0 then begin
+   ClearTextbox(choicebox);
+   if choicepartbox <> choicebox then ClearTextbox(choicepartbox);
+  end;
+
   choiceparent := '';
-  PrintActiveChoices;
+
+  PrintActiveChoices(noprint);
 
   if showcount = 0 then begin
    LogError('Fiber ' + strdec(fibernum) + ':' + fiber[fibernum].fibername + ': choicematic all disabled');
@@ -374,6 +388,18 @@ begin
 
   active := TRUE;
   fiber[fibernum].fiberstate := FIBERSTATE_WAITCHOICE;
+
+  {$ifdef sakucon}
+  // The SDL version builds the choice text before displaying it, and so
+  // knows each choice's coordinates and can call HighlightChoice whenever.
+  // However, the console version only prints the text on demand during
+  // rendering, and so won't know choice coordinates until after the first
+  // render, and can't call HighlightChoice before that.
+  // So, while normally the on-highlight callback is triggered for the first
+  // time in response to an implicit initial HighlightChoice, the console
+  // version needs to trigger this separately the first time.
+  if onhighlight <> '' then StartFiber(onhighlight, '');
+  {$endif}
  end;
 end;
 

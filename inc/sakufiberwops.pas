@@ -47,11 +47,10 @@ procedure Invoke_CHOICE_CALL; inline;
 begin
  numvalue := 0;
  FetchParam(WOPP_NOCLEAR);
- if numvalue = 0 then with choicematic do begin
-  ClearTextbox(choicebox);
-  if choicepartbox <> choicebox then ClearTextbox(choicepartbox);
- end;
- ActivateChoicematic(fiberid);
+ numvalue2 := numvalue;
+ numvalue := 0;
+ FetchParam(WOPP_NOPRINT);
+ ActivateChoicematic(fiberid, numvalue2, numvalue);
  yieldnow := TRUE;
 end;
 
@@ -73,23 +72,27 @@ procedure Invoke_CHOICE_GET; inline;
 begin
  numvalue := 0;
  FetchParam(WOPP_NOCLEAR);
- if numvalue = 0 then with choicematic do begin
-  ClearTextbox(choicebox);
-  if choicepartbox <> choicebox then ClearTextbox(choicepartbox);
- end;
- ActivateChoicematic(fiberid);
+ numvalue2 := numvalue;
+ numvalue := 0;
+ FetchParam(WOPP_NOPRINT);
+ ActivateChoicematic(fiberid, numvalue2, numvalue);
  yieldnow := TRUE;
+end;
+
+procedure Invoke_CHOICE_GETHIGHLIGHT; inline;
+begin
+ PushInt(choicematic.highlightindex);
+ PushInt(STACK_TOKEN_NUMBER);
 end;
 
 procedure Invoke_CHOICE_GOTO; inline;
 begin
  numvalue := 0;
  FetchParam(WOPP_NOCLEAR);
- if numvalue = 0 then with choicematic do begin
-  ClearTextbox(choicebox);
-  if choicepartbox <> choicebox then ClearTextbox(choicepartbox);
- end;
- ActivateChoicematic(fiberid);
+ numvalue2 := numvalue;
+ numvalue := 0;
+ FetchParam(WOPP_NOPRINT);
+ ActivateChoicematic(fiberid, numvalue2, numvalue);
  yieldnow := TRUE;
 end;
 
@@ -119,6 +122,12 @@ begin
   if strvalue[0] = '' then ToggleChoices('', TRUE) // enable all choices
   else ToggleChoices(strvalue[0], TRUE) // enable a specific choice
  end;
+end;
+
+procedure Invoke_CHOICE_ONHIGHLIGHT; inline;
+begin
+ choicematic.onhighlight := '';
+ if FetchParam(WOPP_LABEL) then choicematic.onhighlight := strvalue[0];
 end;
 
 procedure Invoke_CHOICE_PRINTPARENT; inline;
@@ -162,6 +171,7 @@ begin
  choicematic.choicelistcount := 0;
  choicematic.showcount := 0;
  //choicematic.previouschoice := '';
+ choicematic.onhighlight := '';
 end;
 
 procedure Invoke_CHOICE_SET; inline;
@@ -1330,9 +1340,11 @@ begin
    WOP_CHOICE_CANCEL: Invoke_CHOICE_CANCEL;
    WOP_CHOICE_COLUMNS: Invoke_CHOICE_COLUMNS;
    WOP_CHOICE_GET: Invoke_CHOICE_GET;
+   WOP_CHOICE_GETHIGHLIGHT: Invoke_CHOICE_GETHIGHLIGHT;
    WOP_CHOICE_GOTO: Invoke_CHOICE_GOTO;
    WOP_CHOICE_OFF: Invoke_CHOICE_OFF;
    WOP_CHOICE_ON: Invoke_CHOICE_ON;
+   WOP_CHOICE_ONHIGHLIGHT: Invoke_CHOICE_ONHIGHLIGHT;
    WOP_CHOICE_PRINTPARENT: Invoke_CHOICE_PRINTPARENT;
    WOP_CHOICE_REMOVE: Invoke_CHOICE_REMOVE;
    WOP_CHOICE_RESET: Invoke_CHOICE_RESET;

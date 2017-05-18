@@ -634,6 +634,9 @@ var // Commandline parameters.
       // If the user is prompted for a choice again, this can be used to set
       // the initial highlight. Choice.reset also resets this.
       previouschoice : UTF8string;
+      // If not empty, each time the user changes the highlight, this label
+      // gets spawned in a new fiber.
+      onhighlight : UTF8string;
 
       // Choicelist comes straight from sakurascript's choice.set command.
       choicelist : array of record
@@ -715,6 +718,10 @@ procedure DrawRGBA32(clipdata : pblitstruct); forward;
 procedure DrawRGBA32hardlight(clipdata : pblitstruct); forward;
 // Visual transition helper.
 procedure StashRender; forward;
+// The choicematic etc may need to spawn fibers.
+procedure StartFiber(labelnamu, fibernamu : UTF8string); forward;
+// The box renderer etc may need to set the highlighted choice.
+procedure HighlightChoice(style : byte); forward;
 
 // Uncomment this when compiling with HeapTrace. Call this whenever to test
 // if at that moment the heap has yet been messed up.
@@ -1926,6 +1933,7 @@ begin
   colwidthp := 0;
   choiceparent := '';
   previouschoice := '';
+  onhighlight := '';
   setlength(choicelist, 0);
   setlength(showlist, 0);
   choicelistcount := 0;
