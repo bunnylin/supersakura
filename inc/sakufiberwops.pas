@@ -939,6 +939,12 @@ begin
  PushInt(STACK_TOKEN_NUMBER);
 end;
 
+procedure Invoke_SYS_ISSKIPPING; inline;
+begin
+ if sysvar.skipseentext then PushInt(1) else PushInt(0);
+ PushInt(STACK_TOKEN_NUMBER);
+end;
+
 procedure Invoke_SYS_PAUSE; inline;
 begin
  SetPauseState(PAUSESTATE_PAUSED);
@@ -963,6 +969,14 @@ begin
  {$ifndef sakucon}
  if FetchParam(WOPP_VALUE) then ScreenModeSwitch(numvalue <> 0);
  {$endif}
+end;
+
+procedure Invoke_SYS_SETSKIPPING; inline;
+begin
+ if (FetchParam(WOPP_VALUE) = FALSE)
+ or (numvalue <> 0)
+ then sysvar.skipseentext := TRUE
+ else sysvar.skipseentext := FALSE;
 end;
 
 procedure Invoke_SYS_SETTITLE; inline;
@@ -1370,10 +1384,12 @@ begin
    WOP_SYS_GETMOUSEX: Invoke_SYS_GETMOUSEX;
    WOP_SYS_GETMOUSEY: Invoke_SYS_GETMOUSEY;
    WOP_SYS_ISFULLSCREEN: Invoke_SYS_ISFULLSCREEN;
+   WOP_SYS_ISSKIPPING: Invoke_SYS_ISSKIPPING;
    WOP_SYS_PAUSE: Invoke_SYS_PAUSE;
    WOP_SYS_QUIT: Invoke_SYS_QUIT;
    WOP_SYS_SETCURSOR: Invoke_SYS_SETCURSOR;
    WOP_SYS_SETFULLSCREEN: Invoke_SYS_SETFULLSCREEN;
+   WOP_SYS_SETSKIPPING: Invoke_SYS_SETSKIPPING;
    WOP_SYS_SETTITLE: Invoke_SYS_SETTITLE;
 
    WOP_TBOX_CLEAR: Invoke_TBOX_CLEAR;
