@@ -221,8 +221,10 @@ begin
  else begin
   log('SDL reports desktop size: ' + strdec(mymode.w) + 'x' + strdec(mymode.h));
   log('Usable desktop area: ' + strdec(myrekt.w) + 'x' + strdec(myrekt.h));
-  sysvar.FullSizeX := mymode.w;
-  sysvar.FullSizeY := mymode.h;
+
+  // For graphics caching, eight times the fullscreen size should be plenty.
+  asman_gfxmemlimit := mymode.w * mymode.h * 32;
+
   sizex := asman_baseresx;
   sizey := asman_baseresy;
   // Start from 0.5x, add 0.5 more until a good size is reached.
@@ -381,19 +383,7 @@ begin
    AddRefresh(0, 0, sysvar.mv_WinSizeX, sysvar.mv_WinSizeY);
   end;
   SDL_RENDER_DEVICE_RESET: log('RENDER DEVICE RESET - DO SOMETHING!?');
-
-  SDL_WINDOWEVENT: begin
-    if evd^.window.event = SDL_WINDOWEVENT_FOCUS_GAINED then sysvar.havefocus := 1 else
-    if evd^.window.event = SDL_WINDOWEVENT_FOCUS_LOST then sysvar.havefocus := 0;
-  end;
  end;
-
- // Any other events can be unceremoniously dropped if the game is paused
- // or if our window doesn't have input focus. (If we only gained focus this
- // frame, drop input until the next frame anyway.)
- if (pausestate = PAUSESTATE_PAUSED)
- or (sysvar.havefocus < 2)
- then exit;
 
  case evd^.type_ of
   SDL_KEYDOWN: HandleKeyPress(evd^.key.keysym.sym, evd^.key.keysym._mod);
@@ -436,9 +426,6 @@ begin
   // User input etc.
   event.triggeredint := FALSE;
   while SDL_PollEvent(@evd) <> 0 do HandleSDLevent(@evd);
-
-  // if we gained focus just now, stop dropping events as of the next frame
-  if sysvar.havefocus = 1 then inc(sysvar.havefocus);
 
   // if we just entered single-stepping mode...
   if pausestate = PAUSESTATE_SINGLE then begin
@@ -633,11 +620,13 @@ begin
  with sysvar do begin
   resttime := 1000 div 30;
   mv_WinSizeX := 640; mv_WinSizeY := 480;
-  FullSizeX := 640; FullSizeY := 480;
   WindowSizeX := 640; WindowSizeY := 480;
   uimagnification := 32768;
-  fullscreen := FALSE; // meaningless on consoles
-  havefocus := 2; // consoles always have focus
+  mouseX := 0; mouseY := 0;
+  hideboxes := 0;
+  numlang := 1;
+  skipseentext := FALSE;
+  fullscreen := FALSE;
   WinSizeAuto := TRUE;
   usevsync := TRUE;
   quit := FALSE; // set to TRUE to quit
@@ -706,9 +695,6 @@ begin
 
  setlength(refresh, 16); numfresh := 0;
  transitionactive := $FFFFFFFF;
-
- // For graphics caching, eight times the fullscreen size should be plenty.
- asman_gfxmemlimit := sysvar.FullSizeX * sysvar.FullSizeY * 32;
 
  // The wop param list may need initing.
  if ss_rwopparams[WOP_TBOX_PRINT][WOPP_BOX] = 0 then ss_rwopparams_init;

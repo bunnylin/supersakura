@@ -579,30 +579,27 @@ var // Commandline parameters.
       help : boolean;
     end;
 
-    // System vars, these persist universally.
+    // System vars, not imported/exported in save states.
     sysvar : record
       resttime : dword; // maximum rest time between frames, milliseconds
       mv_WinSizeX, mv_WinSizeY : dword;
-      fullSizeX, fullSizeY, windowSizeX, windowSizeY : dword;
+      windowSizeX, windowSizeY : dword;
       uimagnification : dword; // text size adjustment, 32k = 100%
-      alreadyplayed : boolean;
+      mouseX, mouseY : longint; // straight px coord within program window
+      keysdown : byte; // bitmask: 1 = down, 2 = left, 4 = right, 8 = up
+      numlang : byte; // number of languages
+      hideboxes : byte; // 1 = hidden, 0 = visible
       fullscreen : boolean;
-      havefocus : byte; // 0 = no, 1 = almost, 2 = yes
       WinSizeAuto : boolean; // use default winsize values?
       usevsync : boolean;
+      skipseentext : boolean;
       quit : boolean; // set to TRUE when quitting
     end;
 
-    // Per-game vars, these are preserved in save states.
+    // Game session variables, imported/exported in save states.
     gamevar : record
       defaulttextbox : dword; // print commands default to this TBox[]
       defaultviewport : dword; // new gobs are relative to this by default
-      mouseX, mouseY : longint; // straight px coord within program window
-      keysdown : byte; // bitmask: 1 = down, 2 = left, 4 = right, 8 = up
-      savestate : byte;
-      hideboxes : byte; // 1 = hidden, 0 = visible
-      numlang : byte; // number of languages
-      skipseenmsgs : boolean;
     end;
 
     // Font preferences.
@@ -1919,11 +1916,6 @@ begin
  with gamevar do begin
   defaulttextbox := 1;
   defaultviewport := 0;
-  mouseX := 0; mouseY := 0;
-  savestate := 1;
-  hideboxes := 0;
-  numlang := 1;
-  skipseenmsgs := FALSE;
  end;
  with choicematic do begin
   choicebox := 1;

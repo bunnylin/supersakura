@@ -21,7 +21,7 @@
 
 procedure UserInput_HideBoxes; inline;
 begin
- HideBoxes(gamevar.hideboxes = 0);
+ HideBoxes(sysvar.hideboxes = 0);
 end;
 
 procedure UserInput_Mouse(musx, musy : longint; button : byte);
@@ -35,8 +35,8 @@ begin
  // If we're paused, mouse clicks are ignored and mouseovers don't trigger.
  if pausestate = PAUSESTATE_PAUSED then exit;
 
- gamevar.mousex := musx;
- gamevar.mousey := musy;
+ sysvar.mousex := musx;
+ sysvar.mousey := musy;
 
  // Check if mouseovering choices in an active choicebox.
  // (Ignore, if the highlight box is currently moving.)
@@ -141,7 +141,7 @@ begin
  if button = 1 then begin
 
   // If textboxes are hidden, make them visible.
-  if gamevar.hideboxes and 1 <> 0 then begin
+  if sysvar.hideboxes and 1 <> 0 then begin
    UserInput_HideBoxes;
    exit;
   end;
@@ -213,7 +213,7 @@ begin
 
   // If boxes are visible and the mouse is over any displayed box, hide
   // all boxes.
-  if gamevar.hideboxes = 0 then
+  if sysvar.hideboxes = 0 then
    for ivar := high(TBox) downto 0 do
     if TBox[ivar].boxstate <> BOXSTATE_NULL then
      with TBox[ivar] do
@@ -265,7 +265,7 @@ begin
  // If skip seen text mode is enabled, disable it.
 
  // If textboxes are hidden, make them visible.
- if gamevar.hideboxes <> 0 then begin
+ if sysvar.hideboxes <> 0 then begin
   HideBoxes(FALSE);
   exit;
  end;
@@ -325,7 +325,7 @@ begin
  // If skip seen text mode is enabled, disable it.
 
  // If textboxes are hidden, ignore it.
- if gamevar.hideboxes <> 0 then exit;
+ if sysvar.hideboxes <> 0 then exit;
 
  // If box 0 as transcript log is in showtext state, pop out the box.
 
@@ -377,8 +377,8 @@ begin
  while ivar <> 0 do begin
   dec(ivar);
   with event.area[ivar] do if mouseonly = FALSE then begin
-   x := (x1p + x2p) div 2 - gamevar.mousex;
-   y := (y1p + y2p) div 2 - gamevar.mousey;
+   x := (x1p + x2p) div 2 - sysvar.mousex;
+   y := (y1p + y2p) div 2 - sysvar.mousey;
    trynewbest;
   end;
  end;
@@ -386,20 +386,20 @@ begin
  while ivar <> 0 do begin
   dec(ivar);
   with event.gob[ivar] do if mouseonly = FALSE then begin
-   x := gob[gobnum].locxp + longint(gob[gobnum].sizexp shr 1) - gamevar.mousex;
-   y := gob[gobnum].locyp + longint(gob[gobnum].sizeyp shr 1) - gamevar.mousey;
+   x := gob[gobnum].locxp + longint(gob[gobnum].sizexp shr 1) - sysvar.mousex;
+   y := gob[gobnum].locyp + longint(gob[gobnum].sizeyp shr 1) - sysvar.mousey;
    trynewbest;
   end;
  end;
  if bestdist <> $FFFFFFFF then
-  UserInput_Mouse(gamevar.mousex + bestx, gamevar.mousey + besty, 0);
+  UserInput_Mouse(sysvar.mousex + bestx, sysvar.mousey + besty, 0);
 end;
 
 procedure UserInput_Up;
 var ivar : dword;
 begin
  {$ifdef sakucon}
- gamevar.keysdown := gamevar.keysdown or 8;
+ sysvar.keysdown := sysvar.keysdown or 8;
  {$endif}
  if choicematic.active then begin MoveChoiceHighlightUp; exit; end;
  // Scroll freescrollable boxes.
@@ -418,7 +418,7 @@ procedure UserInput_Down;
 var ivar : dword;
 begin
  {$ifdef sakucon}
- gamevar.keysdown := gamevar.keysdown or 1;
+ sysvar.keysdown := sysvar.keysdown or 1;
  {$endif}
  if choicematic.active then begin MoveChoiceHighlightDown; exit; end;
  // Scroll freescrollable boxes.
@@ -435,7 +435,7 @@ end;
 procedure UserInput_Left; inline;
 begin
  {$ifdef sakucon}
- gamevar.keysdown := gamevar.keysdown or 2;
+ sysvar.keysdown := sysvar.keysdown or 2;
  {$endif}
  if (choicematic.active) and (choicematic.numcolumns > 1) then begin
   MoveChoiceHighlightLeft;
@@ -448,7 +448,7 @@ end;
 procedure UserInput_Right; inline;
 begin
  {$ifdef sakucon}
- gamevar.keysdown := gamevar.keysdown or 4;
+ sysvar.keysdown := sysvar.keysdown or 4;
  {$endif}
  if (choicematic.active) and (choicematic.numcolumns > 1) then begin
   MoveChoiceHighlightRight;

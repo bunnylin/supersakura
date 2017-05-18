@@ -876,7 +876,7 @@ begin
  PushInt(byte((mv_PKeystate + SDL_SCANCODE_DOWN)^));
  {$note Add gamepad poll here, SDL_GameControllerGetButton}
  {$else}
- PushInt(gamevar.keysdown and 1);
+ PushInt(sysvar.keysdown and 1);
  {$endif}
  PushInt(STACK_TOKEN_NUMBER);
 end;
@@ -886,7 +886,7 @@ begin
  {$ifndef sakucon}
  PushInt(byte((mv_PKeystate + SDL_SCANCODE_LEFT)^));
  {$else}
- PushInt(gamevar.keysdown and 2);
+ PushInt(sysvar.keysdown and 2);
  {$endif}
  PushInt(STACK_TOKEN_NUMBER);
 end;
@@ -896,7 +896,7 @@ begin
  {$ifndef sakucon}
  PushInt(byte((mv_PKeystate + SDL_SCANCODE_RIGHT)^));
  {$else}
- PushInt(gamevar.keysdown and 4);
+ PushInt(sysvar.keysdown and 4);
  {$endif}
  PushInt(STACK_TOKEN_NUMBER);
 end;
@@ -906,7 +906,7 @@ begin
  {$ifndef sakucon}
  PushInt(byte((mv_PKeystate + SDL_SCANCODE_UP)^));
  {$else}
- PushInt(gamevar.keysdown and 8);
+ PushInt(sysvar.keysdown and 8);
  {$endif}
  PushInt(STACK_TOKEN_NUMBER);
 end;
@@ -917,7 +917,7 @@ begin
  FetchParam(WOPP_VIEWPORT);
  if numvalue >= length(viewport) then fibererror('GetMouseXY: bad viewport: ' + strdec(numvalue))
  else begin
-  PushInt((gamevar.mousex - viewport[numvalue].viewportx1p) * 32768 div longint(viewport[numvalue].viewportsizexp));
+  PushInt((sysvar.mousex - viewport[numvalue].viewportx1p) * 32768 div longint(viewport[numvalue].viewportsizexp));
   PushInt(STACK_TOKEN_NUMBER);
  end;
 end;
@@ -928,7 +928,7 @@ begin
  FetchParam(WOPP_VIEWPORT);
  if numvalue >= length(viewport) then fibererror('GetMouseXY: bad viewport: ' + strdec(numvalue))
  else begin
-  PushInt((gamevar.mousey - viewport[numvalue].viewporty1p) * 32768 div longint(viewport[numvalue].viewportsizeyp));
+  PushInt((sysvar.mousey - viewport[numvalue].viewporty1p) * 32768 div longint(viewport[numvalue].viewportsizeyp));
   PushInt(STACK_TOKEN_NUMBER);
  end;
 end;

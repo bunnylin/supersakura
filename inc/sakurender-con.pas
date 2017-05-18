@@ -276,7 +276,7 @@ begin
  numfresh := 0;
 
  // Textboxes in need of redrawing are completely reprinted in con mode.
- if gamevar.hideboxes = 0 then
+ if sysvar.hideboxes = 0 then
  for refrect := 0 to high(TBox) do
   if (TBox[refrect].boxstate <> BOXSTATE_NULL)
   and (TBox[refrect].needsredraw)

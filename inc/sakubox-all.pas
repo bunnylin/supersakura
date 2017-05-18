@@ -41,7 +41,7 @@ begin
      AddRefresh(boxlocxp_r, boxlocyp_r, boxlocxp_r + longint(boxsizexp_r), boxlocyp_r + longint(boxsizeyp_r));
    end;
   end;
- gamevar.hideboxes := hideval;
+ sysvar.hideboxes := hideval;
 end;
 
 procedure ClearTextbox(boxnum : longint);
@@ -913,14 +913,14 @@ begin
     and (boxstate = BOXSTATE_SHOWTEXT)
     then HighlightChoice(MOVETYPE_INSTANT);
 
-    if gamevar.hideboxes = 0 then
+    if sysvar.hideboxes = 0 then
      // Graphical textboxes get drawn like any gob, so just add the box's
      // position as a refresh region.
      AddRefresh(boxlocxp_r, boxlocyp_r, boxlocxp_r + longint(boxsizexp_r), boxlocyp_r + longint(boxsizeyp_r));
 
     needsredraw := FALSE;
     {$else}
-    if gamevar.hideboxes = 0 then
+    if sysvar.hideboxes = 0 then
      // Console textboxes get special treatment. Because of the difficulty in
      // printing textbox content in console mode, boxes are always drawn
      // fully. To avoid partial draws or flickering as a box gets overdrawn

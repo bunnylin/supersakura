@@ -148,7 +148,7 @@ begin
 
   // User input etc.
   event.triggeredint := FALSE;
-  gamevar.keysdown := 0;
+  sysvar.keysdown := 0;
   while KeyPressed do HandleConEvent(ReadKey);
 
   // if we just entered single-stepping mode...
@@ -289,8 +289,11 @@ begin
   resttime := 1000 div 16; // consoles don't need too many FPS
   mv_WinSizeX := 80; mv_WinSizeY := 25;
   uimagnification := 32768;
+  mouseX := 0; mouseY := 0;
+  hideboxes := 0;
+  numlang := 1;
+  skipseentext := FALSE;
   fullscreen := FALSE; // meaningless on consoles
-  havefocus := 2; // consoles always have focus
   WinSizeAuto := TRUE;
   quit := FALSE; // set to TRUE to quit
  end;

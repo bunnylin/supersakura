@@ -301,7 +301,7 @@ procedure SelectChoice(selnum : dword);
 // fibers that were waiting for it.
 begin
  // If boxes are hidden, can't select anything in them.
- if gamevar.hideboxes <> 0 then exit;
+ if sysvar.hideboxes <> 0 then exit;
 
  with choicematic do begin
   if selnum >= showcount then exit;
