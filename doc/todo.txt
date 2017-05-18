@@ -90,6 +90,12 @@ REQUIRED FOR 1.0
      thickness and offset must be 32k values relative to fontheight
 - Rework Moonsynth into Bunnysynth, plain midi; as for sound effects,
   consider internal support for wav/flac/opus
+- Change mcsassm unit logging to somehow feed into the main program's log
+  procedure; needs quick timestamps (perhaps just use tickmark) and the log
+  proc might be thread-safe with just a critical section? The log attach
+  can't be during unit init since the actual log file hasn't been set up yet,
+  so unit init can't produce logging unless the init is explicitly called
+  later by main, and the log proc must be attached before that...
 - Make the pre-cacher read ahead in bytecode from the current position to
   chart out all potential needed graphics at least a couple
   waitkeys/sleeps/if-jumps away; pre-cacher also needs to strongly
@@ -116,41 +122,43 @@ REQUIRED FOR 1.0
      compiled and executed in a new fiber
    + Commandline option to dump the game transcript into a file as you play
 - Viewframe option in metamenu for games that have one
-- Implement a metamenu
-   + When the metamenu is summoned, save and freeze fibers, gobs, anims,
-     events, boxes, effects (using the save state system), then spawn the
-     hardcoded fiber name METAMENU. as the sole fiber
-   + But do not save variables! The metamenu may wish to change them to keep
-     track of state
-   + Options: save, load, fullscreen, msg history, skip seen, settings, quit
-   + New wops needed: sys.isfullscreen, sys.setfullscreen [value],
-     sys.closemetamenu, sys.isskipping, sys.setskipseen [value],
-     sys.showhistory, sys.getnumsaves, sys.getsavename [index],
-     sys.getsavedate [index], gfx.stashthumbnail [name],
-     sys.loadsavethumb [index] [name], sys.loadstate [index],
-     sys.savestate [index] [name], choice.gethighlight,
-     choice.onhighlight [label], sys.getnumdats, sys.loadrun [name],
-     sys.getdatname [index], sys.loaddatbanner [index] [name]
-   + Set up choice.typeinbox [box], choice.endtyping, tbox.getlastline [box],
+- Implement a metamenu as per uidesign doc
+   + New wops needed:
+     choice.endtyping
+     choice.gethighlight
+     choice.onhighlight [label]
+     choice.typeinbox [box]
      fiber.waittyping
+     gfx.stashthumbnail [name]
+     sys.closemetamenu
+     sys.getdatname [index]
+     sys.getnumdats
+     sys.getnumsaves
+     sys.getsavedate [index]
+     sys.getsavename [index]
+     sys.isskipping
+     sys.loaddat [name]
+     sys.loaddatbanner [index] [name]
+     sys.loadsavethumb [index] [name]
+     sys.loadstate [index]
+     sys.restartgame
+     sys.savestate [index] [name]
+     sys.setskipping [value]
+     sys.showhistory
+     tbox.getlastline [box]
    + As long as choicematic.typeinbox is valid, user keypresses are added to
      the last line of the box; pressing enter in this case takes precedence
      and ends typing, resuming fibers waiting for typing to end; typing must
      allow spaces and backspaces, but backslashes are automatically doubled;
      tbox.getlastline should return all characters from the box content up to
      the last escape code or newline
-   + Mcsassm needs a way to add run-time incidental graphics
-   + Gob/area mouseovers must be selected before choicebox upon enter or
-     gamepad select, if both are selectable; but if a highlighted area has
-     no trigger, don't swallow the press
-   + Add sys.getkeyleft, sys.getkeyright, sys.getkeyup, sys.getkeydown
-   + Add sys.getmousex [viewport], sys.getmousey [viewport]
-   + Add -mouseonly to mouseoverables
+- Mcsassm needs a way to add run-time incidental graphics
+- Test mouseonly mouseoverables
+- Add uimagnifiq'n in config file
 - Set up another distro or two in VMs and make sure can build on them
 - Set up win7 in a VM and make sure can build on it, also check the esc key
   in minicrt
 - Build installable AUR package
-- Improve release.bat to also do the full compile
 - Add a simple makefile for Linux deployment; although I don't really want to
   push the tools into system-wide binary directories...
 - Add a Windows installer, InnoSetup?
@@ -162,17 +170,14 @@ REQUIRED FOR 1.0
   save files DAT-style modular
    + Should have a separate save state command for each engine component and
      a main command that invokes the others
-ONGOING
 - Re-implement quick RGB tweak?
 - Re-add gamepad support
-- Keyboard mouseoverables handling
 - Switch main menus to use textboxes instead of graphics
-- Free-scrollable textboxes, choiceboxes; add test to test suite
+- Scrollable boxes should have fading text to signal more content
 - By default, binaries should be in a write-protected executable
   directory; writable subdirectories for "data" and "save" will be
   used for the other stuff, or if they don't exist and cannot be
   created, they are put under the user's home directory as appropriate
-- Interrupts should be triggerable only once per frame, set a cooldown var
 
 ------------------------------------------------------------------
 Recomp
@@ -193,8 +198,6 @@ REQUIRED FOR 1.0
 - Add intros for the prime three
 - Add music conversion options in data.txt; needs instrument mappings and
   vol/key transposing at least; useful for .M or .O files
-ONGOING
-- Nothing!
 
 ------------------------------------------------------------------
 Decomp
@@ -217,9 +220,6 @@ REQUIRED FOR 1.0
 - Specific global vars with known uses in games should be named
 - Fix music conversion, polish code
 - Integrate Beautify
-ONGOING
-- Nothing!
-BUGS
 - Use v512 for endings in 3sis SK_737, SK_738 and SK_743
 
 ------------------------------------------------------------------
@@ -236,9 +236,6 @@ REQUIRED FOR 1.0
 - Touch up common pictures (about 16 from Xfer, 7 otherwise)
 - Touch up remaining other pictures (about 150...)
 - Modularise Beautify into a unit, usable by ssakura/Decomp/Detailer
-ONGOING
-- Nothing!
-BUGS
 - Finish refactoring and clean the code so it'll work again...
 
 ------------------------------------------------------------------
@@ -257,6 +254,4 @@ REQUIRED FOR 1.0
    + Runaway: Hiroaki with two clingy chicks shouted at by wossname?
    + Sakura: Last Supper scene in classroom, desks piled at door
 - MCGLoder.mcg_ScaleBitmap32: in horizontal shrink, use source^ directly?
-ONGOING
-- Nothing!
 -------------------- ===== TO DO END ===== -----------------------
