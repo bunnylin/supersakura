@@ -33,10 +33,13 @@ program Recompiler;
 // Header:
 // DWORD : signature $CACABAAB
 // BYTE : file format version, must be 3
-// BYTE : byte length of game project name string
-// CHARS : game project name string, UTF-8
-// BYTE : byte length of game data version string
-// CHARS : game data version string, UTF-8
+// DWORD : banner image offset, or zero for none
+// BYTE : byte length of project name string
+// CHARS : project name string, UTF-8
+// BYTE : byte length of dat description string
+// CHARS : description string, UTF-8
+// BYTE : byte length of version string
+// CHARS : version string, UTF-8
 //
 // Followed by a series of data blocks...
 // each has DWORD-SIG, DWORD-DATALEN, then DATA of said length.
@@ -605,6 +608,13 @@ begin
    continue;
   end;
 
+  // Banner image name.
+  if MatchString(line, 'banner ', lineofs) then begin
+   bannerimagename := upcase(copy(line, lineofs, length(line)));
+   writeln(stdout, 'Requested banner image: ', bannerimagename);
+   continue;
+  end;
+
   // Unknown command!
   Error('Unknown command: ' + line);
  end;
@@ -721,6 +731,13 @@ var poku : pointer;
    end;
    // If the output buffer is getting full, flush it before we start.
    if filubuffyofs + 128 >= filubuffysize then flushbuffy;
+
+   // If this is the banner image, remember the offset.
+   if bannerimagename = PNGlist[PNGindex].namu then begin
+    bannerimageofs := filepos(filu) + filubuffyofs;
+    writeln(stdout, 'Banner image saved at $', strhex(bannerimageofs));
+   end;
+
    // Write the supersakura PNG resource signature.
    lvar := $531E0BB0; writebuffy(@lvar, 4);
    // Remember this offset, must write the data length here later...
@@ -769,6 +786,31 @@ var poku : pointer;
   end;
 
 begin
+ // Write the header!
+ // dword sig for supersakura dats
+ ivar := $CACABAAB;
+ WriteBuffy(@ivar, 4);
+ // supersakura dat format version, constant value at top of source
+ WriteBuffy(@fileversion, 1);
+ // banner image offset
+ ivar := 0;
+ WriteBuffy(@ivar, 4);
+ // project name string
+ if length(recomp_param.project) > 255 then
+  recomp_param.project := copy(recomp_param.project, 1, 255);
+ ivar := length(recomp_param.project);
+ WriteBuffy(@ivar, 1);
+ WriteBuffy(@recomp_param.project[1], ivar);
+ // project description string
+ if length(projectdesc) > 255 then projectdesc := copy(projectdesc, 1, 255);
+ ivar := length(projectdesc);
+ WriteBuffy(@ivar, 1);
+ if ivar <> 0 then WriteBuffy(@projectdesc[1], ivar);
+ // recomp version string
+ ivar := length(SSver);
+ WriteBuffy(@ivar, 1);
+ WriteBuffy(@SSver[1], ivar);
+
  // Compress and save the scripts
  writeln('Saving scripts...');
  writeln(stdout, 'Saving scripts...');
@@ -837,6 +879,8 @@ begin
  mcg_ReadHeaderOnly := 1; // we need some metadata but not the whole images
  PNGcount := 0;
  SCRcount := 0;
+ bannerimagename := '';
+ bannerimageofs := 0;
 
  // Create a basic logging file...
  // Try the current working directory first.
@@ -948,25 +992,6 @@ begin
   {$note test if dat works with tiny buffysize}
   filubuffysize := 1 shl 24; filubuffyofs := 0;
   getmem(filubuffy, filubuffysize);
-
-  // Write the header!
-  // dword sig for supersakura dats
-  ivar := $CACABAAB;
-  WriteBuffy(@ivar, 4);
-  // supersakura dat format version, constant value at top of source
-  WriteBuffy(@fileversion, 1);
-  // project name string
-  if length(recomp_param.project) > 255 then
-   recomp_param.project := copy(recomp_param.project, 1, 255);
-  ivar := length(recomp_param.project);
-  WriteBuffy(@ivar, 1);
-  WriteBuffy(@recomp_param.project[1], ivar);
-  // data version string
-  if length(recomp_param.dataversion) > 255 then
-   recomp_param.dataversion := copy(recomp_param.dataversion, 1, 255);
-  ivar := length(recomp_param.dataversion);
-  WriteBuffy(@ivar, 1);
-  WriteBuffy(@recomp_param.dataversion[1], ivar);
  end;
 
  DoInits := TRUE;
@@ -977,9 +1002,15 @@ var txt : string;
     ivar, lvar : longint;
     uniquestringcount : longint;
 begin
- // Write to disk whatever we've still got in the memory buffer
+ // Write to disk whatever we've still got in the memory buffer.
  if recomp_param.outputfile <> '' then begin
   flushbuffy;
+  // Insert the banner image offset in the header, if present.
+  if bannerimageofs <> 0 then begin
+   seek(filu, 5);
+   blockwrite(filu, bannerimageofs, 4);
+  end;
+
   close(filu);
   freemem(filubuffy); filubuffy := NIL;
  end;
