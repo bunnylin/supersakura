@@ -119,6 +119,7 @@ uses sysutils, mcgloder, mcsassm, mccommon;
 function truename : ansistring;
 begin truename := 'ssakura'; end;
 
+{$include inc/version.inc}
 const fileversion : byte = 3; // this is stored in the output DAT file header
 
 var errorcount : dword;
@@ -1068,8 +1069,8 @@ begin
  if DoParams then exit;
 
  writeln;
- writeln('  MoonCore Super Resource Recompiler  v' + strdec(fileversion));
- writeln('----------------------------------------');
+ writeln('  MoonCore Super Resource Recompiler');
+ writeln('-------------------------------------- ' + SSver + ' --');
  writeln('Usage: recomp <project> [-options]');
  writeln;
  writeln('This tool packs resources into a single data file.');

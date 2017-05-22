@@ -75,6 +75,8 @@ uses sysutils, mcgloder, sjisutf8, mccommon;
 function truename : ansistring;
 begin truename := 'ssakura'; end;
 
+{$include inc/version.inc}
+
 type rgbtriplet = record
                    b, g, r : byte;
                   end;
@@ -1397,7 +1399,7 @@ begin
 
  writeln;
  writeln('  SuperSakura Game Decompiler');
- writeln('----------------------------------------');
+ writeln('------------------------------- ' + SSver + ' --');
  writeln('Usage: decomp <input directory or files> [-options]');
  writeln;
  writeln('This tool converts resources from various old games into newer standard files.');

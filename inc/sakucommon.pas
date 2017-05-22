@@ -17,8 +17,8 @@
 { along with SuperSakura.  If not, see <https://www.gnu.org/licenses/>.     }
 {                                                                           }
 
-const SSver = 'v0.91';
-      mainscriptname : string[5] = 'MAIN.'; // this is run at startup
+{$include inc/version.inc}
+const mainscriptname : string[5] = 'MAIN.'; // this is run at startup
 
 // Pause states:
 // Normal = all fibers run normally
