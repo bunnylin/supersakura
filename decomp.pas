@@ -123,7 +123,7 @@ var errorcount : dword;
     songlist : array of string[12];
 
 {$include inc/gidtable.inc} // game ID table with CRC numbers
-var game : dword;
+var game, crctableid : dword;
 
     filu : file;
 
@@ -574,7 +574,9 @@ begin
  else begin
   writeln(stdout, 'Writing ', decomp_param.outputdir, 'data.txt');
   writeln(metafile, '// Graphic details and animation data');
-  writeln(metafile, 'baseres ' + strdec(baseresx) + 'x' + strdec(baseresy));
+  writeln(metafile, 'baseres ', strdec(baseresx), 'x', strdec(baseresy));
+  if game <> gid_UNKNOWN then
+   writeln(metafile, 'desc ', CRCid[crctableid].desc);
   if PNGcount <> 0 then begin
    for ivar := 1 to PNGcount do with PNGlist[ivar] do
    if ((origofsxp or origofsyp or longint(seqlen)) <> 0)
@@ -582,14 +584,14 @@ begin
    or (origresx or origresy <> 0)
    then begin
     writeln(metafile);
-    writeln(metafile, 'file ' + namu);
+    writeln(metafile, 'file ', namu);
     if (origofsxp or origofsyp) <> 0 then
-    writeln(metafile, 'ofs ' + strdec(origofsxp) + ',' + strdec(origofsyp));
+    writeln(metafile, 'ofs ', strdec(origofsxp), ',', strdec(origofsyp));
     if (origresx or origresy) <> 0 then
-    writeln(metafile, 'res ' + strdec(origresx) + 'x' + strdec(origresy));
+    writeln(metafile, 'res ', strdec(origresx), 'x', strdec(origresy));
     if bitflag and 1 <> 0 then writeln(metafile, 'integerscaling');
     if bitflag and 4 <> 0 then writeln(metafile, 'dontresize');
-    if framecount > 1 then writeln(metafile, 'framecount ' + strdec(framecount));
+    if framecount > 1 then writeln(metafile, 'framecount ', strdec(framecount));
     if seqlen <> 0 then begin
 
      // Print the unpacked animation sequence
@@ -782,6 +784,7 @@ begin
   end;
 
   if MatchString(line, 'baseres ', lineofs) then continue;
+  if MatchString(line, 'desc ', lineofs) then continue;
 
   // Unknown command!
   Error('Unknown command: ' + line);
@@ -801,6 +804,7 @@ begin
  // New recognised game, do a general state reset.
  ResetMemResources;
  game := CRCID[newnum].gidnum;
+ crctableid := newnum;
  writeln('Game: ' + CRCID[newnum].desc);
  writeln(stdout, 'Game: ' + CRCID[newnum].desc);
  baseresx := CRCID[newnum].baseresx;
@@ -1231,6 +1235,8 @@ begin
  DoInits := FALSE;
  OnGetApplicationName := @truename;
  ResetMemResources;
+ game := gid_UNKNOWN;
+ crctableid := 0;
 
  // Create a basic logging file...
  // Try the current working directory first.
@@ -1272,8 +1278,7 @@ begin
   writeln(stdout, 'Input files: ', decomp_param.sourcedir);
  end;
 
- if decomp_param.gidoverride then SelectGame(game)
- else game := gid_UNKNOWN;
+ if decomp_param.gidoverride then SelectGame(game);
 
  DoInits := TRUE;
 end;

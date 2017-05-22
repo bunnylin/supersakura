@@ -135,13 +135,19 @@ var errorcount : dword;
     // excluding the null 0 index. This counter allows growing PNGlist in
     // large efficient chunks, as images are added.
     PNGcount : dword;
+    // Human-readable description string for the dat being built.
+    projectdesc : UTF8string;
+    // The metadata file may specify one of the graphics in the dat-file as
+    // a banner. While saving the graphics, the absolute offset to the named
+    // file will be remembered and is saved in the dat-file's header.
+    bannerimagename : UTF8string;
+    bannerimageofs : dword;
 
     recomp_param : record
       project : UTF8string; // the project name, also default src/out name
       sourcedir : UTF8string; // the resources being built are read from here
       outputfile : UTF8string; // the packed resources go in this one file
       dumpstrings : UTF8string; // the string table is dumped in this file
-      dataversion : UTF8string; // arbitrary resource version info string
       loadfile : UTF8string; // packed resource file to read before building
     end;
 
@@ -458,12 +464,21 @@ begin
   // If the leftover is an empty string, skip to next line
   if lineofs > dword(length(line)) then continue;
 
-  // Set the base language description
+  // Base language description.
   if (lowercase(copy(line, lineofs, 1)) = 'l')
   and (lowercase(copy(line, lineofs + 1, 8)) = 'anguage ') then begin
    inc(lineofs, 9);
-   languagelist[0] := copy(line, lineofs, length(line) - lineofs + 1);
+   languagelist[0] := copy(line, lineofs, length(line));
    if length(languagelist[0]) > 255 then languagelist[0] := copy(languagelist[0], 1, 255);
+   continue;
+  end;
+
+  // Human-readable description string for the dat being built.
+  if (lowercase(copy(line, lineofs, 1)) = 'd')
+  and (lowercase(copy(line, lineofs + 1, 4)) = 'esc ') then begin
+   inc(lineofs, 5);
+   projectdesc := copy(line, lineofs, length(line));
+   if length(projectdesc) > 255 then projectdesc := copy(projectdesc, 1, 255);
    continue;
   end;
 
@@ -913,8 +928,6 @@ begin
  if recomp_param.outputfile <> '' then begin
   txt := 'Output file: ' + recomp_param.outputfile;
   writeln(txt); writeln(stdout, txt);
-  txt := 'Data version: ' + recomp_param.dataversion;
-  writeln(txt); writeln(stdout, txt);
 
   // Prepare the output file.
   txt := FindFile_Caseless(recomp_param.outputfile, FALSE);
@@ -1012,7 +1025,6 @@ begin
   sourcedir := '';
   outputfile := '';
   dumpstrings := '';
-  dataversion := '0';
   loadfile := '';
  end;
 
@@ -1039,8 +1051,6 @@ begin
      then recomp_param.outputfile := copy(txt, jvar + 8, length(txt))
    else if (lowercase(copy(txt, jvar, 8)) = 'dumpstr=')
      then recomp_param.dumpstrings := copy(txt, jvar + 8, length(txt))
-   else if (lowercase(copy(txt, jvar, 8)) = 'version=')
-     then recomp_param.dataversion := copy(txt, jvar + 8, length(txt))
    else if (lowercase(copy(txt, jvar, 5)) = 'load=')
      then recomp_param.loadfile := copy(txt, jvar + 5, length(txt))
    else if (lowercase(copy(txt, jvar, 9)) = 'loadfile=')
@@ -1085,7 +1095,6 @@ begin
  writeln('Options:');
  writeln('-in=dir/dir        Overrides the project source directory');
  writeln('-out=file.dat      Overrides the output file name');
- writeln('-version=whatever  Sets the produced dat-file''s version to whatever');
  writeln('-load=file.dat     Loads the given dat before starting to process other files.');
  writeln('-dumpstr=file.tsv  Prints the string tables into a tab-separated text file.');
 end;
