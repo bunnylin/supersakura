@@ -1,5 +1,7 @@
+desc Winterquest ministory/testsuite
 language English
 baseres 640x480
+banner TITLE
 
 file FRAME
 res 800x600
