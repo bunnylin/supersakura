@@ -93,7 +93,7 @@ baseresx : 640; baseresy : 400;
 level : 0),
 
 (CRC : $AD6265D6; gidnum : gid_3SIS; namu : '3sis';
-desc : 'Three Sisters'' Story (DOS)';
+desc : 'The Three Sisters'' Story (DOS)';
 baseresx : 480; baseresy : 296;
 level : 3),
 
