@@ -17,7 +17,7 @@
 { along with SuperSakura.  If not, see <https://www.gnu.org/licenses/>.     }
 {                                                                           }
 
-{$include inc/version.inc}
+{$include version.inc}
 const mainscriptname : string[5] = 'MAIN.'; // this is run at startup
 
 // Pause states:
