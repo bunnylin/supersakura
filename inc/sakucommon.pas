@@ -1711,6 +1711,90 @@ end;
 
 // ------------------------------------------------------------------
 
+procedure ResetDefaults;
+// Resets the engine state nearly completely to default values. Runscript
+// calls this whenever someone wants to start executing the main script, to
+// ensure returning to main menu will not have carryover oddities.
+var ivar : dword;
+begin
+ mv_ProgramName := saku_param.datname;
+ SetProgramName(mv_ProgramName);
+ // Init/restart the variable monster. Languagelist was set equal to the
+ // number of languages when the DAT was loaded. We'll start with 16 variable
+ // buckets, plenty for most purposes.
+ VarmonInit(length(languagelist), 16);
+
+ // Viewports
+ setlength(viewport, 0);
+ InitViewport(0);
+
+ with gamevar do begin
+  defaulttextbox := 1;
+  defaultviewport := 0;
+ end;
+ with choicematic do begin
+  choicebox := 1;
+  choicepartbox := 1;
+  highlightbox := 2;
+  numcolumns := 4;
+  colwidthp := 0;
+  choiceparent := '';
+  previouschoice := '';
+  onhighlight := '';
+  setlength(choicelist, 0);
+  setlength(showlist, 0);
+  choicelistcount := 0;
+  showcount := 0;
+  highlightindex := 0;
+  previouschoiceindex := 0;
+  printchoiceparent := TRUE;
+  active := FALSE;
+ end;
+
+ pausestate := PAUSESTATE_NORMAL;
+ metastate := METASTATE_NORMAL;
+
+ // Reset events
+ setlength(event.area, 0);
+ setlength(event.gob, 0);
+ setlength(event.timer, 0);
+ event.normalint.triggerlabel := '';
+ event.escint.triggerlabel := '';
+
+ // Reset gobs
+ setlength(gob, 12);
+ for ivar := high(gob) downto 0 do gob[ivar].gobnamu := '';
+
+ // Reset effects
+ if length(fx) <> 0 then
+ for ivar := high(fx) downto 0 do begin
+  fx[ivar].kind := 0;
+  if fx[ivar].poku <> NIL then begin freemem(fx[ivar].poku); fx[ivar].poku := NIL; end;
+ end;
+ setlength(fx, 6);
+ fxcount := 0;
+ transitionactive := $FFFFFFFF;
+
+ // Reset all textboxes.
+ ResetAllBoxes;
+
+ // Reset various stuff
+ RGBtweakactive := $FF;
+ for ivar := 255 downto 0 do begin
+  RGBtweakTable[ivar] := ivar;
+  RGBtweakTable[ivar or 256] := ivar;
+  RGBtweakTable[ivar or 512] := ivar;
+ end;
+
+ // Clear the screen too.
+ setlength(refresh, 16); numfresh := 0;
+ AddRefresh(0, 0, sysvar.mv_WinSizeX, sysvar.mv_WinSizeY);
+
+ randomize;
+end;
+
+// ------------------------------------------------------------------
+
 procedure SummonSaveLoad;
 // If the game state allows it, shifts execution to the SAVELOAD script.
 begin
@@ -1902,86 +1986,4 @@ begin
  end;
 
  pausestate := newstate;
-end;
-
-procedure ResetDefaults;
-// Resets the engine state nearly completely to default values. Runscript
-// calls this whenever someone wants to start executing the main script, to
-// ensure returning to main menu will not have carryover oddities.
-var ivar : dword;
-begin
- mv_ProgramName := saku_param.datname;
- SetProgramName(mv_ProgramName);
- // Init/restart the variable monster. Languagelist was set equal to the
- // number of languages when the DAT was loaded. We'll start with 16 variable
- // buckets, plenty for most purposes.
- VarmonInit(length(languagelist), 16);
-
- // Viewports
- setlength(viewport, 0);
- InitViewport(0);
-
- with gamevar do begin
-  defaulttextbox := 1;
-  defaultviewport := 0;
- end;
- with choicematic do begin
-  choicebox := 1;
-  choicepartbox := 1;
-  highlightbox := 2;
-  numcolumns := 4;
-  colwidthp := 0;
-  choiceparent := '';
-  previouschoice := '';
-  onhighlight := '';
-  setlength(choicelist, 0);
-  setlength(showlist, 0);
-  choicelistcount := 0;
-  showcount := 0;
-  highlightindex := 0;
-  previouschoiceindex := 0;
-  printchoiceparent := TRUE;
-  active := FALSE;
- end;
-
- pausestate := PAUSESTATE_NORMAL;
- metastate := METASTATE_NORMAL;
-
- // Reset events
- setlength(event.area, 0);
- setlength(event.gob, 0);
- setlength(event.timer, 0);
- event.normalint.triggerlabel := '';
- event.escint.triggerlabel := '';
-
- // Reset gobs
- setlength(gob, 12);
- for ivar := high(gob) downto 0 do gob[ivar].gobnamu := '';
-
- // Reset effects
- if length(fx) <> 0 then
- for ivar := high(fx) downto 0 do begin
-  fx[ivar].kind := 0;
-  if fx[ivar].poku <> NIL then begin freemem(fx[ivar].poku); fx[ivar].poku := NIL; end;
- end;
- setlength(fx, 6);
- fxcount := 0;
- transitionactive := $FFFFFFFF;
-
- // Reset all textboxes.
- ResetAllBoxes;
-
- // Reset various stuff
- RGBtweakactive := $FF;
- for ivar := 255 downto 0 do begin
-  RGBtweakTable[ivar] := ivar;
-  RGBtweakTable[ivar or 256] := ivar;
-  RGBtweakTable[ivar or 512] := ivar;
- end;
-
- // Clear the screen too.
- setlength(refresh, 16); numfresh := 0;
- AddRefresh(0, 0, sysvar.mv_WinSizeX, sysvar.mv_WinSizeY);
-
- randomize;
 end;
