@@ -579,6 +579,9 @@ var // Commandline parameters.
       help : boolean;
     end;
 
+    // List of detected dat-files.
+    availabledatlist : array of DATtype;
+
     // System vars, not imported/exported in save states.
     sysvar : record
       resttime : dword; // maximum rest time between frames, milliseconds
@@ -1828,6 +1831,13 @@ begin
 end;
 
 // ------------------------------------------------------------------
+
+procedure EnumerateDats;
+// Finds all DAT files under the working directory and under the user's
+// profile directory, puts them in availabledatlist[]. If a DAT exists in
+// both locations, the one in the user's profile is ignored.
+begin
+end;
 
 procedure ReadConfig;
 var cfile : text;
