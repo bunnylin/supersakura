@@ -317,7 +317,7 @@ begin
 
  // Load the initial DAT file.
  // Use a default if no file was specified on the commandline.
- if saku_param.datname = '' then saku_param.datname := 'supersakura.dat';
+ if saku_param.datname = '' then saku_param.datname := saku_param.appname + '.dat';
 
  if pos(DirectorySeparator, saku_param.datname) = 0 then begin
   // The filename does not contain a path.
