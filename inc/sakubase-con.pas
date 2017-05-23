@@ -280,6 +280,8 @@ begin
  ivar := IOresult;
  if ivar = 5 then begin
   // Access denied! Try the user's profile directory...
+  mkdir(saku_param.profiledir);
+  while IOresult <> 0 do ;
   txt := saku_param.profiledir + 'saku.log';
   assign(logfile, txt);
   filemode := 1; rewrite(logfile); // write-only
