@@ -880,6 +880,13 @@ begin
  ScriptReturn(fiberid);
 end;
 
+procedure Invoke_SYS_GETNUMDATS; inline;
+begin
+ EnumerateDats;
+ PushInt(length(availabledatlist));
+ PushInt(STACK_TOKEN_NUMBER);
+end;
+
 procedure Invoke_SYS_GETKEYDOWN; inline;
 begin
  {$ifndef sakucon}
@@ -1397,6 +1404,7 @@ begin
    WOP_INC: Invoke_INC;
    WOP_RETURN: Invoke_RETURN;
 
+   WOP_SYS_GETNUMDATS: Invoke_SYS_GETNUMDATS;
    WOP_SYS_GETKEYDOWN: Invoke_SYS_GETKEYDOWN;
    WOP_SYS_GETKEYLEFT: Invoke_SYS_GETKEYLEFT;
    WOP_SYS_GETKEYRIGHT: Invoke_SYS_GETKEYRIGHT;
