@@ -1889,7 +1889,8 @@ procedure EnumerateDats;
 var filuhandle : file;
     currdir : UTF8string;
     filusr : TSearchRec;
-    ivar, jvar, datnum, fsresult : dword;
+    ivar, jvar, datnum : dword;
+    fsresult : longint;
 
   procedure addthisfile;
   begin
