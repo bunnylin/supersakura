@@ -30,7 +30,6 @@ program SuperSakuraCon;
 {$mode fpc}
 {$ifdef WINDOWS}{$apptype console}{$endif}
 {$codepage UTF8}
-{$asmmode intel}
 {$I-}
 {$inline on}
 {$unitpath inc}
