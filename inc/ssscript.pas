@@ -206,7 +206,8 @@ WOP_VIEWPORT_SETDEFAULT = 201;
 WOP_VIEWPORT_SETGAMMA = 202;
 WOP_VIEWPORT_SETPARAMS = 203;
 
-WOP_SYS_CLOSEMETAMENU = 229;
+WOP_SYS_CLOSEMETAMENU = 228;
+WOP_SYS_GETDATDESC = 229;
 WOP_SYS_GETDATNAME = 230;
 WOP_SYS_GETKEYDOWN = 231;
 WOP_SYS_GETKEYLEFT = 232;
@@ -237,7 +238,7 @@ WOP_SYS_QUIT = 255;
 // Reserved words of power
 // Table mapping word of power strings to bytecode values
 // Must be arranged in ascending ascii order!
-var ss_rwoplist : array[0..153] of record
+var ss_rwoplist : array[0..154] of record
   namu : string[22];
   code : byte;
 end = (
@@ -339,6 +340,7 @@ end = (
 (namu : 'start'; code : WOP_FIBER_START),
 (namu : 'stop'; code : WOP_FIBER_STOP),
 (namu : 'sys.closemetamenu'; code : WOP_SYS_CLOSEMETAMENU),
+(namu : 'sys.getdatdesc'; code : WOP_SYS_GETDATDESC),
 (namu : 'sys.getdatname'; code : WOP_SYS_GETDATNAME),
 (namu : 'sys.getkeydown'; code : WOP_SYS_GETKEYDOWN),
 (namu : 'sys.getkeyleft'; code : WOP_SYS_GETKEYLEFT),
@@ -483,6 +485,8 @@ begin
  ss_rwopparams[WOP_SYS_SAVESTATE][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME];
  // default: empty name, loaddat fails
  ss_rwopparams[WOP_SYS_LOADDAT][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME];
+ // default: index 0
+ ss_rwopparams[WOP_SYS_GETDATDESC][WOPP_INDEX] := ss_rwoppargtype[WOPP_INDEX];
  // default: index 0
  ss_rwopparams[WOP_SYS_GETDATNAME][WOPP_INDEX] := ss_rwoppargtype[WOPP_INDEX];
  // default: index 0
