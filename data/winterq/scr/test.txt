@@ -946,9 +946,9 @@ goto testsys
   $v2 := -1
   while $v1 <> 0 do
     dec v1
-    if (sys.getdatname $v1) = winterq then ($v2 := $v1) $v1 := 0 end
+    if (sys.getdatname $v1) = winterq then ($v2 := $v1) ($v3 := (sys.getdatdesc $v1)) $v1 := 0 end
   end
-  print "You have \$v0; dats. Winterquest is \$v2;."
+  print "You have \$v0; dats. Winterquest is \$v2;.\n\"\$v3;\""
   waitkey
 goto testsys
 
