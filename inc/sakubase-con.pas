@@ -297,6 +297,7 @@ begin
  // Basic variable init. Sysvars carry over even when returning to a game's
  // main script. Some of these get saved in a configuration file.
  with sysvar do begin
+  activeprojectname := '';
   resttime := 1000 div 16; // consoles don't need too many FPS
   mv_WinSizeX := 80; mv_WinSizeY := 25;
   uimagnification := 32768;
@@ -315,42 +316,18 @@ begin
   alphamixtab[jvar, ivar] := ivar * jvar div 255;
  initxpal;
 
- // Load the initial DAT file.
- // Use a default if no file was specified on the commandline.
- if saku_param.datname = '' then
+ // Check which DAT files are available.
+ EnumerateDats;
+
+ // Load the frontend dat.
  if lowercase(saku_param.appname) = 'supersakura-con'
- then saku_param.datname := 'supersakura.dat'
- else saku_param.datname := saku_param.appname + '.dat';
+ then LoadDatCommon('supersakura')
+ else LoadDatCommon(saku_param.appname);
 
- if pos(DirectorySeparator, saku_param.datname) = 0 then begin
-  // The filename does not contain a path.
-  // If it also doesn't have an extension, add ".dat" as a default.
-  if pos('.', saku_param.datname) = 0 then saku_param.datname := saku_param.datname + '.dat';
-  // Look in the current directory first...
-  txt := FindFile_caseless(saku_param.workdir + saku_param.datname);
-  // Try in current/data...
-  if txt = '' then txt := FindFile_caseless(saku_param.workdir + 'data' + DirectorySeparator + saku_param.datname);
-  // Try in profile/data...
-  if txt = '' then txt := FindFile_caseless(saku_param.profiledir + 'data' + DirectorySeparator + saku_param.datname);
- end
- else begin
-  // The filename contains a path. Let's just check the exact dat string.
-  txt := FindFile_caseless(saku_param.workdir + saku_param.datname);
- end;
-
- if txt = '' then begin
-  txt := 'DAT file not found: ' + saku_param.datname;
-  writeln(txt);
-  LogError(txt);
-  exit;
- end;
- log('Selected DAT: ' + txt);
-
- if LoadDAT(txt) <> 0 then begin
-  writeln(asman_errormsg);
-  LogError(asman_errormsg);
-  exit;
- end;
+ // Load the other dats given on the commandline.
+ if length(saku_param.datnames) <> 0 then
+  for ivar := 0 to length(saku_param.datnames) - 1 do
+   LoadDatCommon(saku_param.datnames[ivar]);
 
  if GetScr(mainscriptname) = 0 then begin
   txt := 'Main script not found.';
@@ -408,7 +385,7 @@ begin
   appname := '';
   workdir := '';
   profiledir := '';
-  datname := '';
+  setlength(datnames, 0);
   overridex := 0; overridey := 0;
   lxymix := FALSE;
   help := FALSE;
@@ -443,11 +420,8 @@ begin
     end;
 
     else begin
-     if saku_param.datname = '' then saku_param.datname := paramstr(ivar)
-     else begin
-      writeln('Unrecognised parameter: ' + paramstr(ivar));
-      DoParams := FALSE;
-     end;
+     setlength(saku_param.datnames, length(saku_param.datnames) + 1);
+     saku_param.datnames[length(saku_param.datnames) - 1] := paramstr(ivar);
     end;
   end;
  end;

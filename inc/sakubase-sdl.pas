@@ -630,6 +630,7 @@ begin
  // Basic variable init. Sysvars carry over even when returning to a game's
  // main script. Some of these get saved in a configuration file.
  with sysvar do begin
+  activeprojectname := '';
   resttime := 1000 div 30;
   mv_WinSizeX := 640; mv_WinSizeY := 480;
   WindowSizeX := 640; WindowSizeY := 480;
@@ -649,37 +650,16 @@ begin
  for ivar := 255 downto 0 do for jvar := 255 downto 0 do
   alphamixtab[jvar, ivar] := ivar * jvar div 255;
 
- // Load the initial DAT file.
- // Use a default if no file was specified on the commandline.
- if saku_param.datname = '' then saku_param.datname := saku_param.appname + '.dat';
+ // Check which DAT files are available.
+ EnumerateDats;
 
- if pos(DirectorySeparator, saku_param.datname) = 0 then begin
-  // The filename does not contain a path.
-  // If it also doesn't have an extension, add ".dat" as a default.
-  if pos('.', saku_param.datname) = 0 then saku_param.datname := saku_param.datname + '.dat';
-  // Look in the current directory first...
-  txt := FindFile_caseless(saku_param.workdir + saku_param.datname);
-  // Try in current/data...
-  if txt = '' then txt := FindFile_caseless(saku_param.workdir + 'data' + DirectorySeparator + saku_param.datname);
-  // Try in profile/data...
-  if txt = '' then txt := FindFile_caseless(saku_param.profiledir + 'data' + DirectorySeparator + saku_param.datname);
- end
- else begin
-  // The filename contains a path. Let's just check the exact dat string.
-  txt := FindFile_caseless(saku_param.workdir + saku_param.datname);
- end;
+ // Load the frontend dat.
+ LoadDatCommon(saku_param.appname);
 
- if txt = '' then begin
-  txt := 'DAT file not found: ' + saku_param.datname;
-  LogError(txt);
-  exit;
- end;
- log('Selected DAT: ' + txt);
-
- if LoadDAT(txt) <> 0 then begin
-  LogError(asman_errormsg);
-  exit;
- end;
+ // Load the other dats given on the commandline.
+ if length(saku_param.datnames) <> 0 then
+  for ivar := 0 to length(saku_param.datnames) - 1 do
+   LoadDatCommon(saku_param.datnames[ivar]);
 
  if GetScr(mainscriptname) = 0 then begin
   LogError('Main script not found.');
@@ -729,7 +709,7 @@ begin
   appname := '';
   workdir := '';
   profiledir := '';
-  datname := '';
+  setlength(datnames, 0);
   overridex := 0; overridey := 0;
   help := FALSE;
  end;
@@ -759,11 +739,8 @@ begin
     end;
 
     else begin
-     if saku_param.datname = '' then saku_param.datname := paramstr(ivar)
-     else begin
-      writeln('Unrecognised parameter: ' + paramstr(ivar));
-      DoParams := FALSE;
-     end;
+     setlength(saku_param.datnames, length(saku_param.datnames) + 1);
+     saku_param.datnames[length(saku_param.datnames) - 1] := paramstr(ivar);
     end;
   end;
  end;
@@ -776,7 +753,7 @@ begin
  writeln('  SuperSakura  ' + SSver);
  writeln('----------------------------------------');
  writeln('(built on ' + {$include %DATE%} + ' ' + {$include %TIME%} + ')');
- writeln('Usage: supersakura [data file] [-options]');
+ writeln('Usage: supersakura [dat names] [-options]');
  writeln;
  writeln('Options:');
  writeln('-x=n               Override window width, set to n pixels');

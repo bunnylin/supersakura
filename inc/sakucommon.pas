@@ -571,7 +571,7 @@ var // Script execution fibers.
 var // Commandline parameters.
     saku_param : record
       appname, workdir, profiledir : UTF8string;
-      datname : UTF8string;
+      datnames : array of UTF8string;
       overridex, overridey : dword;
       {$ifdef sakucon}
       lxymix : boolean; // use LXY mixing instead of RGB
@@ -584,6 +584,7 @@ var // Commandline parameters.
 
     // System vars, not imported/exported in save states.
     sysvar : record
+      activeprojectname : UTF8string;
       resttime : dword; // maximum rest time between frames, milliseconds
       mv_WinSizeX, mv_WinSizeY : dword;
       windowSizeX, windowSizeY : dword;
@@ -767,6 +768,18 @@ end;
 
 // ------------------------------------------------------------------
 
+function GetDat(const nam : UTF8string) : dword;
+// Returns the lowest existing dat in availabledatlist[] with a matching
+// project name, or length(availabledatlist) if no match found. The input
+// project name should be in lowercase.
+begin
+ GetDat := 0;
+ while GetDat < dword(length(availabledatlist)) do begin
+  if availabledatlist[GetDat].projectname = nam then exit;
+  inc(GetDat);
+ end;
+end;
+
 function IsGobValid(const gobnum : dword) : boolean; inline;
 begin
  IsGobValid := (gobnum < dword(length(gob))) and (gob[gobnum].gobnamu <> '');
@@ -804,7 +817,7 @@ begin
  if seengfxp <> NIL then begin freemem(seengfxp); seengfxp := NIL; end;
  getmem(seengfxp, seengfxsize);
 
- tux := saku_param.workdir + saku_param.datname;
+ tux := saku_param.workdir + sysvar.activeprojectname;
  while (tux <> '') and (tux[length(tux)] <> '.') do dec(byte(tux[0]));
  if tux = '' then halt(81);
  tux := tux + 'sav';
@@ -839,7 +852,7 @@ var filu : file;
     ivar, jvar : dword;
     tux : string;
 begin
- tux := saku_param.workdir + saku_param.datname;
+ tux := saku_param.workdir + sysvar.activeprojectname;
  while (tux <> '') and (tux[length(tux)] <> '.') do dec(byte(tux[0]));
  if tux = '' then halt(81);
  tux := lowercase(tux) + 'sav';
@@ -1720,7 +1733,7 @@ procedure ResetDefaults;
 // ensure returning to main menu will not have carryover oddities.
 var ivar : dword;
 begin
- mv_ProgramName := saku_param.datname;
+ mv_ProgramName := sysvar.activeprojectname;
  SetProgramName(mv_ProgramName);
  // Init/restart the variable monster. Languagelist was set equal to the
  // number of languages when the DAT was loaded. We'll start with 16 variable
@@ -1832,11 +1845,126 @@ end;
 
 // ------------------------------------------------------------------
 
+procedure LoadDatCommon(const loadname : UTF8string);
+// Loads the given dat project name. Makes sure the dat's ancestors are
+// loaded first, if they exist. Loadname must be in lowercase. You must call
+// EnumerateDats before calling this.
+var datnum, ivar : dword;
+begin
+ datnum := GetDat(loadname);
+ if datnum >= dword(length(availabledatlist))
+ then LogError('Dat not found: ' + loadname)
+ else begin
+
+  if availabledatlist[datnum].parentname <> '' then begin
+   ivar := 0;
+   while ivar < dword(length(datlist)) do begin
+    if datlist[ivar].projectname = availabledatlist[datnum].parentname then break;
+    inc(ivar);
+   end;
+   if ivar >= dword(length(datlist)) then begin
+    log('Loading dat dependency ' + availabledatlist[datnum].parentname);
+    LoadDatCommon(availabledatlist[datnum].parentname);
+   end;
+  end
+  else if sysvar.activeprojectname <> availabledatlist[datnum].projectname
+  then begin
+   sysvar.activeprojectname := availabledatlist[datnum].projectname;
+   log('Active project now: ' + sysvar.activeprojectname);
+  end;
+
+  if LoadDAT(availabledatlist[datnum].filenamu) <> 0
+  then LogError(asman_errormsg);
+ end;
+end;
+
 procedure EnumerateDats;
 // Finds all DAT files under the working directory and under the user's
 // profile directory, puts them in availabledatlist[]. If a DAT exists in
-// both locations, the one in the user's profile is ignored.
+// both locations, the one in the user's profile is ignored. Dats whose
+// filename is the same as their project name are pure dats, and any other
+// are mods. Mods are removed from the list if their parent project dat isn't
+// listed. The special supersakura.dat frontend is always removed. Finally,
+// the list is sorted.
+var filuhandle : file;
+    currdir : UTF8string;
+    filusr : TSearchRec;
+    ivar, jvar, datnum, fsresult : dword;
+
+  procedure addthisfile;
+  begin
+   datnum := length(availabledatlist);
+   if GetDat(lowercase(filusr.Name)) < datnum then begin
+    log('Already added ' + currdir + filusr.Name);
+    exit;
+   end;
+
+   setlength(availabledatlist, datnum + 1);
+   availabledatlist[datnum].filenamu := currdir + filusr.Name;
+   if ReadDATHeader(availabledatlist[datnum], filuhandle) = 0
+   then begin
+    close(filuhandle);
+    log('Added ' + currdir + filusr.Name);
+   end
+   else begin
+    log('Failed to add ' + currdir + filusr.Name + ': ' + asman_errormsg);
+    setlength(availabledatlist, datnum);
+   end;
+  end;
+
 begin
+ log('Enumerating dats');
+ setlength(availabledatlist, 0);
+ // Find all dats under the working directory's data directory.
+ currdir := saku_param.workdir + 'data' + DirectorySeparator;
+ fsresult := FindFirst(currdir + '*', faReadOnly, filusr);
+ while fsresult = 0 do begin
+  if lowercase(ExtractFileExt(filusr.Name)) = '.dat' then addthisfile;
+  fsresult := FindNext(filusr);
+ end;
+ FindClose(filusr);
+ // Find all dats under the profile directory's data directory.
+ currdir := saku_param.profiledir + 'data' + DirectorySeparator;
+ fsresult := FindFirst(currdir + '*', faReadOnly, filusr);
+ while fsresult = 0 do begin
+  if lowercase(ExtractFileExt(filusr.Name)) = '.dat' then addthisfile;
+  fsresult := FindNext(filusr);
+ end;
+ FindClose(filusr);
+
+ // Check that parent/grandparent dats for all mods are present.
+ datnum := length(availabledatlist);
+ while datnum <> 0 do begin
+  dec(datnum);
+  ivar := datnum;
+  jvar := $FF; // infinite loop detector
+  repeat
+   // If there's no parent name, it's a present pure dat.
+   if availabledatlist[ivar].parentname = '' then break;
+   // Otherwise this is a mod, so check if its parent dat is present.
+   ivar := GetDat(availabledatlist[ivar].parentname);
+   dec(jvar);
+   if (ivar >= dword(length(availabledatlist))) or (jvar = 0) then begin
+    // Parent is not present, drop the mod being checked.
+    log('No parent for ' + availabledatlist[datnum].filenamu);
+    if datnum + 1 < dword(length(availabledatlist)) then
+     availabledatlist[datnum] := availabledatlist[length(availabledatlist) - 1];
+    setlength(availabledatlist, length(availabledatlist) - 1);
+    break;
+   end;
+  until FALSE;
+ end;
+
+ // Remove supersakura.dat if present.
+ datnum := GetDat('supersakura');
+ if datnum < dword(length(availabledatlist)) then begin
+  log('Dropping ' + availabledatlist[datnum].filenamu);
+  if datnum + 1 < dword(length(availabledatlist)) then
+   availabledatlist[datnum] := availabledatlist[length(availabledatlist) - 1];
+  setlength(availabledatlist, length(availabledatlist) - 1);
+ end;
+
+ // Sort the list.
 end;
 
 procedure ReadConfig;
