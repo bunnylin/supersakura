@@ -880,6 +880,26 @@ begin
  ScriptReturn(fiberid);
 end;
 
+procedure Invoke_SYS_GETDATDESC; inline;
+begin
+ numvalue := 0;
+ FetchParam(WOPP_INDEX);
+ if (numvalue < 0) or (numvalue >= length(availabledatlist))
+ then PushInt(0) // empty string
+ else PushString(@availabledatlist[numvalue].projectdesc[1], length(availabledatlist[numvalue].projectdesc));
+ PushInt(STACK_TOKEN_SINGLESTRING);
+end;
+
+procedure Invoke_SYS_GETDATNAME; inline;
+begin
+ numvalue := 0;
+ FetchParam(WOPP_INDEX);
+ if (numvalue < 0) or (numvalue >= length(availabledatlist))
+ then PushInt(0) // empty string
+ else PushString(@availabledatlist[numvalue].projectname[1], length(availabledatlist[numvalue].projectname));
+ PushInt(STACK_TOKEN_SINGLESTRING);
+end;
+
 procedure Invoke_SYS_GETNUMDATS; inline;
 begin
  EnumerateDats;
@@ -960,6 +980,12 @@ procedure Invoke_SYS_ISSKIPPING; inline;
 begin
  if sysvar.skipseentext then PushInt(1) else PushInt(0);
  PushInt(STACK_TOKEN_NUMBER);
+end;
+
+procedure Invoke_SYS_LOADDAT; inline;
+begin
+ if FetchParam(WOPP_NAME) = FALSE then fibererror('sys.loaddat: no dat name')
+ else LoadDatCommon(strvalue[0]);
 end;
 
 procedure Invoke_SYS_PAUSE; inline;
@@ -1404,6 +1430,8 @@ begin
    WOP_INC: Invoke_INC;
    WOP_RETURN: Invoke_RETURN;
 
+   WOP_SYS_GETDATDESC: Invoke_SYS_GETDATDESC;
+   WOP_SYS_GETDATNAME: Invoke_SYS_GETDATNAME;
    WOP_SYS_GETNUMDATS: Invoke_SYS_GETNUMDATS;
    WOP_SYS_GETKEYDOWN: Invoke_SYS_GETKEYDOWN;
    WOP_SYS_GETKEYLEFT: Invoke_SYS_GETKEYLEFT;
@@ -1413,6 +1441,7 @@ begin
    WOP_SYS_GETMOUSEY: Invoke_SYS_GETMOUSEY;
    WOP_SYS_ISFULLSCREEN: Invoke_SYS_ISFULLSCREEN;
    WOP_SYS_ISSKIPPING: Invoke_SYS_ISSKIPPING;
+   WOP_SYS_LOADDAT: Invoke_SYS_LOADDAT;
    WOP_SYS_PAUSE: Invoke_SYS_PAUSE;
    WOP_SYS_QUIT: Invoke_SYS_QUIT;
    WOP_SYS_RESTARTGAME: Invoke_SYS_RESTARTGAME;
