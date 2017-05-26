@@ -55,6 +55,12 @@ gfx.transition
 
 $datcount := (sys.getnumdats)
 
+if $datcount = 0 then
+  print "No compiled dat-files found.\nYou can use the decomp/recomp commandline tools to convert supported games."
+  waitkey
+  quit
+end
+
 choice.clear
 
 $v0 := 0
@@ -67,6 +73,7 @@ $v0 := (choice.get)
 
 gfx.clearall
 gfx.transition
+yield
 sys.loaddat (sys.getdatname $v0)
 sys.restartgame
 
