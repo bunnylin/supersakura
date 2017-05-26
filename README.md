@@ -6,7 +6,8 @@ games from the mid-90's. Many of these old titles were surprisingly good,
 but were never localised. SuperSakura has tools to help localise games, and
 supports enhanced graphics and a modernised user interface.
 
-The engine is written in Free Pascal, and targets Linux/Windows, 32/64-bit.
+The engine is written in Free Pascal, uses SDL2, and targets Linux/Windows,
+32/64-bit.
 
 Note that this is just a game engine, and a set of asset conversion tools.
 The actual games themselves are under copyright and are not distributed with
@@ -81,22 +82,22 @@ To compile resources into a usable SuperSakura data file:
 
     recomp <projectname>
 
-For example, to build the included Winterquest ministory/testsuite:
+For example, to compile the included Winterquest ministory/testsuite:
 
     recomp winterq
 
-To run a game:
+To run any compiled game through a friendly frontend:
 
-    supersakura <projectname>
+    supersakura
 
-Or, to run a game purely in a console:
+Or, to run the console port:
 
-    supersakura-con <projectname>
+    supersakura-con
 
-Aside from standard console output, recomp also creates a recomp.log in the
-working directory, or in your profile directory if the working directory is
-not writable. Likewise, the SuperSakura engine prints a lot of debug output
-into a saku.log file, either in the working directory or in your profile.
+The tools and engine print their log output into files: saku.log, recomp.log,
+and decomp.log. By default, these are put in the program's working directory.
+If the working directory is write-protected, then the logs are saved under
+your profile directory.
 
 You can add -h to any executable's commandline to see what other commandline
 options are available.
