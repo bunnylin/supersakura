@@ -1,0 +1,10 @@
+language English
+desc Supersakura frontend
+baseres 640x480
+
+file mainsaku
+ofs 138,16
+
+file bluegradient
+res 32x32
+
