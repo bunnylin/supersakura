@@ -1060,6 +1060,17 @@ begin
  refresh[numfresh].y2p := y2p;
  inc(numfresh);
 
+ {$ifdef sakucon}
+ // If any graphics are drawn over console-mode textboxes, the textbox will
+ // have to be redrawn afterward.
+ for ivar := high(TBox) downto 0 do with TBox[ivar] do
+  if (needsredraw = FALSE)
+  and (boxlocxp_r < x2p) and (boxlocyp_r < y2p)
+  and (boxlocxp_r + longint(boxsizexp_r) >= x1p)
+  and (boxlocyp_r + longint(boxsizeyp_r) >= y1p)
+  then needsredraw := TRUE;
+ {$endif sakucon}
+
  {for ivar := 0 to numfresh - 1 do
   logmsg('Refresh ' + strdec(ivar) + ': '
    + strdec(refresh[ivar].x1p) + ',' + strdec(refresh[ivar].y1p) + ' to '

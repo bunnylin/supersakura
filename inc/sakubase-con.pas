@@ -171,7 +171,7 @@ begin
     UpdateVisuals(tickcount);
     // Update various effects.
     if fxcount <> 0 then Effector(tickcount);
-  end;
+   end;
 
    // Update textbox data and prepare to draw them a little later.
    TextBoxer(tickcount);
