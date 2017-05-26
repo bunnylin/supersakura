@@ -5,6 +5,10 @@ decomp.exe
 recomp.exe
 supersakura.exe
 supersakura-con.exe
+data\supersakura.dat
+data\supersakura\*.*
+data\supersakura\scr\*.*
+data\supersakura\gfx\*.*
 data\winterq\*.*
 data\winterq\scr\*.*
 data\winterq\aud\*.*
