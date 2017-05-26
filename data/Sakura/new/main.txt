@@ -96,6 +96,7 @@ tbox.setnumboxes 4
 choice.setchoicebox 1
 choice.setpartbox 2
 choice.sethighlightbox 3
+choice.columns 4
 
 // 1: Game text & choice box
 tbox.setparam 1 minrows 4
