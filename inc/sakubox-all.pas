@@ -775,6 +775,9 @@ var boxnum : dword;
      if ivar < contentwinmaxsizexp then contentwinmaxsizexp := ivar;
     end;
 
+    // Reset column width, if this is the choice box.
+    if boxnum = choicematic.choicebox then choicematic.colwidthp := 0;
+
     contentbuftextvalid := FALSE;
     basebufvalid := FALSE;
     contentbufparamvalid := TRUE;
