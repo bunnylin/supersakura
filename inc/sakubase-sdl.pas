@@ -651,7 +651,7 @@ begin
   alphamixtab[jvar, ivar] := ivar * jvar div 255;
 
  // Check which DAT files are available.
- EnumerateDats;
+ EnumerateDats(FALSE);
 
  // Load the frontend dat.
  LoadDatCommon(saku_param.appname);

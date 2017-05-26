@@ -317,7 +317,7 @@ begin
  initxpal;
 
  // Check which DAT files are available.
- EnumerateDats;
+ EnumerateDats(FALSE);
 
  // Load the frontend dat.
  if lowercase(saku_param.appname) = 'supersakura-con'

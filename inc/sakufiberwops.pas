@@ -902,7 +902,7 @@ end;
 
 procedure Invoke_SYS_GETNUMDATS; inline;
 begin
- EnumerateDats;
+ EnumerateDats(TRUE);
  PushInt(length(availabledatlist));
  PushInt(STACK_TOKEN_NUMBER);
 end;

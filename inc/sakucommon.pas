@@ -1902,14 +1902,14 @@ begin
   end;
 end;
 
-procedure EnumerateDats;
+procedure EnumerateDats(dropfrontend : boolean);
 // Finds all DAT files under the working directory and under the user's
 // profile directory, puts them in availabledatlist[]. If a DAT exists in
 // both locations, the one in the user's profile is ignored. Dats whose
 // filename is the same as their project name are pure dats, and any other
 // are mods. Mods are removed from the list if their parent project dat isn't
-// listed. The special supersakura.dat frontend is always removed. Finally,
-// the list is sorted.
+// listed. The special supersakura.dat frontend is removed if dropfrontend is
+// true. Finally, the list is sorted.
 var filuhandle : file;
     currdir : UTF8string;
     filusr : TSearchRec;
@@ -1981,12 +1981,14 @@ begin
  end;
 
  // Remove supersakura.dat if present.
- datnum := GetDat('supersakura');
- if datnum < dword(length(availabledatlist)) then begin
-  log('Dropping ' + availabledatlist[datnum].filenamu);
-  if datnum + 1 < dword(length(availabledatlist)) then
-   availabledatlist[datnum] := availabledatlist[length(availabledatlist) - 1];
-  setlength(availabledatlist, length(availabledatlist) - 1);
+ if dropfrontend then begin
+  datnum := GetDat('supersakura');
+  if datnum < dword(length(availabledatlist)) then begin
+   log('Dropping ' + availabledatlist[datnum].filenamu);
+   if datnum + 1 < dword(length(availabledatlist)) then
+    availabledatlist[datnum] := availabledatlist[length(availabledatlist) - 1];
+   setlength(availabledatlist, length(availabledatlist) - 1);
+  end;
  end;
 
  // Sort the list.
