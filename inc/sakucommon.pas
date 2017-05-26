@@ -720,6 +720,10 @@ begin truename := 'ssakura'; end;
 procedure DrawRGB24(clipdata : pblitstruct); forward;
 procedure DrawRGBA32(clipdata : pblitstruct); forward;
 procedure DrawRGBA32hardlight(clipdata : pblitstruct); forward;
+{$ifndef sakucon}
+// The dat-loader may need to resize the game window.
+procedure GetDefaultWindowSizes(var sizex, sizey : dword); forward;
+{$endif}
 // Visual transition helper.
 procedure StashRender; forward;
 // The choicematic etc may need to spawn fibers.
@@ -1849,7 +1853,7 @@ procedure LoadDatCommon(const loadname : UTF8string);
 // Loads the given dat project name. Makes sure the dat's ancestors are
 // loaded first, if they exist. Loadname must be in lowercase. You must call
 // EnumerateDats before calling this.
-var datnum, ivar : dword;
+var datnum, ivar, jvar : dword;
 begin
  datnum := GetDat(loadname);
  if datnum >= dword(length(availabledatlist))
@@ -1873,9 +1877,29 @@ begin
    log('Active project now: ' + sysvar.activeprojectname);
   end;
 
+  // Remember the current base resolution, and try to load the dat.
+  ivar := asman_baseresx;
+  jvar := asman_baseresy;
   if LoadDAT(availabledatlist[datnum].filenamu) <> 0
-  then LogError(asman_errormsg);
+  then LogError(asman_errormsg)
+  // If the base resolution changed because of this dat, set new window size.
+  else if (ivar <> dword(asman_baseresx)) or (jvar <> dword(asman_baseresy))
+  then begin
+   {$ifndef sakucon}
+   GetDefaultWindowSizes(ivar, jvar);
+   if (ivar <> 0) and (saku_param.overridex = 0) then sysvar.WindowSizeX := ivar;
+   if (jvar <> 0) and (saku_param.overridey = 0) then sysvar.WindowSizeY := jvar;
+   ScreenModeSwitch(sysvar.fullscreen);
+   {$endif}
+  end;
  end;
+
+ // Currently running fibers must use updated script indexes.
+ if fibercount <> 0 then
+  for ivar := fibercount - 1 downto 0 do begin
+   fiber[ivar].labelindex := GetScr(fiber[ivar].labelname);
+   if fiber[ivar].labelindex = 0 then fiber[ivar].fiberstate := FIBERSTATE_STOPPING;
+  end;
 end;
 
 procedure EnumerateDats;
