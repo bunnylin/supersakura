@@ -431,8 +431,8 @@ begin
  DoParams := FALSE;
  writeln;
 
- writeln('  SuperSakura-con  ' + SSver);
- writeln('----------------------------------------');
+ writeln('  SuperSakura-con');
+ writeln('------------------- ' + SSver + ' --');
  writeln('(built on ' + {$include %DATE%} + ' ' + {$include %TIME%} + ')');
  writeln('Usage: supersakura-con [data file] [-options]');
  writeln;

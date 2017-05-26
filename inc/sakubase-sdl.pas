@@ -753,8 +753,8 @@ begin
  DoParams := FALSE;
  writeln;
 
- writeln('  SuperSakura  ' + SSver);
- writeln('----------------------------------------');
+ writeln('  SuperSakura');
+ writeln('--------------- ' + SSver + ' --');
  writeln('(built on ' + {$include %DATE%} + ' ' + {$include %TIME%} + ')');
  writeln('Usage: supersakura [dat names] [-options]');
  writeln;
