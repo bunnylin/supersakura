@@ -156,6 +156,9 @@ begin
  // Close and release the existing game window, if any.
  if mv_MainWinH <> NIL then begin SDL_DestroyWindow(mv_MainWinH); mv_MainWinH := NIL; end;
 
+ // The previously loaded graphics can be cut loose.
+ ReleaseGFX;
+
  {$ifdef bonk}
  // Resize the window. You'd think this would just work, but returning from
  // fullscreen may cause the renderer to adopt a wrong size??
