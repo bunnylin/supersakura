@@ -1877,21 +1877,25 @@ begin
    log('Active project now: ' + sysvar.activeprojectname);
   end;
 
+  {$ifdef sakucon}
+  // The console port just needs to load the dat.
+  if LoadDAT(availabledatlist[datnum].filenamu) <> 0 then LogError(asman_errormsg);
+  {$else}
   // Remember the current base resolution, and try to load the dat.
   ivar := asman_baseresx;
   jvar := asman_baseresy;
-  if LoadDAT(availabledatlist[datnum].filenamu) <> 0
-  then LogError(asman_errormsg)
-  // If the base resolution changed because of this dat, set new window size.
-  else if (ivar <> dword(asman_baseresx)) or (jvar <> dword(asman_baseresy))
+  if LoadDAT(availabledatlist[datnum].filenamu) <> 0 then LogError(asman_errormsg)
+  // If the base resolution changed because of this dat, and a main window
+  // already exists, then resize the window.
+  else if mv_MainWinH <> NIL then
+  if (ivar <> dword(asman_baseresx)) or (jvar <> dword(asman_baseresy))
   then begin
-   {$ifndef sakucon}
    GetDefaultWindowSizes(ivar, jvar);
    if (ivar <> 0) and (saku_param.overridex = 0) then sysvar.WindowSizeX := ivar;
    if (jvar <> 0) and (saku_param.overridey = 0) then sysvar.WindowSizeY := jvar;
    ScreenModeSwitch(sysvar.fullscreen);
-   {$endif}
   end;
+  {$endif}
  end;
 
  // Currently running fibers must use updated script indexes.
