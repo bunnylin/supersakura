@@ -344,11 +344,6 @@ begin
     else if (bpval >= boxnum) then bperr('can''t snap to box above self')
     else snaptobox := bpval;
 
-    'boxlanguage':
-    if usebpval = FALSE then boxlanguage := 0
-    else if bpval < 0 then bperr('language < 0')
-    else boxlanguage := bpval;
-
     'exportcontentto':
     if usebpval = FALSE then exportcontentto := 0
     else if bpval < 0 then bperr('export to < 0')
