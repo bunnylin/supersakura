@@ -129,7 +129,7 @@ end;
 
 procedure BlitzBox(boxnum : dword);
 // Entirely reprints a box in a console.
-var ivar, jvar, breakindex, escindex, choiceindex : dword;
+var ivar, breakindex, escindex, choiceindex : dword;
     textpal, backpal : dword;
     txtofs, txtmark : dword;
     txt : UTF8string;
@@ -235,7 +235,7 @@ begin
 
     // Print text up to the next txtmark.
     ivar := txtmark - txtofs;
-    if length(txt) < ivar then setlength(txt, 0);
+    if dword(length(txt)) < ivar then setlength(txt, 0);
     setlength(txt, ivar);
     move(txtcontent[txtofs], txt[1], ivar);
     UTF8Write(txt);
