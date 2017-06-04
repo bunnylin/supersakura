@@ -39,7 +39,6 @@ begin
  sysvar.mousey := musy;
 
  // Check if mouseovering choices in an active choicebox.
- // (Ignore, if the highlight box is currently moving.)
  if choicematic.active then with TBox[choicematic.choicebox] do begin
   if (musx >= boxlocxp_r) and (musx < boxlocxp_r + longint(boxsizexp_r))
   and (musy >= boxlocyp_r) and (musy < boxlocyp_r + longint(boxsizeyp_r))
@@ -146,13 +145,24 @@ begin
    exit;
   end;
 
-  // If clicking over a choicebox, select the currently highlighted choice.
+  // If clicking over a choice rectangle in the choice box, select the
+  // currently highlighted choice.
   if choicematic.active then with TBox[choicematic.choicebox] do
    if (musx >= boxlocxp_r) and (musx < boxlocxp_r + longint(boxsizexp_r))
    and (musy >= boxlocyp_r) and (musy < boxlocyp_r + longint(boxsizeyp_r))
    then begin
-    SelectChoice(choicematic.highlightindex);
-    exit;
+    // Calculate the cursor's location relative to the full content buffer.
+    x := musx - boxlocxp_r;
+    y := musy - boxlocyp_r + longint(contentwinscrollofsp);
+    // Check if the cursor is over the highlighted choice.
+    if (x >= longint(choicematic.showlist[choicematic.highlightindex].slx1p))
+    and (x < longint(choicematic.showlist[choicematic.highlightindex].slx2p))
+    and (y >= longint(choicematic.showlist[choicematic.highlightindex].sly1p))
+    and (y < longint(choicematic.showlist[choicematic.highlightindex].sly2p))
+    then begin
+     SelectChoice(choicematic.highlightindex);
+     exit;
+    end;
    end;
 
   // If clicking over any box, page boxes ahead and resume waitkeys.
