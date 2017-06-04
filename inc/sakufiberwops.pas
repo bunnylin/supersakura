@@ -1003,6 +1003,7 @@ end;
 
 procedure Invoke_SYS_RESTARTGAME; inline;
 begin
+ log('Restarting...');
  sysvar.quit := TRUE;
  sysvar.restart := TRUE;
  yieldnow := TRUE;
@@ -1232,14 +1233,14 @@ begin
  log('setnumboxes=' + strdec(numvalue));
  if numvalue < length(TBox) then DestroyTextbox(numvalue);
  if numvalue < 3 then numvalue := 3; // minimum is 3
- if numvalue > length(TBox) then InitTextbox(numvalue);
+ if numvalue >= length(TBox) then InitTextbox(numvalue);
 end;
 
 procedure Invoke_TBOX_SETPARAM; inline;
 begin
  numvalue := 1;
  FetchParam(WOPP_BOX);
- if numvalue > length(TBox) then InitTextbox(numvalue);
+ if numvalue >= length(TBox) then InitTextbox(numvalue) else
  if numvalue < 0 then fibererror('Can''t setparam box: ' + strdec(numvalue))
  else begin
   numvalue2 := numvalue;
