@@ -321,13 +321,13 @@ begin
 
  // Load the frontend dat.
  if lowercase(saku_param.appname) = 'supersakura-con'
- then LoadDatCommon('supersakura')
- else LoadDatCommon(saku_param.appname);
+ then LoadDatCommon('supersakura', '')
+ else LoadDatCommon(saku_param.appname, '');
 
  // Load the other dats given on the commandline.
  if length(saku_param.datnames) <> 0 then
   for ivar := 0 to length(saku_param.datnames) - 1 do
-   LoadDatCommon(saku_param.datnames[ivar]);
+   LoadDatCommon(saku_param.datnames[ivar], '');
 
  if GetScr(mainscriptname) = 0 then begin
   txt := 'Main script not found.';

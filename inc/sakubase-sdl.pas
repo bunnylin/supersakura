@@ -664,12 +664,12 @@ begin
  EnumerateDats(FALSE);
 
  // Load the frontend dat.
- LoadDatCommon(saku_param.appname);
+ LoadDatCommon(saku_param.appname, '');
 
  // Load the other dats given on the commandline.
  if length(saku_param.datnames) <> 0 then
   for ivar := 0 to length(saku_param.datnames) - 1 do
-   LoadDatCommon(saku_param.datnames[ivar]);
+   LoadDatCommon(saku_param.datnames[ivar], '');
 
  if GetScr(mainscriptname) = 0 then begin
   LogError('Main script not found.');
