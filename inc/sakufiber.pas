@@ -358,10 +358,9 @@ var strvalue, strvalue2 : array of UTF8string;
       setlength(strvalue, ivar);
       while ivar <> 0 do begin
        dec(ivar);
-       if numvalue >= length(script[fiber[fiberid].labelindex].stringlist[ivar].txt) then begin
-        fibererror('Uniquetablestring out of bounds'); exit;
-       end;
-       strvalue[ivar] := script[fiber[fiberid].labelindex].stringlist[ivar].txt[numvalue];
+       if numvalue >= length(script[fiber[fiberid].labelindex].stringlist[ivar].txt)
+       then strvalue[ivar] := ''
+       else strvalue[ivar] := script[fiber[fiberid].labelindex].stringlist[ivar].txt[numvalue];
       end;
      end;
 
@@ -371,10 +370,9 @@ var strvalue, strvalue2 : array of UTF8string;
       setlength(strvalue, ivar);
       while ivar <> 0 do begin
        dec(ivar);
-       if numvalue >= length(script[0].stringlist[ivar].txt) then begin
-        fibererror('Globaltablestring out of bounds'); exit;
-       end;
-       strvalue[ivar] := script[0].stringlist[ivar].txt[numvalue];
+       if numvalue >= length(script[0].stringlist[ivar].txt)
+       then strvalue[ivar] := ''
+       else strvalue[ivar] := script[0].stringlist[ivar].txt[numvalue];
       end;
      end;
 
