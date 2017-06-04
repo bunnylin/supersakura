@@ -36,6 +36,7 @@ tbox.setparam 1 marginbottom 768
 tbox.setparam 1 basecolor 0x64E8
 tbox.setparam 1 basefill 1
 tbox.setparam 1 bevel 0
+tbox.setlanguage 1 English
 
 // 2: Highlight box
 tbox.setparam 2 marginleft 320
