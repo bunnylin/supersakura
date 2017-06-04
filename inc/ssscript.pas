@@ -207,7 +207,7 @@ WOP_VIEWPORT_SETDEFAULT = 201;
 WOP_VIEWPORT_SETGAMMA = 202;
 WOP_VIEWPORT_SETPARAMS = 203;
 
-WOP_SYS_CLOSEMETAMENU = 228;
+WOP_SYS_EXITMETA = 228;
 WOP_SYS_GETDATDESC = 229;
 WOP_SYS_GETDATNAME = 230;
 WOP_SYS_GETKEYDOWN = 231;
@@ -340,7 +340,7 @@ end = (
 (namu : 'sleep'; code : WOP_FIBER_WAIT),
 (namu : 'start'; code : WOP_FIBER_START),
 (namu : 'stop'; code : WOP_FIBER_STOP),
-(namu : 'sys.closemetamenu'; code : WOP_SYS_CLOSEMETAMENU),
+(namu : 'sys.exitmeta'; code : WOP_SYS_EXITMETA),
 (namu : 'sys.getdatdesc'; code : WOP_SYS_GETDATDESC),
 (namu : 'sys.getdatname'; code : WOP_SYS_GETDATNAME),
 (namu : 'sys.getkeydown'; code : WOP_SYS_GETKEYDOWN),
