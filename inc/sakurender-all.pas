@@ -893,12 +893,12 @@ begin
 
     if (clipsi.copywidth <> 0) and (clipsi.copyrows <> 0) then begin
 
-     with clipsi do
+     {with clipsi do
       log('[gob ' + strdec(ivar) + ': ' + gob[ivar].gobnamu
        + '; gfxlist ' + strdec(gob[ivar].cachedgfx) + ':' + gfxlist[gob[ivar].cachedgfx].namu
        + ' loc=' + strdec(destofsxp) + ',' + strdec(destofsyp)
        + ' size=' + strdec(copywidth) + 'x' + strdec(copyrows)
-       + ']');
+       + ']');}
 
      // At last, draw the graphic
      if dword(gob[ivar].solidblit) <> 0 then

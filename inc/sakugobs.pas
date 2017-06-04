@@ -234,6 +234,11 @@ begin
  gfxname := upcase(copy(gfxname, 1, 31));
  if gobname = '' then gobname := gfxname
  else gobname := upcase(copy(gobname, 1, 31));
+
+ if GetPNG(gfxname) = 0 then begin
+  log('[!] Source image not found: ' + gfxname);
+  exit;
+ end;
  // Check parameter validity.
  if gobtype in [0..3] = FALSE then begin
   LogError('CreateGob: unknown gobtype ' + strdec(gobtype) + ' for ' + gobname); exit;
@@ -301,7 +306,6 @@ begin
    // Mark this gob as non-interactable until the next gfx.transition, at
    // which time this overwrites the background slot.
    drawstate := $20;
-   log('created gob, biding time in slot '+strdec(gobindex));
   end else
   if gobtype = 3 then begin
    ivar := GetPNG(gfxname);
