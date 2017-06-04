@@ -1033,8 +1033,8 @@ end;
 
 procedure Invoke_SYS_SETTITLE; inline;
 begin
- {$note make sys.settitle multilingual}
- if FetchParam(WOPP_TEXT) then mv_ProgramName := strvalue[0]
+ numvalue := GetBestString($FFFF);
+ if FetchParam(WOPP_TEXT) then mv_ProgramName := strvalue[numvalue]
  else mv_ProgramName := '';
  SetProgramName(mv_ProgramName);
 end;
@@ -1189,8 +1189,37 @@ begin
  if numvalue <= 0 then fibererror('Bad default tbox: ' + strdec(numvalue))
  else begin
   gamevar.defaulttextbox := numvalue;
-  if numvalue > length(TBox) then InitTextbox(numvalue);
+  if numvalue >= length(TBox) then InitTextbox(numvalue);
  end;
+end;
+
+procedure Invoke_TBOX_SETLANGUAGE; inline;
+var boxnum : longint;
+    ivar : dword;
+begin
+ numvalue := gamevar.defaulttextbox;
+ FetchParam(WOPP_BOX);
+ boxnum := numvalue;
+ if boxnum < 0 then fibererror('Bad setlanguage box: ' + strdec(boxnum))
+ else begin
+  if numvalue >= length(TBox) then InitTextbox(numvalue);
+  // The default language is the language of whichever string table was
+  // loaded first, and normally supersakura.dat is always loaded first even
+  // if going straight to a game. That dat has an English string table.
+  TBox[boxnum].boxlanguage := 0;
+
+  if FetchParam(WOPP_NAME) then begin
+   // Check if the given language name matches any of the loaded languages.
+   strvalue[0] := lowercase(strvalue[0]);
+   for ivar := length(languagelist) - 1 downto 0 do
+    if lowercase(languagelist[ivar]) = strvalue[0] then begin
+     // Match found, set the box's language to that.
+     TBox[boxnum].boxlanguage := ivar;
+     break;
+    end;
+  end;
+ end;
+ TBox[boxnum].contentbufparamvalid := FALSE;
 end;
 
 procedure Invoke_TBOX_SETLOC; inline;
@@ -1460,6 +1489,7 @@ begin
    WOP_TBOX_REMOVEDECOR: Invoke_TBOX_REMOVEDECOR;
    WOP_TBOX_REMOVEOUTLINES: Invoke_TBOX_REMOVEOUTLINES;
    WOP_TBOX_SETDEFAULT: Invoke_TBOX_SETDEFAULT;
+   WOP_TBOX_SETLANGUAGE: Invoke_TBOX_SETLANGUAGE;
    WOP_TBOX_SETLOC: Invoke_TBOX_SETLOC;
    WOP_TBOX_SETNUMBOXES: Invoke_TBOX_SETNUMBOXES;
    WOP_TBOX_SETPARAM: Invoke_TBOX_SETPARAM;
