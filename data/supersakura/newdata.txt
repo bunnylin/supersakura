@@ -1,6 +1,6 @@
 language English
 desc Supersakura frontend
-baseres 640x480
+baseres 640x400
 
 file mainsaku
 ofs 138,16

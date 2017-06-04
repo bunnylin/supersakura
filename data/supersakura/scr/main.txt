@@ -70,6 +70,8 @@ while $v0 < $datcount do
   inc v0
 end
 
+choice.onhighlight main._bannercallback
+fiber.start _bannerblaster
 $v0 := (choice.get)
 
 gfx.clearall
@@ -77,4 +79,24 @@ gfx.transition
 yield
 sys.loaddat (sys.getdatname $v0)
 sys.restartgame
+
+
+@_bannercallback:
+  choice.onhighlight main._bannercallback
+  $v1 := (choice.gethighlight)
+stop
+
+@_bannerblaster:
+$v3 := -1
+while 1 do
+  if ($v3 != $v1) and ($v1 = $v2) then
+    sys.loaddatbanner index $v1 name (_banner + $v1)
+    gfx.remove _banner
+    gfx.show gob _banner + $v1 name _banner
+    gfx.transition 4 time 768
+  end
+  $v3 := $v2
+  $v2 := $v1
+  sleep 512
+end
 
