@@ -233,7 +233,8 @@ procedure Invoke_DEC; inline;
 begin
  if FetchParam(WOPP_VAR) = FALSE then fibererror('Dec without variable name')
  else begin
-  if GetVarType(strvalue[0]) = 2 then fibererror('Can''t decrease a string variable')
+  if GetVarType(strvalue[0]) = 2 then
+   fibererror('Can''t decrease a string variable: ' + strvalue[0])
   else begin
    numvalue := 1;
    FetchParam(WOPP_BY);
@@ -863,7 +864,8 @@ procedure Invoke_INC; inline;
 begin
  if FetchParam(WOPP_VAR) = FALSE then fibererror('Inc without variable name')
  else begin
-  if GetVarType(strvalue[0]) = 2 then fibererror('Can''t increase a string variable')
+  if GetVarType(strvalue[0]) = 2 then
+   fibererror('Can''t increase a string variable: ' + strvalue[0])
   else begin
    numvalue := 1;
    FetchParam(WOPP_BY);
