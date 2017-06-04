@@ -38,7 +38,8 @@ const SDL_INIT_EVENTS = $00004000;
 
 procedure SetProgramName(const newnamu : UTF8string); inline;
 begin
- SDL_SetWindowTitle(mv_MainWinH, @newnamu[1]);
+ if newnamu <> '' then SDL_SetWindowTitle(mv_MainWinH, @newnamu[1])
+ else SDL_SetWindowTitle(mv_MainWinH, NIL);
 end;
 
 function CompStrFast(const str1, str2 : UTF8string) : boolean;
