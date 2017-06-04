@@ -109,7 +109,10 @@ begin
   {$endif}
 
   // Trigger the on-highlight callback if defined.
-  if onhighlight <> '' then StartFiber(onhighlight, '');
+  if onhighlight <> '' then begin
+   StartFiber(onhighlight, '');
+   onhighlight := '';
+  end;
  end;
 end;
 
