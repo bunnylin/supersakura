@@ -1126,27 +1126,27 @@ begin
  fiberid := 0;
  while fiberid < fibercount do begin
 
-  case fiber[fiberid].fiberstate of
-    // Stopped fibers
-    FIBERSTATE_STOPPING: begin
-     log('Stopping fiber ' + fiber[fiberid].fibername);
-     // Stop this fiber's effects, shift above fibers' effects down a notch.
-     if fxcount <> 0 then for ivar := fxcount - 1 downto 0 do begin
-      if fx[ivar].fxfiber = longint(fiberid) then DeleteFx(ivar)
-      else if fx[ivar].fxfiber > longint(fiberid) then dec(fx[ivar].fxfiber);
-     end;
-     // Move above fibers down a notch.
-     ivar := fiberid + 1;
-     while ivar < fibercount do begin
-      fiber[ivar - 1] := fiber[ivar];
-      inc(ivar);
-     end;
-     dec(fibercount);
-     continue;
-    end;
+  // Active fibers
+  if fiber[fiberid].fiberstate = FIBERSTATE_NORMAL
+  then ExecuteFiber(fiberid, pausestate = PAUSESTATE_SINGLE);
 
-    // Active fibers
-    FIBERSTATE_NORMAL: ExecuteFiber(fiberid, pausestate = PAUSESTATE_SINGLE);
+  // Stopping fibers
+  if fiber[fiberid].fiberstate = FIBERSTATE_STOPPING
+  then begin
+   log('Stopping fiber ' + fiber[fiberid].fibername);
+   // Stop this fiber's effects, shift above fibers' effects down a notch.
+   if fxcount <> 0 then for ivar := fxcount - 1 downto 0 do begin
+    if fx[ivar].fxfiber = longint(fiberid) then DeleteFx(ivar)
+    else if fx[ivar].fxfiber > longint(fiberid) then dec(fx[ivar].fxfiber);
+   end;
+   // Move above fibers down a notch.
+   ivar := fiberid + 1;
+   while ivar < fibercount do begin
+    fiber[ivar - 1] := fiber[ivar];
+    inc(ivar);
+   end;
+   dec(fibercount);
+   continue;
   end;
 
   inc(fiberid);
