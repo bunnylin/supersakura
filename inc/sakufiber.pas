@@ -381,11 +381,43 @@ var strvalue, strvalue2 : array of UTF8string;
   end;
 
   // ----------------------------------------------------------------
+  function GetBestString(preferred : dword) : dword;
+  // Used to figure out which language string to display. Returns an index to
+  // strvalue[]. If the preferred index is available and contains a non-empty
+  // string, returns the preferred index. Otherwise returns the highest index
+  // that is available and non-empty, or 0 if no such strings found.
+  // If the strvalue array is empty, returns preferred unchanged.
+  begin
+   GetBestString := preferred;
+   if length(strvalue) = 0 then exit;
+   if (preferred < dword(length(strvalue)))
+    and (strvalue[preferred] <> '') then exit;
+   GetBestString := length(strvalue);
+   while (GetBestString <> 0) do begin
+    dec(GetBestString);
+    if strvalue[GetBestString] <> '' then exit;
+   end;
+  end;
+
   function FetchParam(paramtoken : byte) : boolean;
   // Looks for the given parameter id in the named parameter list and then
   // fuzzily in the dynamic parameter list. If found, removes it from the
   // list and returns TRUE, placing the value in numvalue or strvalue.
-  var ivar : dword;
+  var ivar, jvar : dword;
+
+    procedure validatestr0;
+    begin
+     if strvalue[0] <> '' then exit;
+     jvar := length(strvalue);
+     while jvar > 1 do begin
+      dec(jvar);
+      if strvalue[jvar] <> '' then begin
+       strvalue[0] := strvalue[jvar];
+       exit;
+      end;
+     end;
+    end;
+
   begin
    FetchParam := TRUE;
    // Check named parameter list.
@@ -396,7 +428,10 @@ var strvalue, strvalue2 : array of UTF8string;
      // Found matching named parameter, save the value.
      if ss_rwoppargtype[paramtoken] = ARG_NUM
      then numvalue := namedparam[ivar].numvalue
-     else strvalue := namedparam[ivar].strvalue;
+     else begin
+      strvalue := namedparam[ivar].strvalue;
+      validatestr0;
+     end;
      // Remove it from named params list.
      namedparam[ivar] := namedparam[namedparamcount - 1];
      dec(namedparamcount);
@@ -414,6 +449,7 @@ var strvalue, strvalue2 : array of UTF8string;
    else if dynaparamstrcount <> 0 then begin
     dec(dynaparamstrcount);
     strvalue := dynaparamstr[dynaparamstrcount];
+    validatestr0;
     exit;
    end;
    // Param not found, return false.
