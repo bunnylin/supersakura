@@ -114,6 +114,7 @@ begin
   with TBox[ivar] do begin
    if (boxstate = BOXSTATE_SHOWTEXT)
    and (style.freescrollable = FALSE) and (style.autowaitkey)
+   and ((choicematic.active = FALSE) or (choicematic.choicebox <> ivar))
    and (contentwinscrollofsp + contentwinsizeyp < contentfullheightp)
    then begin
     ScrollBoxTo(ivar, contentwinscrollofsp + contentwinsizeyp, MOVETYPE_INSTANT);
