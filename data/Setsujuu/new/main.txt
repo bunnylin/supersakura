@@ -1,11 +1,10 @@
 // Setsujuu ~ Yuganda Kioku / Snowcat distorted memories? PC-98
 // Main menu and game definitions
 
-$s0 := "Setsujuu ~ Yuganda Kioku"
+sys.settitle "Setsujuu ~ Yuganda Kioku"
 #$s1 := "Takuya" # not used?
 
-// 480x296 view in 640x400 frame @ 80,16
-viewport.setparams viewport:1 parent:0, ratiox = 16, ratioy = 10
+viewport.setparams viewport:1 parent:0, ratiox = 496, ratioy = 255
 viewport.setparams viewport:2 parent:1, locx 0 locy 0 sizex 32768 sizey 32768
 
 viewport.setdefault 2 // all game graphics will go in viewport 2

@@ -8,11 +8,10 @@ $s2 := "Shu"
 // ==================================================================
 // Viewport setup
 
-// 480x296 view in 640x400 frame @ 80,16
-viewport.setparams viewport:1 parent:0, ratiox = 16, ratioy = 10
-viewport.setparams viewport:2 parent:1, locx 0 locy 0 sizex 32768 sizey 32768
-
+viewport.setparams viewport:1 parent:0, locx 0 locy 0 sizex 32768 sizey 32768
+viewport.setparams viewport:2 parent:1, ratiox 480 ratioy 296
 viewport.setdefault 2 // all game graphics will go in viewport 2
+
 viewport.setbkgindex viewport:1 index 0
 viewport.setbkgindex viewport:2 index 1
 

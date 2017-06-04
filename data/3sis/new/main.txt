@@ -22,10 +22,11 @@ $s1 := "Koichi"
 // 560 / 640 * 32768 = 28672
 // 312 / 400 * 32768 = 25559.04
 // 
+// viewport.setparams viewport:1 parent:0, ratiox = 16, ratioy = 10
 // viewport.setparams viewport:2 locx 4096 locy 1311 sizex 28672 sizey 25559
 
-viewport.setparams viewport:1 parent:0, ratiox = 16, ratioy = 10
-viewport.setparams viewport:2 parent:1, locx 0 locy 0 sizex 32768 sizey 32768
+viewport.setparams viewport:1 parent:0, locx 0 locy 0 sizex 32768 sizey 32768
+viewport.setparams viewport:2 parent:1, ratiox 480 ratioy 296
 
 viewport.setdefault 2 // all game graphics will go in viewport 2
 viewport.setbkgindex viewport:1 index 0
