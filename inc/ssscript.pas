@@ -175,11 +175,12 @@ WOP_TBOX_PRINT = 126;
 WOP_TBOX_REMOVEDECOR = 127;
 WOP_TBOX_REMOVEOUTLINES = 128;
 WOP_TBOX_SETDEFAULT = 129;
-WOP_TBOX_SETLOC = 130;
-WOP_TBOX_SETNUMBOXES = 131;
-WOP_TBOX_SETPARAM = 132;
-WOP_TBOX_SETSIZE = 133;
-WOP_TBOX_SETTEXTURE = 134;
+WOP_TBOX_SETLANGUAGE = 130;
+WOP_TBOX_SETLOC = 131;
+WOP_TBOX_SETNUMBOXES = 132;
+WOP_TBOX_SETPARAM = 133;
+WOP_TBOX_SETSIZE = 134;
+WOP_TBOX_SETTEXTURE = 135;
 
 WOP_FIBER_GETID = 160;
 WOP_FIBER_SIGNAL = 161;
@@ -238,7 +239,7 @@ WOP_SYS_QUIT = 255;
 // Reserved words of power
 // Table mapping word of power strings to bytecode values
 // Must be arranged in ascending ascii order!
-var ss_rwoplist : array[0..154] of record
+var ss_rwoplist : array[0..156] of record
   namu : string[22];
   code : byte;
 end = (
@@ -379,6 +380,8 @@ end = (
 (namu : 'tbox.removedecor'; code : WOP_TBOX_REMOVEDECOR),
 (namu : 'tbox.removeoutlines'; code : WOP_TBOX_REMOVEOUTLINES),
 (namu : 'tbox.setdefault'; code : WOP_TBOX_SETDEFAULT),
+(namu : 'tbox.setlang'; code : WOP_TBOX_SETLANGUAGE),
+(namu : 'tbox.setlanguage'; code : WOP_TBOX_SETLANGUAGE),
 (namu : 'tbox.setloc'; code : WOP_TBOX_SETLOC),
 (namu : 'tbox.setnumboxes'; code : WOP_TBOX_SETNUMBOXES),
 (namu : 'tbox.setparam'; code : WOP_TBOX_SETPARAM),
@@ -504,6 +507,9 @@ begin
  ss_rwopparams[WOP_TBOX_SETDEFAULT][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
  // default: 3 boxes, which is also the minimum
  ss_rwopparams[WOP_TBOX_SETNUMBOXES][WOPP_INDEX] := ss_rwoppargtype[WOPP_INDEX];
+ ss_rwopparams[WOP_TBOX_SETLANGUAGE][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
+ // default: empty string, whatever current default language is
+ ss_rwopparams[WOP_TBOX_SETLANGUAGE][WOPP_NAME] := ss_rwoppargtype[WOPP_NAME];
  ss_rwopparams[WOP_TBOX_SETLOC][WOPP_BOX] := ss_rwoppargtype[WOPP_BOX];
  // default: current location or 0,0
  ss_rwopparams[WOP_TBOX_SETLOC][WOPP_LOCX] := ss_rwoppargtype[WOPP_LOCX];
