@@ -1,2 +1,3 @@
 language Japanese
+banner VOP_001
 

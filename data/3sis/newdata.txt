@@ -1,4 +1,5 @@
 language English
+banner SANSI
 
 file NEWLOGO
 res 1280x800

@@ -1,4 +1,5 @@
 language English
+banner SAKU_P
 
 file MAINBOXFRAME
 res 1280x790

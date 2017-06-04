@@ -1,4 +1,5 @@
 language Japanese
+banner TI_029
 
 file XFERBOX2
 res 640x400
