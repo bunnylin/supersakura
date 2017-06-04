@@ -528,8 +528,10 @@ end;
 procedure Invoke_FIBER_STOP; inline;
 begin
  if FetchParam(WOPP_NAME) = FALSE // stop self by default
- then fiber[fiberid].fiberstate := FIBERSTATE_STOPPING
- else StopFiber(strvalue[0]); // or stop all fibers with a matching name
+ then begin
+  fiber[fiberid].fiberstate := FIBERSTATE_STOPPING;
+  yieldnow := TRUE;
+ end else StopFiber(strvalue[0]); // or stop all fibers with a matching name
 end;
 
 procedure Invoke_FIBER_WAIT; inline;
