@@ -935,6 +935,7 @@ goto testsys
 goto testsys
 
   @onhilitecallback:
+    choice.onhighlight test.onhilitecallback
     tbox.clear 1
     $v0 := (choice.gethighlight)
     print "Current highlight: \$v0;"
