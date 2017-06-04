@@ -953,7 +953,7 @@ begin
    PrintError('No such file: ' + recomp_param.loadfile);
    exit;
   end;
-  if (LoadDAT(txt) <> 0) then begin
+  if (LoadDAT(txt, '') <> 0) then begin
    PrintError('LoadDAT failed: ' + asman_errormsg);
    exit;
   end;
