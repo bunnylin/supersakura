@@ -460,11 +460,22 @@ var strvalue, strvalue2 : array of UTF8string;
   procedure Stashstrval;
   // Copies strvalue into strvalue2 safely.
   var svar : dword;
+      lendiff : longint;
   begin
-   if length(strvalue) <> length(strvalue2) then begin
-    setlength(strvalue2, 0); setlength(strvalue2, length(strvalue));
+   // If strvalue is empty, quick exit.
+   if length(strvalue) = 0 then begin
+    setlength(strvalue2, 0);
+    exit;
    end;
-   if length(strvalue) = 0 then exit;
+
+   // Resize strvalue2 to same length as strvalue, efficiently.
+   lendiff := length(strvalue) - length(strvalue2);
+   if lendiff <> 0 then begin
+    if lendiff > 0 then setlength(strvalue2, 0);
+    setlength(strvalue2, length(strvalue));
+   end;
+
+   // Copy the strvalue contents to strvalue2.
    for svar := length(strvalue) - 1 downto 0 do
     strvalue2[svar] := strvalue[svar];
   end;
