@@ -485,6 +485,7 @@ var strvalue, strvalue2 : array of UTF8string;
   // wop's parameters off the stack and into variables. Parameter identifiers
   // and their values are popped until STACK_TOKEN_ENDPARAMS is found.
   var paramtoken : longint;
+      strnum : dword;
   begin
    dynaparamnumcount := 0;
    dynaparamstrcount := 0;
@@ -512,10 +513,11 @@ var strvalue, strvalue2 : array of UTF8string;
      case ss_rwoppargtype[paramtoken] of
        ARG_NUM:
        if length(strvalue) <> 0 then begin
-        if (length(strvalue[0]) > 2) and (strvalue[0][1] = '0')
-        and (byte(strvalue[0][2]) or $20 = byte('x'))
-        then namedparam[namedparamcount].numvalue := valhex(copy(strvalue[0], 3, length(strvalue[0])))
-        else namedparam[namedparamcount].numvalue := valx(strvalue[0]);
+        strnum := GetBestString($FFFF);
+        if (length(strvalue[strnum]) > 2) and (strvalue[strnum][1] = '0')
+        and (byte(strvalue[strnum][2]) or $20 = byte('x'))
+        then namedparam[namedparamcount].numvalue := valhex(copy(strvalue[strnum], 3, length(strvalue[strnum])))
+        else namedparam[namedparamcount].numvalue := valx(strvalue[strnum]);
        end
        else namedparam[namedparamcount].numvalue := numvalue;
        ARG_STR:
@@ -635,7 +637,7 @@ begin // ExecuteFiber
      PopThing;
      if length(strvalue) <> 0 then begin
       // Notting returns an empty string if input is non-empty, else "1".
-      if strvalue[0] = '' then begin
+      if strvalue[GetBestString($FFFF)] = '' then begin
        strvalue[0] := '1';
        PushString(@strvalue[0][1], 1);
       end else PushInt(0);
@@ -648,9 +650,11 @@ begin // ExecuteFiber
 
     TOKEN_NEG: begin
      PopThing;
-     if length(strvalue) <> 0 then
-      if strvalue[0] = '' then numvalue := 0
-      else fibererror('Can''t negate a string: ' + strvalue[0]);
+     if length(strvalue) <> 0 then begin
+      ivar := GetBestString($FFFF);
+      if strvalue[ivar] = '' then numvalue := 0
+      else fibererror('Can''t negate a string: ' + strvalue[ivar]);
+     end;
      PushInt(-numvalue);
      PushInt(STACK_TOKEN_NUMBER);
     end;
@@ -660,16 +664,17 @@ begin // ExecuteFiber
      PopThing;
      if length(strvalue) = 0 then begin setlength(strvalue, 1); strvalue[0] := strdec(numvalue); end;
      // Check the variable type.
-     ivar := GetVarType(strvalue[0]);
+     numvalue2 := GetBestString($FFFF);
+     ivar := GetVarType(strvalue[numvalue2]);
      case ivar of
        // Numeric variable. Fetch and push the value.
        1: begin
-        PushInt(GetNumVar(strvalue[0]));
+        PushInt(GetNumVar(strvalue[numvalue2]));
         PushInt(STACK_TOKEN_NUMBER);
        end;
        // String variable. Fetch and push the value.
        2: begin
-        GetStrVar(strvalue[0]);
+        GetStrVar(strvalue[numvalue2]);
         for jvar := 0 to length(languagelist) - 1 do
          if length(stringstash[jvar]) <> 0
          then PushString(@stringstash[jvar][1], length(stringstash[jvar]))
@@ -688,7 +693,7 @@ begin // ExecuteFiber
 
     TOKEN_RND: begin
      PopThing;
-     if length(strvalue) <> 0 then fibererror('Can''t RND a string: ' + strvalue[0])
+     if length(strvalue) <> 0 then fibererror('Can''t RND a string: ' + strvalue[GetBestString($FFFF)])
      else begin
       // FPC's random for negative number -n returns range [-n+1 .. -1]
       if numvalue < 0 then PushInt(random(numvalue - 1) + 1)
@@ -699,10 +704,13 @@ begin // ExecuteFiber
 
     TOKEN_TONUM: begin
      PopThing;
-     if length(strvalue) <> 0 then
-      if (strvalue[0][1] = '0') and (byte(strvalue[0][2]) or $20 = byte('x'))
-      then numvalue := valhex(copy(strvalue[0], 3, length(strvalue[0])))
-      else numvalue := valx(strvalue[0]);
+     if length(strvalue) <> 0 then begin
+      ivar := GetBestString($FFFF);
+      if (strvalue[ivar][1] = '0')
+      and (byte(strvalue[ivar][2]) or $20 = byte('x'))
+      then numvalue := valhex(copy(strvalue[ivar], 3, length(strvalue[ivar])))
+      else numvalue := valx(strvalue[ivar]);
+     end;
      PushInt(numvalue);
      PushInt(STACK_TOKEN_NUMBER);
     end;
@@ -710,22 +718,25 @@ begin // ExecuteFiber
     TOKEN_TOSTR: begin
      PopThing;
      if length(strvalue) = 0 then begin setlength(strvalue, 1); strvalue[0] := strdec(numvalue); end;
-     PushString(@strvalue[0][1], length(strvalue[0]));
+     ivar := GetBestString($FFFF);
+     PushString(@strvalue[ivar][1], length(strvalue[ivar]));
      PushInt(STACK_TOKEN_SINGLESTRING);
     end;
 
     // Binary operations. Right-hand operand is popped first.
     TOKEN_PLUS: begin
-     PopThing; numvalue2 := numvalue; StashStrval;
+     PopThing;
+     numvalue2 := numvalue; StashStrval;
+     jvar := GetBestString($FFFF);
      PopThing;
      // Adding an empty string and a number returns the number.
      if (length(strvalue) = 0) and (length(strvalue2) <> 0)
-     and (strvalue2[0] = '') then begin
+     and (strvalue2[jvar] = '') then begin
       PushInt(numvalue);
       PushInt(STACK_TOKEN_NUMBER);
      end else
      if (length(strvalue2) = 0) and (length(strvalue) <> 0)
-     and (strvalue[0] = '') then begin
+     and (strvalue[GetBestString($FFFF)] = '') then begin
       PushInt(numvalue2);
       PushInt(STACK_TOKEN_NUMBER);
      end else
@@ -764,105 +775,134 @@ begin // ExecuteFiber
 
     TOKEN_MINUS: begin
      PopThing; numvalue2 := numvalue; StashStrval;
+     jvar := GetBestString($FFFF);
      PopThing;
-     if length(strvalue) <> 0 then
-      if strvalue[0] = '' then numvalue := 0
-      else fibererror('Can''t subtract from string: ' + strvalue[0]);
-     if length(strvalue2) <> 0 then
-      if strvalue2[0] = '' then numvalue2 := 0
-      else fibererror('Can''t subtract by a string: ' + strvalue2[0]);
+     if length(strvalue) <> 0 then begin
+      ivar := GetBestString($FFFF);
+      if strvalue[ivar] = '' then numvalue := 0
+      else fibererror('Can''t subtract from string: ' + strvalue[ivar]);
+     end;
+     if length(strvalue2) <> 0 then begin
+      if strvalue2[jvar] = '' then numvalue2 := 0
+      else fibererror('Can''t subtract by a string: ' + strvalue2[jvar]);
+     end;
      PushInt(longint(numvalue - numvalue2));
      PushInt(STACK_TOKEN_NUMBER);
     end;
 
     TOKEN_MUL: begin
      PopThing; numvalue2 := numvalue; StashStrval;
+     jvar := GetBestString($FFFF);
      PopThing;
-     if length(strvalue) <> 0 then
-      if strvalue[0] = '' then numvalue := 0
-      else fibererror('Can''t multiply with string: ' + strvalue[0]);
-     if length(strvalue2) <> 0 then
-      if strvalue2[0] = '' then numvalue2 := 0
-      else fibererror('Can''t multiply with string: ' + strvalue2[0]);
+     if length(strvalue) <> 0 then begin
+      ivar := GetBestString($FFFF);
+      if strvalue[ivar] = '' then numvalue := 0
+      else fibererror('Can''t multiply with string: ' + strvalue[ivar]);
+     end;
+     if length(strvalue2) <> 0 then begin
+      if strvalue2[jvar] = '' then numvalue2 := 0
+      else fibererror('Can''t multiply with string: ' + strvalue2[jvar]);
+     end;
      PushInt(longint(numvalue * numvalue2));
      PushInt(STACK_TOKEN_NUMBER);
     end;
 
     TOKEN_DIV: begin
      PopThing; numvalue2 := numvalue; StashStrval;
+     jvar := GetBestString($FFFF);
      PopThing;
-     if length(strvalue) <> 0 then
-      if strvalue[0] = '' then numvalue := 0
-      else fibererror('Can''t divide a string: ' + strvalue[0]);
-     if length(strvalue2) <> 0 then
-      if strvalue2[0] = '' then numvalue2 := 0
-      else fibererror('Can''t divide by a string: ' + strvalue2[0]);
+     if length(strvalue) <> 0 then begin
+      ivar := GetBestString($FFFF);
+      if strvalue[ivar] = '' then numvalue := 0
+      else fibererror('Can''t divide a string: ' + strvalue[ivar]);
+     end;
+     if length(strvalue2) <> 0 then begin
+      if strvalue2[jvar] = '' then numvalue2 := 0
+      else fibererror('Can''t divide by a string: ' + strvalue2[jvar]);
+     end;
      PushInt(longint(numvalue div numvalue2));
      PushInt(STACK_TOKEN_NUMBER);
     end;
 
     TOKEN_MOD: begin
      PopThing; numvalue2 := numvalue; StashStrval;
+     jvar := GetBestString($FFFF);
      PopThing;
-     if length(strvalue) <> 0 then
-      if strvalue[0] = '' then numvalue := 0
-      else fibererror('Can''t modulo a string: ' + strvalue[0]);
-     if length(strvalue2) <> 0 then
-      if strvalue2[0] = '' then numvalue2 := 0
-      else fibererror('Can''t modulo with a string: ' + strvalue2[0]);
+     if length(strvalue) <> 0 then begin
+      ivar := GetBestString($FFFF);
+      if strvalue[ivar] = '' then numvalue := 0
+      else fibererror('Can''t modulo a string: ' + strvalue[ivar]);
+     end;
+     if length(strvalue2) <> 0 then begin
+      if strvalue2[jvar] = '' then numvalue2 := 0
+      else fibererror('Can''t modulo with a string: ' + strvalue2[jvar]);
+     end;
      PushInt(longint(numvalue mod numvalue2));
      PushInt(STACK_TOKEN_NUMBER);
     end;
 
     TOKEN_AND: begin
      PopThing; numvalue2 := numvalue; StashStrval;
+     jvar := GetBestString($FFFF);
      PopThing;
-     if length(strvalue) <> 0 then
-      if strvalue[0] = '' then numvalue := 0
-      else fibererror('Can''t AND string: ' + strvalue[0]);
-     if length(strvalue2) <> 0 then
-      if strvalue2[0] = '' then numvalue2 := 0
-      else fibererror('Can''t AND string: ' + strvalue2[0]);
+     if length(strvalue) <> 0 then begin
+      ivar := GetBestString($FFFF);
+      if strvalue[ivar] = '' then numvalue := 0
+      else fibererror('Can''t AND string: ' + strvalue[ivar]);
+     end;
+     if length(strvalue2) <> 0 then begin
+      if strvalue2[jvar] = '' then numvalue2 := 0
+      else fibererror('Can''t AND string: ' + strvalue2[jvar]);
+     end;
      PushInt(longint(numvalue and numvalue2));
      PushInt(STACK_TOKEN_NUMBER);
     end;
 
     TOKEN_OR: begin
      PopThing; numvalue2 := numvalue; StashStrval;
+     jvar := GetBestString($FFFF);
      PopThing;
-     if length(strvalue) <> 0 then
-      if strvalue[0] = '' then numvalue := 0
-      else fibererror('Can''t OR string: ' + strvalue[0]);
-     if length(strvalue2) <> 0 then
-      if strvalue2[0] = '' then numvalue2 := 0
-      else fibererror('Can''t OR string: ' + strvalue2[0]);
+     if length(strvalue) <> 0 then begin
+      ivar := GetBestString($FFFF);
+      if strvalue[ivar] = '' then numvalue := 0
+      else fibererror('Can''t OR string: ' + strvalue[ivar]);
+     end;
+     if length(strvalue2) <> 0 then begin
+      if strvalue2[jvar] = '' then numvalue2 := 0
+      else fibererror('Can''t OR string: ' + strvalue2[jvar]);
+     end;
      PushInt(longint(numvalue or numvalue2));
      PushInt(STACK_TOKEN_NUMBER);
     end;
 
     TOKEN_XOR: begin
      PopThing; numvalue2 := numvalue; StashStrval;
+     jvar := GetBestString($FFFF);
      PopThing;
-     if length(strvalue) <> 0 then
-      if strvalue[0] = '' then numvalue := 0
-      else fibererror('Can''t XOR string: ' + strvalue[0]);
-     if length(strvalue2) <> 0 then
-      if strvalue2[0] = '' then numvalue2 := 0
-      else fibererror('Can''t XOR string: ' + strvalue2[0]);
+     if length(strvalue) <> 0 then begin
+      ivar := GetBestString($FFFF);
+      if strvalue[ivar] = '' then numvalue := 0
+      else fibererror('Can''t XOR string: ' + strvalue[ivar]);
+     end;
+     if length(strvalue2) <> 0 then begin
+      if strvalue2[jvar] = '' then numvalue2 := 0
+      else fibererror('Can''t XOR string: ' + strvalue2[jvar]);
+     end;
      PushInt(longint(numvalue xor numvalue2));
      PushInt(STACK_TOKEN_NUMBER);
     end;
 
     TOKEN_EQ, TOKEN_LT, TOKEN_GT, TOKEN_LE, TOKEN_GE, TOKEN_NE: begin
      PopThing; numvalue2 := numvalue; StashStrval;
+     jvar := GetBestString($FFFF);
      PopThing;
      // Comparing an empty string and a number turns the string into 0.
      if (length(strvalue) = 0) and (length(strvalue2) <> 0)
-     and (strvalue2[0] = '') then begin
+     and (strvalue2[jvar] = '') then begin
       numvalue2 := 0; setlength(strvalue2, 0);
      end;
      if (length(strvalue2) = 0) and (length(strvalue) <> 0)
-     and (strvalue[0] = '') then begin
+     and (strvalue[GetBestString($FFFF)] = '') then begin
       numvalue := 0; setlength(strvalue, 0);
      end;
 
@@ -879,23 +919,24 @@ begin // ExecuteFiber
          TOKEN_NE: if numvalue <> numvalue2 then ivar := 1;
        end;
       end else begin
-       fibererror('Can''t compare number ' + strdec(numvalue) + ' and string ' + strvalue2[0]);
+       fibererror('Can''t compare number ' + strdec(numvalue) + ' and string ' + strvalue2[jvar]);
       end;
      end else
      if length(strvalue2) <> 0 then begin
       // Two strings, compare them case-insensitively.
-      strvalue[0] := upcase(strvalue[0]);
-      strvalue2[0] := upcase(strvalue2[0]);
+      numvalue := GetBestString($FFFF);
+      strvalue[numvalue] := upcase(strvalue[numvalue]);
+      strvalue2[jvar] := upcase(strvalue2[jvar]);
       case token of
-        TOKEN_EQ: if strvalue[0] = strvalue2[0] then ivar := 1;
-        TOKEN_LT: if strvalue[0] < strvalue2[0] then ivar := 1;
-        TOKEN_GT: if strvalue[0] > strvalue2[0] then ivar := 1;
-        TOKEN_LE: if strvalue[0] <= strvalue2[0] then ivar := 1;
-        TOKEN_GE: if strvalue[0] >= strvalue2[0] then ivar := 1;
-        TOKEN_NE: if strvalue[0] <> strvalue2[0] then ivar := 1;
+        TOKEN_EQ: if strvalue[numvalue] = strvalue2[jvar] then ivar := 1;
+        TOKEN_LT: if strvalue[numvalue] < strvalue2[jvar] then ivar := 1;
+        TOKEN_GT: if strvalue[numvalue] > strvalue2[jvar] then ivar := 1;
+        TOKEN_LE: if strvalue[numvalue] <= strvalue2[jvar] then ivar := 1;
+        TOKEN_GE: if strvalue[numvalue] >= strvalue2[jvar] then ivar := 1;
+        TOKEN_NE: if strvalue[numvalue] <> strvalue2[jvar] then ivar := 1;
       end;
      end else
-      fibererror('Can''t compare string ' + strvalue[0] + ' and number ' + strdec(numvalue2));
+      fibererror('Can''t compare string ' + strvalue[GetBestString($FFFF)] + ' and number ' + strdec(numvalue2));
      PushInt(ivar);
      PushInt(STACK_TOKEN_NUMBER);
     end;
@@ -907,16 +948,16 @@ begin // ExecuteFiber
      if length(strvalue) = 0 then begin setlength(strvalue, 1); strvalue[0] := strdec(numvalue); end;
      // Set numeric variable.
      if length(strvalue2) = 0 then begin
-      SetNumVar(strvalue[0], numvalue2, FALSE);
+      SetNumVar(strvalue[GetBestString($FFFF)], numvalue2, FALSE);
      end
      else begin
       // Set a string variable.
       for ivar := 0 to length(strvalue2) - 1 do stringstash[ivar] := strvalue2[ivar];
       while ivar < dword(length(languagelist) - 1) do begin
        inc(ivar);
-       stringstash[ivar] := strvalue2[0];
+       stringstash[ivar] := '';
       end;
-      SetStrVar(strvalue[0], FALSE);
+      SetStrVar(strvalue[GetBestString($FFFF)], FALSE);
      end;
     end;
 
@@ -926,67 +967,75 @@ begin // ExecuteFiber
      // Left side must be a variable reference.
      if length(strvalue) = 0 then begin setlength(strvalue, 1); strvalue[0] := strdec(numvalue); end;
      // Check the variable type.
-     ivar := GetVarType(strvalue[0]);
+     jvar := GetBestString($FFFF);
+     ivar := GetVarType(strvalue[jvar]);
      case ivar of
        // Numeric variable.
        1: if length(strvalue2) = 0 then begin
-        SetNumVar(strvalue[0], GetNumVar(strvalue[0]) + numvalue2, FALSE);
+        // Increasing a numeric variable by a number.
+        SetNumVar(strvalue[jvar], GetNumVar(strvalue[jvar]) + numvalue2, FALSE);
        end else begin
-        jvar := GetNumVar(strvalue[0]);
-        for ivar := 0 to length(strvalue2) - 1 do stringstash[ivar] := strdec(jvar) + strvalue2[ivar];
-        while ivar < dword(length(languagelist) - 1) do begin
-         inc(ivar);
-         stringstash[ivar] := stringstash[0];
-        end;
-        SetStrVar(strvalue[0], FALSE);
+        // Increasing a numeric variable by a string. Nope!
+        fibererror('Can''t inc numeric variable $' + strvalue[jvar] + ' by a string');
        end;
        // String variable.
        2: begin
-        GetStrVar(strvalue[0]);
+        GetStrVar(strvalue[jvar]);
         if length(strvalue2) = 0 then begin setlength(strvalue2, 1); strvalue2[0] := strdec(numvalue2); end;
-        for ivar := 0 to length(strvalue2) - 1 do stringstash[ivar] := stringstash[ivar] + strvalue2[ivar];
+        numvalue := 0;
+        for ivar := 0 to length(strvalue2) - 1 do begin
+         stringstash[ivar] := stringstash[ivar] + strvalue2[ivar];
+         if strvalue2[ivar] <> '' then numvalue := ivar;
+        end;
         while ivar < dword(length(languagelist) - 1) do begin
          inc(ivar);
-         stringstash[ivar] := stringstash[ivar] + strvalue2[0];
+         stringstash[ivar] := strvalue2[numvalue];
         end;
-        SetStrVar(strvalue[0], FALSE);
+        SetStrVar(strvalue[jvar], FALSE);
        end;
        // Non-existing variable, just set without adding.
        else
         if length(strvalue2) = 0 then
-         SetNumVar(strvalue[0], numvalue2, FALSE)
+         SetNumVar(strvalue[jvar], numvalue2, FALSE)
         else begin
-         for ivar := 0 to length(strvalue2) - 1 do stringstash[ivar] := strvalue2[ivar];
+         numvalue := 0;
+         for ivar := 0 to length(strvalue2) - 1 do begin
+          stringstash[ivar] := strvalue2[ivar];
+          if strvalue2[ivar] <> '' then numvalue := ivar;
+         end;
          while ivar < dword(length(languagelist) - 1) do begin
           inc(ivar);
-          stringstash[ivar] := strvalue2[0];
+          stringstash[ivar] := strvalue2[numvalue];
          end;
-         SetStrVar(strvalue[0], FALSE);
+         SetStrVar(strvalue[jvar], FALSE);
         end;
      end;
     end;
 
     TOKEN_DEC: begin
      PopThing; numvalue2 := numvalue; StashStrval;
+     jvar := GetBestString($FFFF);
      PopThing;
      // Left side must be a variable reference.
      if length(strvalue) = 0 then begin setlength(strvalue, 1); strvalue[0] := strdec(numvalue); end;
      // Right side must be a number.
-     if length(strvalue2) <> 0 then fibererror('Can''t decrease by string: ' + strvalue2[0])
+     if length(strvalue2) <> 0 then fibererror('Can''t decrease by string: ' + strvalue2[jvar])
      else begin
       // Check the variable type.
-      ivar := GetVarType(strvalue[0]);
-      if ivar = 2 then fibererror('Can''t decrease a string variable: ' + strvalue[0])
+      jvar := GetBestString($FFFF);
+      ivar := GetVarType(strvalue[jvar]);
+      if ivar = 2 then fibererror('Can''t decrease a string variable: ' + strvalue[jvar])
       // Numeric or non-existing variable which counts as zero.
-      else SetNumVar(strvalue[0], GetNumVar(strvalue[0]) - numvalue2, FALSE);
+      else SetNumVar(strvalue[jvar], GetNumVar(strvalue[jvar]) - numvalue2, FALSE);
      end;
     end;
 
     TOKEN_SHL: begin
      PopThing; numvalue2 := numvalue; StashStrval;
+     jvar := GetBestString($FFFF);
      PopThing;
-     if length(strvalue) <> 0 then fibererror('Can''t SHL string: ' + strvalue[0])
-     else if length(strvalue2) <> 0 then fibererror('Can''t SHL string: ' + strvalue2[0])
+     if length(strvalue) <> 0 then fibererror('Can''t SHL string: ' + strvalue[GetBestString($FFFF)])
+     else if length(strvalue2) <> 0 then fibererror('Can''t SHL string: ' + strvalue2[jvar])
      else begin
       PushInt(longint(numvalue shl numvalue2));
       PushInt(STACK_TOKEN_NUMBER);
@@ -995,9 +1044,10 @@ begin // ExecuteFiber
 
     TOKEN_SHR: begin
      PopThing; numvalue2 := numvalue; StashStrval;
+     jvar := GetBestString($FFFF);
      PopThing;
-     if length(strvalue) <> 0 then fibererror('Can''t SHR string: ' + strvalue[0])
-     else if length(strvalue2) <> 0 then fibererror('Can''t SHR string: ' + strvalue2[0])
+     if length(strvalue) <> 0 then fibererror('Can''t SHR string: ' + strvalue[GetBestString($FFFF)])
+     else if length(strvalue2) <> 0 then fibererror('Can''t SHR string: ' + strvalue2[jvar])
      else begin
       PushInt(longint(numvalue shr numvalue2));
       PushInt(STACK_TOKEN_NUMBER);
@@ -1015,7 +1065,7 @@ begin // ExecuteFiber
     // Conditional jump.
     TOKEN_IF: begin
      PopThing;
-     if (length(strvalue) <> 0) and (strvalue[0] = '')
+     if (length(strvalue) <> 0) and (strvalue[GetBestString($FFFF)] = '')
      or (length(strvalue) = 0) and (numvalue = 0) then begin
       // Condition false, get relative offset and jump past the then-segment.
       longint(ivar) := longint(codeofs) + longint((script[labelindex].code + codeofs)^);
