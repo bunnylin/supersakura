@@ -1860,10 +1860,12 @@ end;
 
 // ------------------------------------------------------------------
 
-procedure LoadDatCommon(const loadname : UTF8string);
+procedure LoadDatCommon(const loadname : UTF8string; const bannername : UTF8string);
 // Loads the given dat project name. Makes sure the dat's ancestors are
 // loaded first, if they exist. Loadname must be in lowercase. You must call
 // EnumerateDats before calling this.
+// If bannername is empty, loads the entire dat. Otherwise only loads the
+// banner image from the dat and names the image bannername.
 var datnum, ivar, jvar : dword;
 begin
  datnum := GetDat(loadname);
@@ -1871,34 +1873,38 @@ begin
  then LogError('Dat not found: ' + loadname)
  else begin
 
-  if availabledatlist[datnum].parentname <> '' then begin
-   ivar := 0;
-   while ivar < dword(length(datlist)) do begin
-    if datlist[ivar].projectname = availabledatlist[datnum].parentname then break;
-    inc(ivar);
+  if bannername = '' then begin
+   if availabledatlist[datnum].parentname <> '' then begin
+    ivar := 0;
+    while ivar < dword(length(datlist)) do begin
+     if datlist[ivar].projectname = availabledatlist[datnum].parentname then break;
+     inc(ivar);
+    end;
+    if ivar >= dword(length(datlist)) then begin
+     log('Loading dat dependency ' + availabledatlist[datnum].parentname);
+     LoadDatCommon(availabledatlist[datnum].parentname, '');
+    end;
+   end
+   else if sysvar.activeprojectname <> availabledatlist[datnum].projectname
+   then begin
+    sysvar.activeprojectname := availabledatlist[datnum].projectname;
+    log('Active project now: ' + sysvar.activeprojectname);
    end;
-   if ivar >= dword(length(datlist)) then begin
-    log('Loading dat dependency ' + availabledatlist[datnum].parentname);
-    LoadDatCommon(availabledatlist[datnum].parentname);
-   end;
-  end
-  else if sysvar.activeprojectname <> availabledatlist[datnum].projectname
-  then begin
-   sysvar.activeprojectname := availabledatlist[datnum].projectname;
-   log('Active project now: ' + sysvar.activeprojectname);
   end;
 
   {$ifdef sakucon}
   // The console port just needs to load the dat.
-  if LoadDAT(availabledatlist[datnum].filenamu) <> 0 then LogError(asman_errormsg);
+  if LoadDAT(availabledatlist[datnum].filenamu, bannername) <> 0 then
+   LogError(asman_errormsg);
   {$else}
   // Remember the current base resolution, and try to load the dat.
   ivar := asman_baseresx;
   jvar := asman_baseresy;
-  if LoadDAT(availabledatlist[datnum].filenamu) <> 0 then LogError(asman_errormsg)
+  if LoadDAT(availabledatlist[datnum].filenamu, bannername) <> 0 then
+   LogError(asman_errormsg)
   // If the base resolution changed because of this dat, and a main window
   // already exists, then resize the window.
-  else if mv_MainWinH <> NIL then
+  else if (mv_MainWinH <> NIL) and (bannername = '') then
   if (ivar <> dword(asman_baseresx)) or (jvar <> dword(asman_baseresy))
   then begin
    GetDefaultWindowSizes(ivar, jvar);
@@ -1910,7 +1916,7 @@ begin
  end;
 
  // Currently running fibers must use updated script indexes.
- if fibercount <> 0 then
+ if (fibercount <> 0) and (bannername = '') then
   for ivar := fibercount - 1 downto 0 do begin
    fiber[ivar].labelindex := GetScr(fiber[ivar].labelname);
    if fiber[ivar].labelindex = 0 then fiber[ivar].fiberstate := FIBERSTATE_STOPPING;
