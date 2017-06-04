@@ -225,6 +225,12 @@ begin
   log('SDL reports desktop size: ' + strdec(mymode.w) + 'x' + strdec(mymode.h));
   log('Usable desktop area: ' + strdec(myrekt.w) + 'x' + strdec(myrekt.h));
 
+  // Shrink the usable desktop area slightly to avoid auto-sized windows
+  // being virtually fullscreen. It looks nicer if there's at least a little
+  // guaranteed space around a non-fullscreen window.
+  dec(myrekt.w, myrekt.w shr 6);
+  dec(myrekt.h, myrekt.h shr 6);
+
   // For graphics caching, eight times the fullscreen size should be plenty.
   asman_gfxmemlimit := mymode.w * mymode.h * 32;
 
@@ -238,6 +244,7 @@ begin
   dec(ivar);
   sizex := (sizex * ivar) shr 1;
   sizey := (sizey * ivar) shr 1;
+  log('Baseres: ' + strdec(asman_baseresx) + 'x' + strdec(asman_baseresy) + '; Multiplier: ' + strdec(ivar) + '; Target res: ' + strdec(sizex) + 'x' + strdec(sizey));
  end;
 end;
 
