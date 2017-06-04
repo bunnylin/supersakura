@@ -102,11 +102,14 @@ begin
  if FetchParam(WOPP_TEXT) = FALSE
  then ToggleChoices('', FALSE) // disable all choices
  else begin
+  numvalue2 := $FFFF;
   if (choicematic.choicebox < dword(length(TBox)))
   and (TBox[choicematic.choicebox].boxlanguage < dword(length(strvalue)))
-  then strvalue[0] := strvalue[TBox[choicematic.choicebox].boxlanguage];
-  if strvalue[0] = '' then ToggleChoices('', FALSE) // disable all choices
-  else ToggleChoices(strvalue[0], FALSE) // disable a specific choice
+  then numvalue2 := TBox[choicematic.choicebox].boxlanguage;
+  numvalue := GetBestString(numvalue2);
+  if strvalue[numvalue] = ''
+  then ToggleChoices('', FALSE) // disable all choices
+  else ToggleChoices(strvalue[numvalue], FALSE) // disable a specific choice
  end;
 end;
 
@@ -116,11 +119,14 @@ begin
  if FetchParam(WOPP_TEXT) = FALSE
  then ToggleChoices('', TRUE) // enable all choices
  else begin
+  numvalue2 := $FFFF;
   if (choicematic.choicebox < dword(length(TBox)))
   and (TBox[choicematic.choicebox].boxlanguage < dword(length(strvalue)))
-  then strvalue[0] := strvalue[TBox[choicematic.choicebox].boxlanguage];
-  if strvalue[0] = '' then ToggleChoices('', TRUE) // enable all choices
-  else ToggleChoices(strvalue[0], TRUE) // enable a specific choice
+  then numvalue2 := TBox[choicematic.choicebox].boxlanguage;
+  numvalue := GetBestString(numvalue2);
+  if strvalue[numvalue] = ''
+  then ToggleChoices('', TRUE) // enable all choices
+  else ToggleChoices(strvalue[numvalue], TRUE) // enable a specific choice
  end;
 end;
 
@@ -138,23 +144,26 @@ begin
 end;
 
 procedure Invoke_CHOICE_REMOVE; inline;
-var ivar : dword;
+var ivar, strnum : dword;
 begin
+ strnum := $FF;
+ if (choicematic.choicebox < dword(length(TBox)))
+ and (TBox[choicematic.choicebox].boxlanguage < dword(length(strvalue)))
+ then strnum := TBox[choicematic.choicebox].boxlanguage;
+ strnum := GetBestString(strnum);
+ strvalue[strnum] := upcase(strvalue[strnum]);
+
  with choicematic do begin
   if active then Invoke_CHOICE_CANCEL;
   ivar := choicelistcount;
-  if (FetchParam(WOPP_TEXT) = FALSE) or (strvalue[0] = '') then begin
+  if (FetchParam(WOPP_TEXT) = FALSE) or (strvalue[strnum] = '') then begin
    // Remove all choices.
    choicelistcount := 0;
   end else begin
    // Remove a specific choice.
-   if (choicebox >= dword(length(TBox)))
-   or (TBox[choicebox].boxlanguage >= dword(length(strvalue)))
-   then strvalue[0] := upcase(strvalue[0])
-   else strvalue[0] := upcase(strvalue[TBox[choicebox].boxlanguage]);
    while ivar <> 0 do begin
     dec(ivar);
-    if upcase(choicelist[ivar].choicetxt) = strvalue[0] then begin
+    if upcase(choicelist[ivar].choicetxt) = strvalue[strnum] then begin
      choicelist[ivar].choicetxt := '';
      choicelist[ivar].selectable := FALSE;
     end;
@@ -195,15 +204,16 @@ begin
     inc(choicelistcount);
    end;
    // Set the choice details. Use the choice box's preferred language.
+   numvalue2 := $FF;
    if (choicebox >= dword(length(TBox)))
    or (TBox[choicebox].boxlanguage >= dword(length(strvalue)))
-   then choicelist[numvalue].choicetxt := strvalue[0]
-   else choicelist[numvalue].choicetxt := strvalue[TBox[choicebox].boxlanguage];
+   then numvalue2 := TBox[choicebox].boxlanguage;
+   choicelist[numvalue].choicetxt := strvalue[GetBestString(numvalue2)];
    choicelist[numvalue].jumplist := '';
    choicelist[numvalue].trackvar := '';
    choicelist[numvalue].selectable := TRUE;
-   if FetchParam(WOPP_LABEL) then choicelist[numvalue].jumplist := strvalue[0];
-   if FetchParam(WOPP_VAR) then choicelist[numvalue].trackvar := strvalue[0];
+   if FetchParam(WOPP_LABEL) then choicelist[numvalue].jumplist := strvalue[GetBestString(numvalue2)];
+   if FetchParam(WOPP_VAR) then choicelist[numvalue].trackvar := strvalue[GetBestString(numvalue2)];
   end;
  end;
 end;
