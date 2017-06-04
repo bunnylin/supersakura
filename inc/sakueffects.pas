@@ -863,7 +863,7 @@ begin
     and (gob[ivar].animtimer <> $FFFFFFFF) // gob must not be frozen
     then begin
      PNGindex := GetPNG(gob[ivar].gfxnamu);
-     jvar := tickcount; roweventcount := 16;
+     jvar := tickcount; roweventcount := 64;
      while gob[ivar].animtimer <= jvar do begin
       dec(jvar, gob[ivar].animtimer);
       gob[ivar].animseqp := (gob[ivar].animseqp + 1) mod PNGlist[PNGindex].seqlen;
