@@ -1,7 +1,7 @@
 ---------------------- ===== TO DO ===== -------------------------
 SuperSakura
 FUTURE
-- Consider an Android port, if FPC support improves?
+- Native Android port, FPC 3.1.1 or newer should have good enough support
 - Consider trimming FPC's System and Sysutils units to save space?
 - Audio (full FM etc softsynth)
    + Build a library of custom chip sound effects (rip some from Alleycat
@@ -56,14 +56,16 @@ FUTURE
    + Expanded soundtrack mod, subtle variations on existing themes?
    + Eye-blinkies for event graphics wherever appropriate
 REQUIRED FOR 1.0
-- Automatically load all .mod files whose header namedrops the dat being
-  loaded
+- Test whether mods show up as expected on the frontend; should only be shown
+  if all parent dats are present; also check if infinite parent loops work
+- Implement banners for frontend
+- A mod should probably have an empty banner, so the engine can fall back to
+  the main project's banner image
 - Create a Settings dialog, video and audio config
    + Needs a simple widget system of our own; existing ones would probably
      work well except I'd like gamepad support; most likely layout will be
      something like PPSSPP menus, a vertical list that scrolls, with the
      item names on the left and the values on the right
-- Create a game/dat selection dialog, something like ScummVM
 - Add a friendly button in game/dat selection dialog to directly convert
   games to ssakudats
    + Integrate decomp/beautify/recomp in supersakura?
@@ -102,6 +104,7 @@ REQUIRED FOR 1.0
   prioritise big pictures since small ones can be loaded at runtime almost
   instantly anyway
 - Reimplement precipitation effects
+- Ctrl+I should display a meta-info box, previously ctrl+v
 - See if can read TTF etc headers to find font face names, that would
   allow quick font enumeration at startup and then friendly selection
 - Implement the software pixel shader style thing to replace the old
@@ -121,29 +124,23 @@ REQUIRED FOR 1.0
    + When in debug mode, can type sakurascript lines in the box, which get
      compiled and executed in a new fiber
    + Commandline option to dump the game transcript into a file as you play
+- Language changing at runtime probably shouldn't change choicebox language
+  if any choices are visible, choicematic's not set up for that...
 - Viewframe option in metamenu for games that have one
 - Implement a metamenu as per uidesign doc
    + New wops needed:
      choice.endtyping
-     choice.gethighlight
-     choice.onhighlight [label]
      choice.typeinbox [box]
      fiber.waittyping
      gfx.stashthumbnail [name]
      sys.closemetamenu
-     sys.getdatname [index]
-     sys.getnumdats
      sys.getnumsaves
      sys.getsavedate [index]
      sys.getsavename [index]
-     sys.isskipping
-     sys.loaddat [name]
      sys.loaddatbanner [index] [name]
      sys.loadsavethumb [index] [name]
      sys.loadstate [index]
-     sys.restartgame
      sys.savestate [index] [name]
-     sys.setskipping [value]
      sys.showhistory
      tbox.getlastline [box]
    + As long as choicematic.typeinbox is valid, user keypresses are added to
@@ -154,13 +151,17 @@ REQUIRED FOR 1.0
      the last escape code or newline
 - Mcsassm needs a way to add run-time incidental graphics
 - Test mouseonly mouseoverables
+- Mousewheel should just scroll choicebox directly
 - Add uimagnifiq'n in config file
-- Set up another distro or two in VMs and make sure can build on them
+- Set up Vagrant configs for the below VMs?
+- Set up another distro or two in VMs and make sure can build on them; should
+  try Ubuntu and Fedora? Also FreeBSD, should be trivial to support
 - Set up win7 in a VM and make sure can build on it, also check the esc key
   in minicrt
 - Build installable AUR package
 - Add a simple makefile for Linux deployment; although I don't really want to
-  push the tools into system-wide binary directories...
+  push the tools into system-wide binary directories... would be resolved if
+  the tools were built into the main engine's frontend
 - Add a Windows installer, InnoSetup?
 - Improve the main site, needs better download section at least; move
   progress page to be part of main page to make space?
@@ -172,7 +173,6 @@ REQUIRED FOR 1.0
      a main command that invokes the others
 - Re-implement quick RGB tweak?
 - Re-add gamepad support
-- Switch main menus to use textboxes instead of graphics
 - Scrollable boxes should have fading text to signal more content
 - By default, binaries should be in a write-protected executable
   directory; writable subdirectories for "data" and "save" will be
