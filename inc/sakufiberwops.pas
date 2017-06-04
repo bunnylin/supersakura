@@ -999,7 +999,20 @@ end;
 procedure Invoke_SYS_LOADDAT; inline;
 begin
  if FetchParam(WOPP_NAME) = FALSE then fibererror('sys.loaddat: no dat name')
- else LoadDatCommon(strvalue[0]);
+ else LoadDatCommon(strvalue[0], '');
+end;
+
+procedure Invoke_SYS_LOADDATBANNER; inline;
+begin
+ numvalue := 0;
+ FetchParam(WOPP_INDEX);
+ if (numvalue < 0) or (numvalue >= length(availabledatlist))
+ then fibererror('loaddatbanner: bad dat index ' + strdec(numvalue))
+ else begin
+  if FetchParam(WOPP_NAME)
+  then LoadDatCommon(availabledatlist[numvalue].projectname, strvalue[0])
+  else LoadDatCommon(availabledatlist[numvalue].projectname, 'BANNER');
+ end;
 end;
 
 procedure Invoke_SYS_PAUSE; inline;
@@ -1486,6 +1499,7 @@ begin
    WOP_SYS_ISFULLSCREEN: Invoke_SYS_ISFULLSCREEN;
    WOP_SYS_ISSKIPPING: Invoke_SYS_ISSKIPPING;
    WOP_SYS_LOADDAT: Invoke_SYS_LOADDAT;
+   WOP_SYS_LOADDATBANNER: Invoke_SYS_LOADDATBANNER;
    WOP_SYS_PAUSE: Invoke_SYS_PAUSE;
    WOP_SYS_QUIT: Invoke_SYS_QUIT;
    WOP_SYS_RESTARTGAME: Invoke_SYS_RESTARTGAME;
