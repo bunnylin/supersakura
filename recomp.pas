@@ -34,8 +34,8 @@ program Recompiler;
 // DWORD : signature $CACABAAB
 // BYTE : file format version, must be 3
 // DWORD : banner image offset, or zero for none
-// BYTE : byte length of project name string
-// CHARS : project name string, UTF-8
+// BYTE : byte length of parent name string
+// CHARS : parent name string, UTF-8
 // BYTE : byte length of dat description string
 // CHARS : description string, UTF-8
 // BYTE : byte length of version string
@@ -147,7 +147,8 @@ var errorcount : dword;
     bannerimageofs : dword;
 
     recomp_param : record
-      project : UTF8string; // the project name, also default src/out name
+      projectname : UTF8string; // the project name, also default src/out
+      parentname : UTF8string; // mods must have a parent project
       sourcedir : UTF8string; // the resources being built are read from here
       outputfile : UTF8string; // the packed resources go in this one file
       dumpstrings : UTF8string; // the string table is dumped in this file
@@ -795,12 +796,12 @@ begin
  // banner image offset
  ivar := 0;
  WriteBuffy(@ivar, 4);
- // project name string
- if length(recomp_param.project) > 255 then
-  recomp_param.project := copy(recomp_param.project, 1, 255);
- ivar := length(recomp_param.project);
+ // parent project name string
+ if length(recomp_param.parentname) > 255 then
+  recomp_param.parentname := copy(recomp_param.parentname, 1, 255);
+ ivar := length(recomp_param.parentname);
  WriteBuffy(@ivar, 1);
- WriteBuffy(@recomp_param.project[1], ivar);
+ if ivar <> 0 then WriteBuffy(@recomp_param.parentname[1], ivar);
  // project description string
  if length(projectdesc) > 255 then projectdesc := copy(projectdesc, 1, 255);
  ivar := length(projectdesc);
@@ -909,18 +910,19 @@ begin
 
  // Default sourcedir: the project name.
  if (recomp_param.sourcedir = '')
- and (recomp_param.project <> '')
- then recomp_param.sourcedir := recomp_param.project;
-
- // Remove the trailing separator, if any.
- if recomp_param.sourcedir[length(recomp_param.sourcedir)] = DirectorySeparator
- then setlength(recomp_param.sourcedir, length(recomp_param.sourcedir) - 1);
+ and (recomp_param.projectname <> '')
+ then recomp_param.sourcedir := recomp_param.projectname;
 
  // Check if this sourcedir exists under "data".
  // (Sourcedir can still be empty if neither sourcedir or project were
  // specified on the commandline. In this case there should at least be
  // a -loadfile parameter, otherwise there's nothing to work with.)
  if recomp_param.sourcedir <> '' then begin
+
+  // Remove the trailing separator, if any.
+  if recomp_param.sourcedir[length(recomp_param.sourcedir)] = DirectorySeparator
+  then setlength(recomp_param.sourcedir, length(recomp_param.sourcedir) - 1);
+
   txt := FindFile_Caseless('data' + DirectorySeparator + recomp_param.sourcedir, TRUE);
   if txt = '' then begin
    PrintError('Sourcedir not found: data' + DirectorySeparator + recomp_param.sourcedir);
@@ -928,18 +930,18 @@ begin
   end;
   // If the sourcedir is the same as the project name, use the sourcedir's
   // exact casing for the project name too.
-  if lowercase(recomp_param.sourcedir) = lowercase(recomp_param.project)
-  then recomp_param.project := ExtractFileName(txt);
+  if lowercase(recomp_param.sourcedir) = lowercase(recomp_param.projectname)
+  then recomp_param.projectname := ExtractFileName(txt);
   // Use the exact casing of the source directory.
   recomp_param.sourcedir := txt;
+
+  // Add a trailing separator to the source directory now.
+  recomp_param.sourcedir := recomp_param.sourcedir + DirectorySeparator;
  end;
 
- // Add a trailing separator to the source directory now.
- recomp_param.sourcedir := recomp_param.sourcedir + DirectorySeparator;
-
  // If outputfile was not overridden, use the project name, under data dir.
- if recomp_param.outputfile = ''
- then recomp_param.outputfile := 'data' + DirectorySeparator + recomp_param.project + '.dat';
+ if (recomp_param.outputfile = '') and (recomp_param.projectname <> '')
+ then recomp_param.outputfile := 'data' + DirectorySeparator + recomp_param.projectname + '.dat';
 
  // Load an existing dat, if specified on commandline
  if recomp_param.loadfile <> '' then begin
@@ -953,6 +955,8 @@ begin
    PrintError('No such file: ' + recomp_param.loadfile);
    exit;
   end;
+  writeln('Loading dat: ' + txt);
+  writeln(stdout, 'Loading dat: ' + txt);
   if (LoadDAT(txt, '') <> 0) then begin
    PrintError('LoadDAT failed: ' + asman_errormsg);
    exit;
@@ -961,8 +965,12 @@ begin
   PNGcount := length(PNGlist) - 1;
  end;
 
- if recomp_param.project <> '' then begin
-  txt := 'Project: ' + recomp_param.project;
+ if recomp_param.projectname <> '' then begin
+  txt := 'Project: ' + recomp_param.projectname;
+  writeln(txt); writeln(stdout, txt);
+ end;
+ if recomp_param.parentname <> '' then begin
+  txt := 'This is a mod for: ' + recomp_param.parentname;
   writeln(txt); writeln(stdout, txt);
  end;
  if recomp_param.sourcedir <> '' then begin
@@ -1052,7 +1060,8 @@ var txt : UTF8string;
 begin
  DoParams := TRUE;
  with recomp_param do begin
-  project := '';
+  projectname := '';
+  parentname := '';
   sourcedir := '';
   outputfile := '';
   dumpstrings := '';
@@ -1086,6 +1095,8 @@ begin
      then recomp_param.loadfile := copy(txt, jvar + 5, length(txt))
    else if (lowercase(copy(txt, jvar, 9)) = 'loadfile=')
      then recomp_param.loadfile := copy(txt, jvar + 9, length(txt))
+   else if (lowercase(copy(txt, jvar, 7)) = 'parent=')
+     then recomp_param.parentname := copy(txt, jvar + 7, length(txt))
    else begin
     PrintError('Unrecognised option: ' + paramstr(ivar));
     DoParams := FALSE; exit;
@@ -1093,7 +1104,7 @@ begin
   end
 
   else begin
-   if recomp_param.project = '' then recomp_param.project := paramstr(ivar)
+   if recomp_param.projectname = '' then recomp_param.projectname := paramstr(ivar)
    else begin
     PrintError('Unrecognised parameter: ' + paramstr(ivar));
     DoParams := FALSE; exit;
@@ -1104,7 +1115,7 @@ begin
  // If no parameters are present or project and loadfile are empty, then
  // there's nothing to do; show the help text.
  if (paramcount = 0)
- or (recomp_param.project = '') and (recomp_param.loadfile = '')
+ or (recomp_param.projectname = '') and (recomp_param.loadfile = '')
  then DoParams := FALSE;
 
  if DoParams then exit;
@@ -1128,6 +1139,7 @@ begin
  writeln('-out=file.dat      Overrides the output file name');
  writeln('-load=file.dat     Loads the given dat before starting to process other files.');
  writeln('-dumpstr=file.tsv  Prints the string tables into a tab-separated text file.');
+ writeln('-parent=project    Creates a mod for the specified parent project');
 end;
 
 begin
