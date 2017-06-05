@@ -171,10 +171,10 @@ string, you could just use:
 	translate-shell -b ja:en file://whatever.txt >output.txt
 
 Although you may want to first replace all backslashes in the file with
-double-backslashes. The goal is to make sure all instances of "\n" and "\$x"
-are present unchanged in the translated strings. The included shell script
-translate.sh may be able to do the whole thing for you, if you're on Linux
-and have translate-shell installed:
+double-backslashes. The goal is to make sure all instances of "\\n" and
+"\\$x;" are present unchanged in the translated strings. The included shell
+script translate.sh may be able to do the whole thing for you, if you're on
+Linux and have translate-shell installed:
 
 	translate.sh input.txt >output.tsv
 
