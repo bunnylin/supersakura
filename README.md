@@ -160,7 +160,7 @@ to edit the game's main script and change the textboxes to expect English
 text.
 
 To help automate translation, you could try Mort Yao's excellent
-[Translate-Shell] (https://www.soimort.org/translate-shell/)
+[Translate-Shell](https://www.soimort.org/translate-shell/)
 utility. If you copy all strings into a simple text file, one line per
 string, you could just use:
 
@@ -182,8 +182,8 @@ still want to clean up at least the common verb:noun commands that are near
 the start of the file. The verbs need to be consistently translated, or the
 game may rarely fail to enable or disable the correct verbs.
 
-There are a few other translation options. [Translation Aggregator]
-(http://www.hongfire.com/forum/showthread.php/94395-Translation-Aggregator-v0-4-9?p=3648894#post3648894)
+There are a few other translation options.
+[Translation Aggregator](http://www.hongfire.com/forum/showthread.php/94395-Translation-Aggregator-v0-4-9?p=3648894#post3648894)
 leverages both online and offline resources, but I'm not sure how hard it
 would be to straight up feed a text file through it.
 
