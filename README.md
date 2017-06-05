@@ -144,6 +144,10 @@ For example, the PC-98 version of the Three Sisters' Story:
 
 	recomp 3sis98 -dumpstr=3sis98.tsv
 
+Alternatively, read and dump strings straight from a dat file:
+
+	recomp -load=data/3sis98.dat -dumpstr=3sis98.tsv
+
 This produces a simple tab-separated spreadsheet in the given file, in UTF-8
 encoding. You can open it in any text editor, or LibreOffice Calc, or Excel,
 or Notepad++ etc. If you are given any import options, be sure to turn off
