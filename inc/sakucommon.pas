@@ -1792,15 +1792,23 @@ begin
  event.normalint.triggerlabel := '';
  event.escint.triggerlabel := '';
 
+ // Reset fibers
+ setlength(fiber, 0);
+ fibercount := 0;
+
  // Reset gobs
+ setlength(gob, 0);
  setlength(gob, 12);
  for ivar := high(gob) downto 0 do gob[ivar].gobnamu := '';
 
  // Reset effects
- if length(fx) <> 0 then
- for ivar := high(fx) downto 0 do begin
-  fx[ivar].kind := 0;
-  if fx[ivar].poku <> NIL then begin freemem(fx[ivar].poku); fx[ivar].poku := NIL; end;
+ if length(fx) <> 0 then begin
+  for ivar := high(fx) downto 0 do
+   if fx[ivar].poku <> NIL then begin
+    freemem(fx[ivar].poku); fx[ivar].poku := NIL;
+   end;
+
+  setlength(fx, 0);
  end;
  setlength(fx, 6);
  fxcount := 0;
