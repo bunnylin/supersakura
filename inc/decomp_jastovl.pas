@@ -365,6 +365,8 @@ var outbuf : record
      end;
    end;
 
+   writebuf('print "');
+
    if game in
    [gid_3SIS98, gid_ANGELSCOLLECTION1, gid_ANGELSCOLLECTION2, gid_EDEN,
    gid_FROMH, gid_MAJOKKO, gid_PARFAIT, gid_RUNAWAY98, gid_SAKURA98,
@@ -391,12 +393,11 @@ var outbuf : record
      if word((loader + lofs + jvar)^) = $7A81 then begin
       inc(lofs, jvar + 2);
 
-      writebuf('print 2 ~"');
       if copy(printstr, 1, 2) = '%0' then
        writebuf('\$s' + strdec(valx(printstr)) + ';')
       else
        writebuf(printstr, printofs - 1);
-      writebufln('"');
+      writebuf('\:');
       if word((loader + lofs)^) = $4681 then inc(lofs, 2) // ":"
       else if byte((loader + lofs)^) = $3A then inc(lofs); // ":"
       if byte((loader + lofs)^) = $A then inc(lofs); // linebreak
@@ -436,9 +437,9 @@ var outbuf : record
 
     case jvar of
       $0A: // linefeed CR
-      case game of
+      begin
+       if game in [gid_3SIS, gid_RUNAWAY, gid_SAKURA] then begin
         // latin alphabet
-        gid_3SIS, gid_RUNAWAY, gid_SAKURA:
         // write nothing if there's a hyphen or space already
         if (char((loader + lofs - 1)^) <> '-')
         and (char((loader + lofs - 1)^) <> ' ')
@@ -447,10 +448,10 @@ var outbuf : record
          // unless it's the string's last character.
          if (byte((loader + lofs + 1)^) < 32) then begin
           if printofs > 1 then begin
-           writebuf('print "');
-           writebuf(printstr, printofs - 1);
-           writebufln('\n"');
-           printofs := 1;
+           printstr[printofs] := '\'; inc(printofs);
+           printstr[printofs] := 'n'; inc(printofs);
+           inc(lofs);
+           break;
           end;
          end else begin
           // replace with a space
@@ -458,24 +459,18 @@ var outbuf : record
          end;
         end;
 
-        // shift-jis
-        else begin
-         //if (word((loader + lofs - 2)^) <> $4081)
-         //and (word((loader + lofs + 2)^) <> $4081)
-         printstr[printofs] := '\'; inc(printofs);
-         printstr[printofs] := 'n'; inc(printofs);
-         if printofs > 2 then begin
-          writebuf('print "');
-          writebuf(printstr, printofs - 1);
-          writebufln('"');
-          printofs := 1;
-         end;
-        end;
+       end
+       // shift-jis
+       else begin
+        printstr[printofs] := '\'; inc(printofs);
+        printstr[printofs] := 'n'; inc(printofs);
+        inc(lofs);
+        break;
+       end;
       end;
 
-      // double-quotes, backslashes and semi-colons must be escaped
-      // (why semi-colons??)
-      $22,$3B,$5C: begin
+      // double-quotes and backslashes must be escaped
+      $22,$5C: begin
        printstr[printofs] := '\'; inc(printofs);
        printstr[printofs] := chr(jvar); inc(printofs);
       end;
@@ -508,10 +503,9 @@ var outbuf : record
         if (printofs < 32) and (maybetitle) then begin
          inc(lofs, lvar);
          maybetitle := FALSE;
-         writebuf('print 2 ~"');
          if printstr[1] = ' ' then writebuf(copy(printstr, 2, printofs - 2))
          else writebuf(printstr, printofs - 1);
-         writebufln('"');
+         writebuf('\:');
          printofs := 1;
         end
         else begin
@@ -555,23 +549,9 @@ var outbuf : record
     {$endif enable_hacks}
    end;
 
-   // If a printed line is followed by the command "wait for keypress without
-   // clearing text" or "sleep xx desiseconds", newline is not needed.
-   if (jvar in [$00,$01,$08,$17] = FALSE)
-   and (game in [gid_SAKURA, gid_SAKURA98, gid_EDEN, gid_MAJOKKO, gid_FROMH])
-   or (jvar in [$00,$01,$09,$17] = FALSE)
-   and (game in [gid_3SIS, gid_3SIS98, gid_RUNAWAY, gid_RUNAWAY98])
-   then begin
-    printstr[printofs] := '\'; inc(printofs);
-    printstr[printofs] := 'n'; inc(printofs);
-   end;
-
    // Write out the print command
-   if printofs > 1 then begin
-    writebuf('print "');
-    writebuf(printstr, printofs - 1);
-    writebufln('"');
-   end;
+   writebuf(printstr, printofs - 1);
+   writebufln('"');
   end;
 
 begin
