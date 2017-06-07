@@ -302,12 +302,13 @@ type boxtype = record
 
        // List of escape codes and their offsets in txtcontent[]. Codes:
        // \0 = empty character
+       // \: = dialogue title terminator
        // \n = explicit linebreak
        // \? = begin choice string
        // \. = end choice string
        // \B \b = enable\disable bold font
        // \$xxx; = variable reference, not saved, immediately dereferenced
-       // \:xxx; = show emoji number xxx
+       // \&xxx; = show emoji number xxx
        // \cRGBA; = set primary text color temporarily to RGBA, one hex each
        // \d = restore the default text color
        // \L \C \R = set text alignment temporarily to left/center/right

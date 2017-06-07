@@ -162,7 +162,7 @@ var ivar, jvar : dword;
        'c': begin
         txtescapelist[txtescapecount].escapedata := ExpandColorRef(longint(valhex(refstr)));
        end;
-       ':': begin
+       '&': begin
         // Special handling: emotes must be followed by an implicit space.
        end;
      end;
@@ -221,11 +221,25 @@ begin
    // Handle escape code.
    if inofs < dword(length(newtxt)) then inc(inofs);
    case byte(newtxt[inofs]) of
-     byte('0'): inc(inofs); // empty char
-     byte('n'),byte('?'),byte('.'),byte('b'),byte('B'),byte('d'),byte('L'),byte('C'),byte('R'):
+     byte('0'): inc(inofs); // \0 empty char
+     byte(':'): begin // \: dialogue title end
+      ClearTextbox(boxnum);
+      ClearTextbox(gamevar.dialoguetitlebox);
+      PrintBox(gamevar.dialoguetitlebox, copy(newtxt, 1, inofs - 2));
+     end;
+
+     byte('n'), // \n newline
+     byte('?'),byte('.'), // \? \. choice string start/end
+     byte('b'),byte('B'), // \b \B bold font off/on
+     byte('d'), // \d restore default text color
+     byte('L'),byte('C'),byte('R'): // \L \C \R text align left/center/right
        addescape(newtxt[inofs], FALSE);
-     byte('$'),byte(':'),byte('c'):
+
+     byte('$'), // variable dereference \$varname;
+     byte('&'), // print emoji \&emoref;
+     byte('c'): // set text color \c48BF;
        addescape(newtxt[inofs], TRUE);
+
      $80..$FF: begin
       LogError('Print box ' + strdec(boxnum) + ' bad escape code in: ' + newtxt); break;
      end;

@@ -540,7 +540,7 @@ var outbuf : record
 
       // Single-byte plain ASCII
       else begin
-      printstr[printofs] := chr(jvar); inc(printofs);
+       printstr[printofs] := chr(jvar); inc(printofs);
       end;
     end;
 
@@ -1815,6 +1815,7 @@ begin
                        end;
        else begin PrintError('Unknown code $09 @ $' + strhex(lofs)); exit; end;
       end;
+   // 0A - Linebreak, handled with other text output
    // 0B - Local variable functions
    $B: begin
         inc(lofs);
@@ -2294,23 +2295,23 @@ begin
                   writebufln('sleep');
                  end;
                  writebuf('gfx.show ');
-                 case gfxlist[lvar].data2 of // image type
-                  $38: begin
-                        //writebuf('type sprite');
-                        waitkeyswipe := 4; // all sprites get a crossfade
-                       end;
-                  else begin // $50, $03, $42, $4E
-                        writebuf('type bkg');
-                        if waitkeyswipe <> 4 then case gfxlist[lvar].data1 of
-                          6,7: waitkeyswipe := 1;
-                          11: waitkeyswipe := 2;
-                          4,5,8,10: waitkeyswipe := 3;
-                          9: waitkeyswipe := 4;
-                          else waitkeyswipe := 0;
-                        end;
-                       end;
+                 // image type $38 sprite: always use a crossfade
+                 if gfxlist[lvar].data2 = $38 then waitkeyswipe := 4
+                 else begin
+                  // all other image types $50, $03, $42, $4E can use
+                  // a variety of transitions, unless overridden with xfade.
+                  writebuf('type bkg ');
+                  if waitkeyswipe <> 4 then
+                  case gfxlist[lvar].data1 of
+                    6,7: waitkeyswipe := 1;
+                    11: waitkeyswipe := 2;
+                    4,5,8,10: waitkeyswipe := 3;
+                    9: waitkeyswipe := 4;
+                    else waitkeyswipe := 0;
+                  end;
                  end;
-                 writebufln(' ' + gfxlist[lvar].gfxname);
+                 writebufln(gfxlist[lvar].gfxname);
+
                  if gfxlist[lvar].gfxname = 'TB_000' then blackedout := TRUE else blackedout := FALSE;
                  // load animations automatically
                  if gfxlist[lvar].data2 = $38 then AutoloadAnims(gfxlist[lvar].gfxname);
