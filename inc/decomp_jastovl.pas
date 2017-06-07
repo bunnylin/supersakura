@@ -678,6 +678,8 @@ begin
   end;
 
   gid_3SIS98: begin
+   // Hack: replace a newline with a waitkey
+   if scriptname = 'SK_106' then byte((loader + $1BF)^) := 1;
    // Hack: fix a jump into the middle of a string
    if scriptname = 'SK_406' then word((loader + $A1)^) := $5F4;
   end;
