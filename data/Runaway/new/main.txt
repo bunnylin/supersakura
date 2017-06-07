@@ -33,6 +33,7 @@ choice.sethighlightbox 2
 choice.columns 1
 tbox.setnumboxes 0
 tbox.setnumboxes 3
+
 tbox.setparam 1 ax 16384
 tbox.setparam 1 ay 32768
 tbox.setparam 1 lx 16384
@@ -68,6 +69,7 @@ sleep
 
 tbox.setnumboxes 0
 tbox.setnumboxes 5
+tbox.setdiatitlebox 2
 choice.setpartbox 3
 choice.setchoicebox 3
 choice.sethighlightbox 4

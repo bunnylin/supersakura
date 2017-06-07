@@ -15,6 +15,7 @@ viewport.setbkgindex viewport:2 index 1
 
 // Textbox setup
 tbox.setnumboxes 5
+tbox.setdiatitlebox 2
 choice.setpartbox 3
 choice.setchoicebox 3
 choice.sethighlightbox 4

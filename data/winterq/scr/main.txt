@@ -44,6 +44,7 @@ viewport.setbkgindex viewport:2 index 1
 // 2: title text box
 // 1: game text box
 tbox.setnumboxes 7
+tbox.setdiatitlebox 2
 choice.setchoicebox 3
 choice.setpartbox 3
 choice.sethighlightbox 4

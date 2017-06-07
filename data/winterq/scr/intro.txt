@@ -12,8 +12,7 @@ print "Logs crackling in the fireplace... snow sculptures... apple pie... Childr
 waitkey
 print "Unfortunately, everyone's reverie is broken by the sudden arrival of a colorfully dressed man."
 waitkey
-print 2 ~Man
-print "Everyone, gather together! Please, get everyone here!"
+print "Man\:Everyone, gather together! Please, get everyone here!"
 waitkey noclear=1
 choice.clear
 $v1:=0 $v2:=0 $v3:=0 $v4:=0
@@ -81,8 +80,7 @@ gfx.transition 3
 sleep
 sleep 400
 
-print 2 ~Herald
-print "Good people of Toad's Mirth, I bear a word from King Rex I, the Artistic Autocrat!"
+print "Herald\:Good people of Toad's Mirth, I bear a word from King Rex I, the Artistic Autocrat!"
 waitkey
 print "Toad's Mirth? Is that what our village is called?"
 waitkey
@@ -120,22 +118,17 @@ waitkey noclear=1
 choice.go
 
 @LH1:
-print 2 ~Herald
-print "By decree of his majesty, it is again time for you to pay your dues. In return, you will retain his majesty's goodwill, and prosperity will print be with your village all year."
+print "Herald\:By decree of his majesty, it is again time for you to pay your dues. In return, you will retain his majesty's goodwill, and prosperity will print be with your village all year."
 waitkey
-print 2 ~Villager
-print "Nobody has collected anything from us before. What is this?"
+print "Villager\:Nobody has collected anything from us before. What is this?"
 waitkey
-print 2 ~Herald
-print "Nobody? Oh my. Well, not to worry! We will take this in consideration "
+print "Herald\:Nobody? Oh my. Well, not to worry! We will take this in consideration "
 print "for the interest payment. The tax collectors are willing to be flexible "
 print "and defer partial collection temporarily."
 waitkey
-print 2 ~Villager
-print "What taxes are these?"
+print "Villager\:What taxes are these?"
 waitkey
-print 2 ~Herald
-print "Why, you must pay for anything that makes you happy. Everything belongs "
+print "Herald\:Why, you must pay for anything that makes you happy. Everything belongs "
 print "to his majesty, after all, yet he is graciously allowing people to make "
 print "use of his property for a fair reimbursement."
 waitkey
@@ -145,32 +138,25 @@ $v7 := 1
 choice.go
 
 @LH2:
-print 2 ~Villager
-print "What is mine, is mine. Not any king's."
+print "Villager\:What is mine, is mine. Not any king's."
 waitkey
-print 2 ~Herald
-print "You are mistaken... Everything around you belongs to the king. The sand, the trees, the fields, the houses..."
+print "Herald\:You are mistaken... Everything around you belongs to the king. The sand, the trees, the fields, the houses..."
 waitkey
-print 2 ~Villager
-print "I built my house! Why does it belong to the king?"
+print "Villager\:I built my house! Why does it belong to the king?"
 waitkey
 print "The herald sighs."
 waitkey
-print 2 ~Herald
-print "Because that is what kings are for. After all, there must be a single "
+print "Herald\:Because that is what kings are for. After all, there must be a single "
 print "authority that owns everything. Otherwise people could use these things "
 print "to harm others."
 waitkey
-print 2 ~Herald
-print "Consider: If you own a knife, what is stopping you from attacking "
+print "Herald\:Consider: If you own a knife, what is stopping you from attacking "
 print "a fellow villager? But if the knife belongs to the king, then you are "
 print "not allowed to use it to harm others."
 waitkey
-print 2 ~Herald
-print "This is the only way to ensure that all things, large and small, are ultimately used for the greatest benefit for everyone, equally."
+print "Herald\:This is the only way to ensure that all things, large and small, are ultimately used for the greatest benefit for everyone, equally."
 waitkey
-print 2 ~Herald
-print "As for your house, did you not use the king's trees to build it? "
+print "Herald\:As for your house, did you not use the king's trees to build it? "
 print "Just because the wood was made into a house doesn't mean the king lost "
 print "ownership. Even so, as long as you use the house for good purposes, "
 print "you have licence to dwell there."
@@ -179,35 +165,28 @@ $v7 := 2
 choice.go
 
 @LH3:
-print 2 ~Villager
-print "I didn't know we had a king."
+print "Villager\:I didn't know we had a king."
 waitkey
-print 2 ~Herald
-print "The Artistic Autocrat has a divine mandate to be ruler of all. Who can argue with that?"
+print "Herald\:The Artistic Autocrat has a divine mandate to be ruler of all. Who can argue with that?"
 waitkey noclear=1
 $v7 := 3
 choice.go
 
 @LH4:
-print 2 ~Villager
-print "So how much tax must we pay to your Artistic Autocrat?"
+print "Villager\:So how much tax must we pay to your Artistic Autocrat?"
 waitkey
-print 2 ~Herald
-print "Tut! Speak not his majesty's name or title, for they are not yours. "
+print "Herald\:Tut! Speak not his majesty's name or title, for they are not yours. "
 print "You would not use your neighbor's ox without permission, or take "
 print "a traveller's purse of silver, would you?"
 waitkey
-print 2 ~Herald
-print "Likewise, his majesty's name or title may not be used without "
+print "Herald\:Likewise, his majesty's name or title may not be used without "
 print "permission. Due to their sacred nature, only those specially favored "
 print "may utter them without licence. For your presumption, your village "
 print "may have to pay a name tax."
 waitkey
-print 2 ~Herald
-print "... in addition to the sun tax, air tax, land tax, friendship tax, love tax, music tax, and the convenient tax collection tax."
+print "Herald\:... in addition to the sun tax, air tax, land tax, friendship tax, love tax, music tax, and the convenient tax collection tax."
 waitkey
-print 2 ~Herald
-print "I estimate the total, with interest from unpaid taxes, comes to four "
+print "Herald\:I estimate the total, with interest from unpaid taxes, comes to four "
 print "tenths of your food stores. But, you will be pleased to know, the next "
 print "collection will likely be somewhat smaller."
 waitkey
@@ -219,38 +198,30 @@ $v6 := 1
 choice.go
 
 @LH5:
-print 2 ~Herald
-print "You will, of course, be exempt from the snow tax, as winter has been cancelled."
+print "Herald\:You will, of course, be exempt from the snow tax, as winter has been cancelled."
 waitkey
-print 2 ~Villagers
-print "Cancelled!?"
+print "Villager\:Cancelled!?"
 waitkey
-print 2 ~Herald
-print "The wise advisors of king Rex I discovered that tax collection is "
+print "Herald\:The wise advisors of king Rex I discovered that tax collection is "
 print "brought to a near halt during the winter months, since the snow "
 print "prevents tax collectors from travelling from village to village "
 print "overseeing the people's use of his majesty's property."
 waitkey
-print 2 ~Herald
-print "As a result, each spring, all villages had to pay a somewhat sizable additional tax, to cover all possible unmonitored use. "
+print "Herald\:As a result, each spring, all villages had to pay a somewhat sizable additional tax, to cover all possible unmonitored use. "
 print "With snow eliminated, such undue breaks will no longer disrupt the safe and stable tax collection service, benefiting everyone."
 waitkey noclear=1
 $v7 := 5
 choice.go
 
 @LH6:
-print 2 ~Villager
-print "We will not give away our food! How will we live?"
+print "Villager\:We will not give away our food! How will we live?"
 waitkey
-print 2 ~Herald
-print "The king only takes a portion of what is rightfully his. You need not fear starvation - the king is no monster."
+print "Herald\:The king only takes a portion of what is rightfully his. You need not fear starvation - the king is no monster."
 waitkey
-print 2 ~Herald
-print "However, if you resist, your village will be punished with an additional tax amounting to two hundred times your entire food stores. "
+print "Herald\:However, if you resist, your village will be punished with an additional tax amounting to two hundred times your entire food stores. "
 print "Surely, you see the reasonable course to take."
 waitkey
-print 2 ~Herald
-print "The tax collectors will arrive in a few days. Please be ready and show them all courtesy."
+print "Herald\:The tax collectors will arrive in a few days. Please be ready and show them all courtesy."
 waitkey
 
 gfx.clearkids
@@ -264,22 +235,18 @@ gfx.show CUBERT1 locx 1638
 gfx.transition 3
 sleep
 gfx.show CUBERTA1 locx 1638
-print 2 ~Cubert
-print "This is an infamy! Are we going to stand for this?"
+print "Cubert\:This is an infamy! Are we going to stand for this?"
 waitkey
 
 gfx.show ELDER2 locx 16384
 gfx.transition 3
 sleep
 gfx.show ELDERA2 locx 16384
-print 2 ~Elder
-print "Perhaps the king has bad advisors, and is simply not aware of the results of his taxation policy..."
+print "Elder\:Perhaps the king has bad advisors, and is simply not aware of the results of his taxation policy..."
 waitkey
-print 2 ~Cubert
-print "Taxation like this will leave all villages starving. Soon, there will be no one left to feed bloated royals. Who'll be laughing then? Ha!"
+print "Cubert\:Taxation like this will leave all villages starving. Soon, there will be no one left to feed bloated royals. Who'll be laughing then? Ha!"
 waitkey
-print 2 ~Elder
-print "If only someone would go and present our case to the king, he would understand why a change is necessary..."
+print "Elder\:If only someone would go and present our case to the king, he would understand why a change is necessary..."
 waitkey noclear=1
 
 choice.reset
@@ -300,8 +267,7 @@ gfx.transition 3
 sleep
 gfx.show ELDERA2 locx 512
 gfx.show BIGMACA1 locx 23210
-print 2 ~"Big Mack"
-print "Elder!"
+print "Big Mack\:Elder!"
 waitkey
 gfx.remove ELDER2
 gfx.show ELDER1 locx 1300
@@ -310,14 +276,11 @@ sleep
 gfx.show ELDERA1 locx 1300
 sleep 512
 
-print 2 ~"Big Mack"
-print "Let me go."
+print "Big Mack\:Let me go."
 waitkey
-print 2 ~"Big Mack"
-print "I may not be very good with words, but I am strong. The king will listen to me."
+print "Big Mack\:I may not be very good with words, but I am strong. The king will listen to me."
 waitkey
-print 2 ~Elder
-print "You are strong, Mackricola, and you have much heart, but it will be a perilous undertaking."
+print "Elder\:You are strong, Mackricola, and you have much heart, but it will be a perilous undertaking."
 waitkey
 gfx.clearkids
 gfx.show CUBERT2 locx 1638
@@ -325,8 +288,7 @@ gfx.show ELDER2 locx 16384
 gfx.transition 3
 sleep
 gfx.show ELDERA2 locx 16384
-print 2 ~Cubert
-print "Right... We need more nails in our collective coffin."
+print "Cubert\:Right... We need more nails in our collective coffin."
 waitkey noclear=1
 $v1 := 1
 $v2 := 1
@@ -337,19 +299,16 @@ gfx.remove CUBERT2
 gfx.show CUBERT1 locx 1638
 gfx.transition 3
 gfx.show CUBERTA1 locx 1638
-print 2 ~Cubert
-print "We need strong words to back our conviction. I will keep expounding on the king's error until he relents and lets us be!"
+print "Cubert\:We need strong words to back our conviction. I will keep expounding on the king's error until he relents and lets us be!"
 waitkey
-print 2 ~Elder
-print "I fear your fiery oratory would but further incense the king..."
+print "Elder\:I fear your fiery oratory would but further incense the king..."
 waitkey noclear=1
 $v1 := 2
 if $v2 < 4 then $v2 := 2 end
 choice.go
 
 @WT3:
-print 2 ~Elder
-print "But, it seems we have little choice... You two are our best hope. Let me take a moment to decide..."
+print "Elder\:But, it seems we have little choice... You two are our best hope. Let me take a moment to decide..."
 waitkey noclear=1
 $v1 := 3
 choice.go
@@ -362,11 +321,9 @@ gfx.transition 3
 sleep
 gfx.show ELDERA1 locx 1300
 gfx.show BIGMACA1 locx 17400
-print 2 ~Elder
-print "Mackricola, you will take our concerns to the king. We will give you a scroll to deliver with our carefully worded concerns."
+print "Elder\:Mackricola, you will take our concerns to the king. We will give you a scroll to deliver with our carefully worded concerns."
 waitkey
-print 2 ~"Big Mack"
-print "Leave it to me!"
+print "Big Mack\:Leave it to me!"
 waitkey noclear=1
 goto BIGMACLEAVES
 
@@ -402,8 +359,7 @@ waitkey noclear=1
 choice.go
 
 @Volunteer:
-print 2 ~You
-print "I will go."
+print "You\:I will go."
 waitkey
 print "....."
 waitkey
@@ -413,8 +369,7 @@ $v3 := 1
 choice.go
 
 @Volunteer2:
-print 2 ~You
-print "I said, I will go!"
+print "You\:I said, I will go!"
 waitkey
 gfx.clearkids
 gfx.show CUBERT1 locx 1638
@@ -422,24 +377,19 @@ gfx.show ELDER2 locx 16384
 gfx.transition 3
 gfx.show CUBERTA1 locx 1638
 gfx.show ELDERA2 locx 16384
-print 2 ~Elder
-print "....."
+print "Elder\:....."
 waitkey
-print 2 ~Elder
-print "It is a heavy responsibility to speak for our whole village. Are you sure you wish to go?"
+print "Elder\:It is a heavy responsibility to speak for our whole village. Are you sure you wish to go?"
 waitkey
-print 2 ~You
-print "I can do it. Cubert and Big Mack are both dependable men, but they are needed here if the tax collectors try to give us trouble."
+print "You\:I can do it. Cubert and Big Mack are both dependable men, but they are needed here if the tax collectors try to give us trouble."
 waitkey
-print 2 ~Elder
-print "... Very well. You will take our concerns to the king. You should leave as soon as possible."
+print "Elder\:... Very well. You will take our concerns to the king. You should leave as soon as possible."
 waitkey
 gfx.remove CUBERT1
 gfx.show CUBERT2 locx 1638
 gfx.transition 3
 sleep
-print 2 ~Cubert
-print "We're all doomed."
+print "Cubert\:We're all doomed."
 waitkey
 $v300 := 0 // number of guys who went before you
 goto YOULEAVE
@@ -473,11 +423,9 @@ gfx.show ELDER1 locx 6100
 gfx.transition 3
 sleep
 gfx.show ELDERA1 locx 6100
-print 2 ~Elder
-print "Good, you are ready."
+print "Elder\:Good, you are ready."
 waitkey
-print 2 ~Elder
-print "Here is some money for your journey... and here is the scroll with our "
+print "Elder\:Here is some money for your journey... and here is the scroll with our "
 print "message. Deliver this to the king, and, hopefully, all will be well."
 waitkey
 gfx.clearkids
@@ -486,34 +434,26 @@ gfx.show BIGMACK1 locx 17400
 gfx.transition 3
 sleep
 gfx.show BIGMACA1 locx 17400
-print 2 ~"Big Mack"
-print "I want to give you this..."
+print "Big Mack\:I want to give you this..."
 waitkey
-print 2 ~You
-print "A small stone?"
+print "You\:A small stone?"
 waitkey
-print 2 ~"Big Mack"
-print "It's a lucky stone. Keep it with you, and whenever you need better fortune, put it in your mouth and suck on it hard."
+print "Big Mack\:It's a lucky stone. Keep it with you, and whenever you need better fortune, put it in your mouth and suck on it hard."
 waitkey
-print 2 ~"Big Mack"
-print "I've been using it for a few months. It doesn't always work, but even a little bit of luck helps, right?"
+print "Big Mack\:I've been using it for a few months. It doesn't always work, but even a little bit of luck helps, right?"
 waitkey
-print 2 ~You
-print "... Thank you."
+print "You\:... Thank you."
 waitkey
 gfx.remove CUBERT2
 gfx.show CUBERT1 locx 1638
 gfx.transition 3
 gfx.show CUBERTA1 locx 1638
-print 2 ~Cubert
-print "Travel safely."
+print "Cubert\:Travel safely."
 waitkey
 gfx.show CUBERTSM locx 1638
 gfx.transition 3
-print 2 ~Cubert
-print "If you mess up, I'll have to save both you and the village, and you know I would never let you live it down."
+print "Cubert\:If you mess up, I'll have to save both you and the village, and you know I would never let you live it down."
 waitkey
-print 2 ~You
-print "Thanks. Thanks, everybody! I'll return soon!"
+print "You\:Thanks. Thanks, everybody! I'll return soon!"
 waitkey
 choice.go

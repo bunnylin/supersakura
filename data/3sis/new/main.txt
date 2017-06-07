@@ -58,6 +58,8 @@ choice.sethighlightbox 2
 choice.columns 1
 tbox.setnumboxes 0
 tbox.setnumboxes 3
+tbox.setdiatitlebox 2
+
 tbox.setparam 1 ax 32768
 tbox.setparam 1 ay 16384
 tbox.setparam 1 lx 30000
@@ -70,6 +72,7 @@ tbox.setparam 1 textcolor 0xEDAF
 tbox.setparam 1 basecolor 0
 tbox.setparam 1 basefill 1
 tbox.setparam 1 textalign 2
+
 tbox.setparam 2 basecolor 0xFFF4
 tbox.setparam 2 margintop 180
 tbox.setparam 2 marginbottom 180
