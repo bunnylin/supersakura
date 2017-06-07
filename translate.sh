@@ -11,9 +11,9 @@ printf "Google\tBing\tYandex\n"
 while IFS= read -ru 10 line
 do
   line=$(sed "s/\\\/\\\\\\\/g" <<< $line)
-  trans1=$(timeout 8 translate-shell -b -e google -no-autocorrect ja:en "$line")
-  trans2=$(timeout 8 translate-shell -b -e bing ja:en "$line")
-  trans3=$(timeout 8 translate-shell -b -e yandex ja:en "$line")
+  trans1=$(timeout 8 translate-shell -b ja:en -e google -no-autocorrect -- "$line")
+  trans2=$(timeout 8 translate-shell -b ja:en -e bing -- "$line")
+  trans3=$(timeout 8 translate-shell -b ja:en -e yandex -- "$line")
   printf -- "$trans1\t$trans2\t$trans3\n"
   sleep 1
 done 10< <(grep . "$1")
