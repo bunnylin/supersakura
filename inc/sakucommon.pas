@@ -604,6 +604,7 @@ var // Commandline parameters.
     // Game session variables, imported/exported in save states.
     gamevar : record
       defaulttextbox : dword; // print commands default to this TBox[]
+      dialoguetitlebox : dword; // print dialogue titles in this TBox[]
       defaultviewport : dword; // new gobs are relative to this by default
     end;
 
@@ -1761,6 +1762,7 @@ begin
 
  with gamevar do begin
   defaulttextbox := 1;
+  dialoguetitlebox := 1;
   defaultviewport := 0;
  end;
  with choicematic do begin

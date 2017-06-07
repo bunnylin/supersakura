@@ -1220,6 +1220,17 @@ begin
  end;
 end;
 
+procedure Invoke_TBOX_SETDIATITLEBOX; inline;
+begin
+ numvalue := gamevar.defaulttextbox;
+ FetchParam(WOPP_BOX);
+ if numvalue <= 0 then fibererror('Bad dialogue title box: ' + strdec(numvalue))
+ else begin
+  gamevar.dialoguetitlebox := numvalue;
+  if numvalue >= length(TBox) then InitTextbox(numvalue);
+ end;
+end;
+
 procedure Invoke_TBOX_SETLANGUAGE; inline;
 var boxnum : longint;
     ivar : dword;
@@ -1517,6 +1528,7 @@ begin
    WOP_TBOX_REMOVEDECOR: Invoke_TBOX_REMOVEDECOR;
    WOP_TBOX_REMOVEOUTLINES: Invoke_TBOX_REMOVEOUTLINES;
    WOP_TBOX_SETDEFAULT: Invoke_TBOX_SETDEFAULT;
+   WOP_TBOX_SETDIATITLEBOX: Invoke_TBOX_SETDIATITLEBOX;
    WOP_TBOX_SETLANGUAGE: Invoke_TBOX_SETLANGUAGE;
    WOP_TBOX_SETLOC: Invoke_TBOX_SETLOC;
    WOP_TBOX_SETNUMBOXES: Invoke_TBOX_SETNUMBOXES;
