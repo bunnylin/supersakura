@@ -365,7 +365,12 @@ var outbuf : record
      end;
    end;
 
-   writebuf('print "');
+   // Special case: single dot followed by a brief sleep or something.
+   // These should be marked as global since they're ubiquitous.
+   if (word((loader + lofs)^) = $4581)
+   and (byte((loader + lofs + 2)^) < $20)
+   then writebuf('print ~"')
+   else writebuf('print "');
 
    if game in
    [gid_3SIS98, gid_ANGELSCOLLECTION1, gid_ANGELSCOLLECTION2, gid_EDEN,
