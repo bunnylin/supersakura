@@ -3,4 +3,5 @@
 // the original fades to white, then returns to main menu
 print "GAME OVER"
 waitkey
-goto MAIN
+sys.restartgame
+

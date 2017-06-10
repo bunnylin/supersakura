@@ -1,6 +1,7 @@
 // Tenshitachi no Gogo Collection - basic ending script
 
 gfx.clearall
-print GAME OVER
+print "GAME OVER"
 waitkey
-runscript MAIN
+sys.restartgame
+
