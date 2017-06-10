@@ -250,7 +250,7 @@ var txtsurface : PSDL_Surface;
     with choicematic.showlist[choiceindex - 1] do begin
      if rowsizexp > slx2p then slx2p := rowsizexp;
      sly2p := totalsizeyp + lineheightp;
-     log('showlist '+strdec(dword(choiceindex-1))+' end: '+strdec(rowsizexp) + ','+strdec(dword(totalsizeyp + lineheightp)));
+     //log('showlist '+strdec(dword(choiceindex-1))+' end: '+strdec(rowsizexp) + ','+strdec(dword(totalsizeyp + lineheightp)));
     end;
    end;
   end;
@@ -338,7 +338,7 @@ begin
          slx2p := rowsizexp;
          sly1p := totalsizeyp;
          sly2p := totalsizeyp;
-         log('showlist '+strdec(choiceindex)+' begin: '+strdec(rowsizexp)+','+strdec(totalsizeyp));
+         //log('showlist '+strdec(choiceindex)+' begin: '+strdec(rowsizexp)+','+strdec(totalsizeyp));
          inc(choiceindex);
          runchoice := TRUE;
         end;
