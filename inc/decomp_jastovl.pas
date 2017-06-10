@@ -1327,6 +1327,7 @@ begin
      if jvar > 1 then begin
       writebuf(' v' + strdec(ID));
       {writebuf('$v' + strdec(ID) + ':=0');}
+      AddLocalVar(ID);
      end;
      writebufln('');
      haschoices := TRUE;
