@@ -205,8 +205,8 @@ begin
    end;
    // Set the choice details. Use the choice box's preferred language.
    numvalue2 := $FF;
-   if (choicebox >= dword(length(TBox)))
-   or (TBox[choicebox].boxlanguage >= dword(length(strvalue)))
+   if (choicebox < dword(length(TBox)))
+   and (TBox[choicebox].boxlanguage < dword(length(strvalue)))
    then numvalue2 := TBox[choicebox].boxlanguage;
    choicelist[numvalue].choicetxt := strvalue[GetBestString(numvalue2)];
    choicelist[numvalue].jumplist := '';
