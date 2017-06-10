@@ -10,7 +10,7 @@
 話す:/Talk:
 見せる:/Show:
 触る:/Touch:
-聞く:/Listen:
+聞く:/Ask:
 移動する:/Move:
 買う:/Buy:
 入る:/Enter:
