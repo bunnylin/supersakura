@@ -2,25 +2,33 @@
 # strings that are frequently encountered. One substitution per line.
 # This text file, like all other Supersakura files, should be in UTF-8.
 
-見る:/Look:
-使う:/Use:
-調べる:/Examine:
-考える:/Think:
-行く:/Go:
-話す:/Talk:
-見せる:/Show:
-触る:/Touch:
-聞く:/Ask:
+身に付ける:/Wear:
+愛撫する:/Caress:
+キスする:/Kiss:
 移動する:/Move:
+食べる:/Eat:
+調べる:/Examine:
+いじる:/Fondle:
+舐める:/Lick:
+開ける:/Open:
+見せる:/Show:
+撫でる:/Stroke:
+考える:/Think:
+投げる:/Throw:
+さわる:/Touch:
+聞く:/Ask:
 買う:/Buy:
 入る:/Enter:
-舐める:/Lick:
-取る:/Take:
-投げる:/Throw:
-開ける:/Open:
-帰る:/Go back:
-食べる:/Eat:
-拾う:/Pick up:
-探す:/Look for:
-出る:/Leave:
+する:/Do:
 飲む:/Drink:
+抱く:/Embrace:
+行く:/Go:
+帰る:/Go back:
+出る:/Leave:
+見る:/Look:
+探す:/Look for:
+拾う:/Pick up:
+取る:/Take:
+話す:/Talk:
+触る:/Touch:
+使う:/Use:
