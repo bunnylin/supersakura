@@ -1058,7 +1058,7 @@ begin // ExecuteFiber
     TOKEN_JUMP: begin
      longint(ivar) := longint(codeofs) + longint((script[labelindex].code + codeofs)^);
      if longint(ivar) < 0 then fibererror('Sub-zero jump')
-     else if ivar >= script[labelindex].codesize then fibererror('Jump out of bounds')
+     else if ivar > script[labelindex].codesize then fibererror('Jump out of bounds')
      else codeofs := ivar;
     end;
 
@@ -1070,7 +1070,7 @@ begin // ExecuteFiber
       // Condition false, get relative offset and jump past the then-segment.
       longint(ivar) := longint(codeofs) + longint((script[labelindex].code + codeofs)^);
       if longint(ivar) < 0 then fibererror('Sub-zero if-jump')
-      else if ivar >= script[labelindex].codesize then fibererror('If-jump out of bounds')
+      else if ivar > script[labelindex].codesize then fibererror('If-jump out of bounds')
       else codeofs := ivar;
      end else
       // Condition true, ignore offset, fall into then-segment.
