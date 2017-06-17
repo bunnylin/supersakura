@@ -5,6 +5,8 @@ decomp.exe
 recomp.exe
 supersakura.exe
 supersakura-con.exe
+translate.sh
+trans-subs.txt
 data\supersakura.dat
 data\supersakura\*.*
 data\supersakura\scr\*.*
