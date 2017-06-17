@@ -3,7 +3,8 @@ SuperSakura scripting language
 
 A simple language with statements and expressions, variables, words of power,
 and labels that can be called or jumped to. The script code and strings are
-expected to be UTF-8, and the code is entirely case-insensitive.
+expected to be UTF-8, and the code is entirely case-insensitive, except for
+string escape codes.
 
 Indentation and whitespace can be used freely. Statement components should be
 separated by plain spaces or tabs.
@@ -32,12 +33,10 @@ with the engine, which return values and can be used as part of expressions.
 Words of power can have mandatory and optional arguments. For a full list,
 see below. Every argument has a value type and a short name. All optional
 arguments have default values. Arguments can be invoked in any order.
-Arguments can be invoked explicitly using -argname=x or -argname x. They can
-also be invoked fuzzily by just giving the value x, which will then be taken
-as the first uninvoked argument it can somehow typefit into. Errors are shown
-for invoking undefined arguments, failing to typefit a fuzzy element, trying
-to invoke an argument more than once in one statement, and lacking mandatory
-arguments.
+Arguments can be invoked explicitly using "argname=x" or "argname x". They
+can also be invoked fuzzily by just giving the value x, which will then be
+taken as the first uninvoked argument it can somehow typefit into. An error
+is shown for trying to invoke arguments not defined for the word of power.
 
 Variables are dynamically typed, and can be 32-bit signed integers, or UTF-8
 strings. Variables are not explicitly declared. There are no floating point
@@ -46,6 +45,7 @@ variables, booleans, pointers, objects, arrays, sets, tuples.
 Variable references use a dollar sign prefix. All characters after the dollar
 sign up to the next invalid variable name character are read as part of the
 variable name.
+
 If the variable name contains a dollar sign, that is read as the start of
 another variable reference whose resolved value should be used as part of the
 full variable name. Since the variable name is a string expression, you can
@@ -65,7 +65,7 @@ Strings are marked with a single-quote or double-quote. Whichever is used to
 mark a string's beginning, the same must be used to mark the end. Characters
 inside a string can be escaped with backslash. If a statement parameter
 clearly expects a string, quotes don't need to be used if the string contains
-no spaces.
+no spaces, or every space is escaped.
 
 A string or numeric variable can be used as part of a string. If the string
 expression was started with quotes, a variable reference must use an escaped
@@ -76,8 +76,7 @@ dollar sign and can use brackets and expression operators.
 Strings can be joined with the plus operator. Numbers and numeric variables
 can be joined to strings as well, and are automatically converted. There is
 no method of splitting, shortening, or accessing a string by index. All
-string comparisons are case-insensitive. Multiplying a string by a number
-results in the string being repeated that number of times.
+string comparisons are case-insensitive.
 
 Both string expressions and numeric expressions can make use of brackets.
 
@@ -96,13 +95,12 @@ When a game is run, the implicit beginning label of the "main" script is
 always executed first in a new fiber named "main". A main script must be
 present for a game to run.
 
+For many examples of valid and invalid statements, see the main script file
+of the included parsertest project.
+
 ---------------------------------------------------------------------
 
-Script - monolithic
-String
-Mod
-xlation
-
+Below are various scraps of development notes, not necessarily useful.
 
 Only constant string allowed:
 @pupulabel:
@@ -299,219 +297,3 @@ Words of power:
 
 Expression rules:
 
-
----------------------------------------------------------------------
-
-What's not handled: floating point values, power functions, function calls,
-unary operators (NOT, negation)
-
-For clarity, wherever in script code expressions are used, if there is
-anything after the expression on the same line (another expression or value,
-or other command data), the expression should be terminated with either
-a comma or a semi-colon.
-
-High bit $80 set: this is the last value of the expression
-Bitmask $70: precedence group
-
---------------------
-7F byte
-7E shortint
-7D word
-7C integer
-7B longint
-7A undefined
-79 8
-78 7
-77 6
-76 5
-75 4
-74 3
-73 2
-72 1
-71 0
-70 -1
---------------------
-63 dvar, chr(253)
-62 cosine, cos, C
-61 random, rnd, R
-60 var, V
-52 AND, &
-51 OR, |
-50 XOR, chr(254)
-44 modulo, mod, %
-43 divide, div, /
-42 multiply, mul, *
-41 SHR, >>, }
-40 SHL, <<, {
-31 -
-30 +
-25 >
-24 =
-23 <
-22 >=, ]
-21 <=, [
-20 <>, chr(1)
-10 )
-01 (
---------------------
-
-Shunting-yard algorithm:
-- chomp string from left to right
-- numbers go straight into output as constant values
-- left bracket is pushed onto stack
-- right bracket?
-   * pop operators off the stack until a left bracket is encountered
-   * both brackets are vanished
-- a new operator?
-   * pop operators until topmost has lower precedence than the new one
-   * push new operator
-- at end of string, pop everything off the stack
-
-Syntax checking in input:
-- $70..$7F: numeric values are operands
-   * must be followed by a normal operator or closed bracket; anything else
-     means the end of the line
-- $60..$6F: function operators (sort of)
-   * must be followed by a numeric operand, function operator or open
-     bracket; anything else is an error
-- $20..$5F: normal operators
-   * must be followed by a numeric operand, function operator or open
-     bracket; anything else is an error
-- $10: closed bracket
-   * must be followed by a normal operator or closed bracket; anything else
-     means the end of the line
-   * an open bracket must exist somewhere in the stack
-- $01: open bracket
-   * must be followed by a numeric operand, function operator or any bracket;
-     anything else is an error
-- At end of line, no open brackets must be left in the stack
-
-Example for testing, used in WinterQ test suite
-===============================================
-let v1 := v4 + 6 * (3 - r(r5)) * 2 + v((6 + v3) * 5) - $A
-Output: 4 v 6 3 5 r r - * 2 * + 6 3 v + 5 * v + 10 -
-
-For resolving here, assume [v(n) = n] and [r(n) = 1]
-Correct result from both: 63
-
-Building the reverse notation:
-==========
-Input: + 6 * (3 - r(r5)) * 2 + v((6 + v3) * 5) - $A
-Stack: v
-Output: 4
-==========
-Input: * (3 - r(r5)) * 2 + v((6 + v3) * 5) - $A
-Stack: +
-Output: 4 v 6
-==========
-Input: - r(r5)) * 2 + v((6 + v3) * 5) - $A
-Stack: +*(
-Output: 4 v 6 3
-==========
-Input: r5)) * 2 + v((6 + v3) * 5) - $A
-Stack: +*(-r(
-Output: 4 v 6 3
-==========
-Input: )) * 2 + v((6 + v3) * 5) - $A
-Stack: +*(-r(r
-Output: 4 v 6 3 5
-==========
-Input: ) * 2 + v((6 + v3) * 5) - $A
-Stack: +*(-
-Output: 4 v 6 3 5 r r
-==========
-Input: * 2 + v((6 + v3) * 5) - $A
-Stack: +*
-Output: 4 v 6 3 5 r r -
-==========
-Input: 2 + v((6 + v3) * 5) - $A
-Stack: +*
-Output: 4 v 6 3 5 r r - *
-==========
-Input: v((6 + v3) * 5) - $A
-Stack: +
-Output: 4 v 6 3 5 r r - * 2 * +
-==========
-Input: + v3) * 5) - $A
-Stack: +v((
-Output: 4 v 6 3 5 r r - * 2 * + 6
-==========
-Input: ) * 5) - $A
-Stack: +v((+v
-Output: 4 v 6 3 5 r r - * 2 * + 6 3
-==========
-Input: * 5) - $A
-Stack: +v(
-Output: 4 v 6 3 5 r r - * 2 * + 6 3 v +
-==========
-Input: - $A
-Stack: +
-Output: 4 v 6 3 5 r r - * 2 * + 6 3 v + 5 * v
-==========
-Output: 4 v 6 3 5 r r - * 2 * + 6 3 v + 5 * v + 10 -
-==========
-
-Evaluation:
-==========
-Input: 6 3 5 r r - * 2 * + 6 3 v + 5 * v + 10 -
-Stack: 4 v
-Action: v4 = 4
-Stack: 4
-==========
-Input: r - * 2 * + 6 3 v + 5 * v + 10 -
-Stack: 4 6 3 5 r
-Action: r5 = 1
-Stack: 4 6 3 1
-==========
-Input: - * 2 * + 6 3 v + 5 * v + 10 -
-Stack: 4 6 3 1 r
-Action: r1 = 1
-Stack: 4 6 3 1
-==========
-Input: * 2 * + 6 3 v + 5 * v + 10 -
-Stack: 4 6 3 1 -
-Action: 3 - 1 = 2
-Stack: 4 6 2
-==========
-Input: 2 * + 6 3 v + 5 * v + 10 -
-Stack: 4 6 2 *
-Action: 6 * 2 = 12
-Stack: 4 12
-==========
-Input: + 6 3 v + 5 * v + 10 -
-Stack: 4 12 2 *
-Action: 12 * 2 = 24
-Stack: 4 24
-==========
-Input: 6 3 v + 5 * v + 10 -
-Stack: 4 24 +
-Action: 4 + 24 = 28
-Stack: 28
-==========
-Input: + 5 * v + 10 -
-Stack: 28 6 3 v
-Action: v3 = 3
-Stack: 28 6 3
-==========
-Input: 5 * v + 10 -
-Stack: 28 6 3 +
-Action: 6 + 3 = 9
-Stack: 28 9
-==========
-Input: v + 10 -
-Stack: 28 9 5 *
-Action: 9 * 5 = 45
-Stack: 28 45
-==========
-Input: + 10 -
-Stack: 28 45 v
-Action: v45 = 45
-Stack: 28 45
-==========
-Input: 10 -
-Stack: 28 45 +
-Action: 28 + 45 = 73
-Stack: 73
-==========
-Stack: 73 10 -
-Action: 73 - 10 = 63
