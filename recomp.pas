@@ -633,42 +633,42 @@ procedure ProcessFiles(srcdir : UTF8string);
    writeln(stdout, '----------------------------------------------------------------------');
    writeln(stdout, 'scanning ', currdir);
 
-   // Metadata from the root directory must be processed first of all
+   // Metadata from the root directory must be processed first of all.
    if rootdir then begin
     PNGcount := 0;
     // First read data.txt; this should contain all metadata generated during
-    // a game's decompilation
+    // a game's decompilation.
     fnam := FindFile_Caseless(currdir + 'data.txt', FALSE);
     if fnam <> '' then ProcessMetaData(fnam);
     // Next read newdata.txt; this should contain overrides for the above
-    // metadata, for example to fix decompilation bugs or original game bugs
+    // metadata, for example to fix decompilation bugs or original game bugs.
     fnam := FindFile_Caseless(currdir + 'newdata.txt', FALSE);
     if fnam <> '' then ProcessMetaData(fnam);
-   end
-
-   // If we're deeper than the root directory, find and process all files
-   // that look like they could be recognisable data
-   else begin
-    searchresult := FindFirst(currdir + '*', faReadOnly, filusr);
-    while searchresult = 0 do begin
-     if length(filusr.Name) >= 5 then begin
-      // get all recognisable resources
-      // (all must have a non-empty name, a dot, and a suffix)
-      if copy(filusr.Name, length(filusr.Name) - 3, 1) = '.'
-      then fnam := lowercase(copy(filusr.Name, length(filusr.Name) - 3, 4))
-      else fnam := lowercase(copy(filusr.Name, length(filusr.Name) - 4, 5));
-
-      if fnam = '.txt' then ProcessScript(currdir + filusr.Name)
-      else if fnam = '.png' then ProcessPng(currdir + filusr.Name)
-      else if fnam = '.tsv' then ProcessTsv(currdir + filusr.Name)
-      else if fnam = '.mid' then ProcessMid(currdir + filusr.Name)
-      else if fnam = '.ogg' then ProcessOgg(currdir + filusr.Name)
-      else if fnam = '.flac' then ProcessFlac(currdir + filusr.Name);
-     end;
-     searchresult := FindNext(filusr);
-    end;
-    FindClose(filusr);
    end;
+
+   // Find and try to process all files that could be recognisable data.
+   searchresult := FindFirst(currdir + '*', faReadOnly, filusr);
+   while searchresult = 0 do begin
+    if length(filusr.Name) >= 5 then begin
+     // (all must have a non-empty name, a dot, and a suffix)
+     if copy(filusr.Name, length(filusr.Name) - 3, 1) = '.'
+     then fnam := lowercase(copy(filusr.Name, length(filusr.Name) - 3, 4))
+     else fnam := lowercase(copy(filusr.Name, length(filusr.Name) - 4, 5));
+
+     // Identify file types by suffix, and forward for processing.
+     // (.txt files are not picked up from the root directory, to avoid
+     // getting confused by metadata files or other game docs.)
+     if (fnam = '.txt') and (rootdir = FALSE)
+     then ProcessScript(currdir + filusr.Name)
+     else if fnam = '.png' then ProcessPng(currdir + filusr.Name)
+     else if fnam = '.tsv' then ProcessTsv(currdir + filusr.Name)
+     else if fnam = '.mid' then ProcessMid(currdir + filusr.Name)
+     else if fnam = '.ogg' then ProcessOgg(currdir + filusr.Name)
+     else if fnam = '.flac' then ProcessFlac(currdir + filusr.Name);
+    end;
+    searchresult := FindNext(filusr);
+   end;
+   FindClose(filusr);
 
    // Find sub-directories, to search recursively
    searchresult := FindFirst(currdir + '*', faReadOnly or faDirectory, filusr);
