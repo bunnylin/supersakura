@@ -142,7 +142,7 @@ var ivar, jvar : dword;
      inc(inofs);
      while (inofs <= dword(length(newtxt))) and (newtxt[inofs] <> ';') do begin
       inc(reflen);
-      refstr[reflen] := newtxt[inofs];
+      if newtxt[inofs] <> ' ' then refstr[reflen] := newtxt[inofs];
       inc(inofs);
      end;
      byte(refstr[0]) := reflen;
