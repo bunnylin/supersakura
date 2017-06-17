@@ -14,9 +14,15 @@ The actual games themselves are under copyright and are not distributed with
 this project. To run games on Supersakura, you need to convert the game data
 from original files.
 
-For a list of supported games, run "decomp -list", or see inc/gidtable.inc,
-or visit the main site at
+For a list of supported games, run `decomp -list`, or see
+`inc/gidtable.inc`, or visit the main site at
 [mooncore.eu/ssakura](https://mooncore.eu/ssakura/).
+
+
+Screenshots
+-----------
+
+See [here](https://mooncore.eu/ssakura/sscreens.php).
 
 
 Downloads
@@ -55,7 +61,7 @@ If you have trouble finding where FPC keeps its units, see the relevant
 
 Alternatively, just dump everything in the SuperSakura source directory.
 
-To compile, you can use the included comp.bat or comp.sh commands:
+To compile, you can use the included `comp.bat` or `comp.sh` commands:
 
     comp <file>
 
@@ -64,8 +70,8 @@ Or invoke the compiler directly:
     fpc <file>
 
 Although FPC will automatically build any units programs need, you may want
-to start off by compiling the individual SDL2_xxx.pas and mcxxx.pas files
-one by one, to see potential error messages more clearly.
+to start off by compiling the individual `SDL2_xxx.pas` and `mcxxx.pas`
+files one by one, to see potential error messages more clearly.
 
 Finally, build the engine and its tools:
 
@@ -94,10 +100,10 @@ Or, to run the console port:
 
     supersakura-con
 
-The tools and engine print their log output into files: saku.log, recomp.log,
-and decomp.log. By default, these are put in the program's working directory.
-If the working directory is write-protected, then the logs are saved under
-your profile directory.
+The tools and engine print their log output into files: `saku.log`,
+`recomp.log`, and `decomp.log`. By default, these are put in the program's
+working directory. If the working directory is write-protected, then the
+logs are saved under your profile directory.
 
 You can add -h to any executable's commandline to see what other commandline
 options are available.
@@ -139,8 +145,8 @@ use. Publishing such a translation on peer-to-peer filesharing systems or at
 ROMhacking.net would again be infringing.
 
 To dump the Japanese strings from a game, you need to use the Recomp tool.
-While compiling a project, use the -dumpstr=file.tsv commandline argument.
-For example, the PC-98 version of the Three Sisters' Story:
+While compiling a project, use the `-dumpstr=file.tsv` commandline argument.
+For example, for the PC-98 version of the Three Sisters' Story:
 
 	recomp 3sis98 -dumpstr=3sis98.tsv
 
@@ -151,76 +157,81 @@ Alternatively, read and dump strings straight from a dat file:
 This produces a simple tab-separated spreadsheet in the given file, in UTF-8
 encoding. You can open it in any text editor, or LibreOffice Calc, or Excel,
 or Notepad++ etc. If you are given any import options, be sure to turn off
-everything except tab separation, and use UTF-8 encoding, and explicitly
-import the columns as pure text.
+everything except tab delimitation/separation, explicitly ask for UTF-8
+encoding, and import the columns as pure "Text" rather than "Standard" etc.
 
 The first column contains unique string IDs. The second column starts with
 the column's language identifier, and has the actual strings in the game's
-original language. The simplest way to translate is to just replace all the
-Japanese text directly with English text. Alternatively, you can add a new
-column, put the language identifier (English, probably) in the top cell, and
-put the translated strings below it. Although in this case you may also need
-to edit the game's main script and change the textboxes to expect English
-text.
+original language. You can add a new column, put "English" in the top cell,
+and type all translated strings below it.
 
 To help automate translation, you could try Mort Yao's excellent
 [Translate-Shell](https://www.soimort.org/translate-shell/)
 utility. If you copy all strings into a simple text file, one line per
-string, you could just use:
+string, you could try this command:
 
 	translate-shell -b ja:en file://whatever.txt >output.txt
 
-Although you may want to first replace all backslashes in the file with
-double-backslashes. The goal is to make sure all instances of "\\n" and
-"\\$x;" are present unchanged in the translated strings. The included shell
-script translate.sh may be able to do the whole thing for you, if you're on
-Linux and have translate-shell installed:
+The shell script translate.sh included with SuperSakura's tools may be able
+to do even more, if you're on Linux and have translate-shell installed. You
+can feed it the string table tsv file as is, and it will produce a new tsv
+with a few different translation alternatives, easy to polish manually. The
+script also does constant string substitutions from `trans-subs.txt`, so you
+can add commonly mistranslated terms there to force a correct translation.
 
-	translate.sh input.txt >output.tsv
+	translate.sh input.tsv >output.tsv
 
-Translating all strings in a game will likely take hours. Perhaps leave it
-running overnight. You can watch how the translation is going by opening
-your output file, but don't do anything to save changes, as that could mess
-up the translation output. And, since automatic translation sucks, you'll
-still want to clean up at least the common verb:noun commands that are near
-the start of the file. The verbs need to be consistently translated, or the
-game may rarely fail to enable or disable the correct verbs.
+Automatically translating all strings in a game will likely take hours.
+Perhaps leave it running overnight. You can watch how the translation is
+going by opening your output file, but don't do anything to save changes, as
+that could mess up the translation output.
 
 There are a few other translation options.
 [Translation Aggregator](http://www.hongfire.com/forum/showthread.php/94395-Translation-Aggregator-v0-4-9?p=3648894#post3648894)
 leverages both online and offline resources, but I'm not sure how hard it
 would be to straight up feed a text file through it.
 
-Once you have a translated file, copy its contents into the original .tsv
-file, making sure the translated strings line up correctly with the unique
-string IDs in the leftmost column. Save the file anywhere under the game's
-project directory, under any filename as long as it ends with ".tsv". If you
-need to edit the main script to change text box languages, do so now. Just
-find all lines saying "tbox.setlanguage x Japanese" and change those to say
-English. Recompile the game normally, and the translation should be in.
+Once you have a translated file, some things still need to be checked
+manually. At least you should clean up the verb:noun commands, in the first
+few hundred lines of the file. The verbs must be consistently translated, or
+some game scripts may fail to enable or disable the correct verbs. Also,
+check that all escape codes were preserved unchanged; for example, `\n` or
+`\$varname;`. Finally, there is one special string, probably ID `MAIN..1` or
+thereabouts. It says `Japanese`. Change that to `English`. This controls the
+textbox language.
 
-It is also possible to compile the translation into a mod, so the player can
-just load the translation from SuperSakura's frontend. These are the minimal
-steps, assuming the game's textboxes have been set to English:
+To make the final string table, delete all columns except `String IDs` and
+your new `English` column. Save this as a tsv file, or csv file with
+tab-separated values. The filename can be anything, as long as it ends with
+the .tsv suffix.
+
+The translated strings can be put into a game in two ways. The simpler one
+is to copy the .tsv file anywhere under the game's project directory with
+all the other converted game resources. Recompile the game normally, and it
+should now run in English by default.
+
+The second way is to compile a mod, so the translation can be loaded from
+SuperSakura's frontend. These are the minimal steps:
 
 1. Create a new project directory under SuperSakura's data directory, for
-example "3sis98-en".
+example `3sis98-en`.
 
-2. Copy the translated .tsv file there.
+2. Copy the translated .tsv file in the new directory.
 
-3. Create a data.txt file there. It should contain a description line, for
-example "desc Sanshimai (English mod) (PC98)", and it should specify the
-language: "language English".
+3. Create a `data.txt` file there. It should contain a description line, for
+example `desc Sanshimai (English mod) (PC98)`, and it should specify the
+language: `language English`.
 
 4. Compile the mod by specifying the parent project name, for example:
 
+
 	recomp 3sis98-en -parent=3sis98
 
-You should end up with a new dat file. When loaded by SuperSakura, it will
-automatically load its parent dat first. The nice thing about this modding
-approach is that you can also include modified graphics in the mod, in case
-the original graphics have localisable content. Just drop the new graphics
-somewhere under the mod's project directory.
-
-Modding sounds more complicated than it is. I hope to make the process more
-friendly over time, and improve the documentation.
+You should end up with a new dat file. When you load the new dat in
+SuperSakura, the engine will automatically load the parent dat first. An
+extra bonus with this modding approach is that you can also include modified
+graphics in the mod, in case the original graphics have localisable content
+or annoying mosaics or whatever. Just drop the new graphics anywhere under
+the mod's project directory, and they'll get loaded over the original game's
+graphics by the same filenames. (You can replace game scripts as well, but
+that gets more complicated.)
