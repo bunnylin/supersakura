@@ -20,8 +20,9 @@ choice.setpartbox 3
 choice.setchoicebox 3
 choice.sethighlightbox 4
 choice.columns 1
+$defaultlang := "Japanese"
 
-tbox.setlanguage 1 Japanese
+tbox.setlanguage 1 $defaultlang
 
 // 2: Dialogue title box
 tbox.setparam 2 minrows 1
@@ -34,7 +35,7 @@ tbox.setparam 2 marginbottom 256
 tbox.setparam 2 marginleft 512
 tbox.setparam 2 marginright 512
 tbox.setparam 2 snaptobox 1
-tbox.setlanguage 2 Japanese
+tbox.setlanguage 2 $defaultlang
 
 // 3: Choice box
 tbox.setparam 3 maxrows 10
@@ -53,7 +54,7 @@ tbox.setparam 3 texrightedge 13
 tbox.setparam 3 textopedge 14
 tbox.setparam 3 texbottomedge 13
 tbox.setparam 3 bevel 0
-tbox.setlanguage 3 Japanese
+tbox.setlanguage 3 $defaultlang
 
 // 4: Highlight box
 tbox.setparam 4 marginleft 320

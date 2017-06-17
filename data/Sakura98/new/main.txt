@@ -20,6 +20,7 @@ tbox.setdiatitlebox 2
 choice.setchoicebox 1
 choice.setpartbox 2
 choice.sethighlightbox 3
+$defaultlang := "Japanese"
 
 // 1: Game text & choice box
 tbox.setparam 1 minrows 4
@@ -31,7 +32,7 @@ tbox.setparam 1 ay 32768
 tbox.setparam 1 lx 16384
 tbox.setparam 1 ly 32000
 tbox.setparam 1 autowaitkey 1
-tbox.setlanguage 1 Japanese
+tbox.setlanguage 1 $defaultlang
 
 // 2: Dialogue title box
 tbox.setparam 2 minrows 1
@@ -44,7 +45,7 @@ tbox.setparam 2 marginbottom 256
 tbox.setparam 2 marginleft 512
 tbox.setparam 2 marginright 512
 tbox.setparam 2 snaptobox 1
-tbox.setlanguage 2 Japanese
+tbox.setlanguage 2 $defaultlang
 
 // 3: Highlight box
 tbox.setparam 3 marginleft 320
