@@ -1,3 +1,6 @@
+# CC0, 2017 :: Kirinn Bunnylin / Mooncore
+# https://creativecommons.org/publicdomain/zero/1.0/
+
 if [ $# -eq 0 ]
 then
   echo "Usage: translate.sh inputfile.tsv >outputfile.tsv"
