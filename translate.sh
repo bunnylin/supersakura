@@ -1,16 +1,37 @@
 if [ $# -eq 0 ]
 then
-  echo "Usage: translate.sh (input file) >output.tsv"
-  echo "The input file can have multiple strings, each on its own line."
-  echo "You'll need to pipe the translated output into a suitable file."
+  echo "Usage: translate.sh inputfile.tsv >outputfile.tsv"
+  echo "The input file should be a tsv. The leftmost column is preserved in"
+  echo "the output as unique string IDs, and the rightmost column is taken"
+  echo "as the text to be translated."
+  echo "The translated output is printed in stdout in tsv format. You should"
+  echo "pipe it into a suitable file, for example \"outputfile.tsv\"."
   exit 1
 fi
 
-printf "Phonetic\tGoogle\tBing\tYandex\n"
+printf "String IDs\tOriginal\tPhonetic\tGoogle\tBing\tYandex\n"
 
 while IFS= read -ru 10 line
 do
-  # Apply pre-translation substitutions.
+  # Count how many tab characters this line has.
+  numtabs=$(printf -- "$line" | grep -P -o "\t" | wc -l)
+
+  # If there are no tabs, the line as a whole is used as translatable input.
+  # Otherwise everything before the first tab is saved as the string ID, and
+  # everything after the last tab is used as the translatable input.
+  stringid=""
+  if [ $numtabs -gt 0 ]
+  then
+    stringid=$(printf -- "$line" | cut -f1)
+    line=$(printf -- "$line" | sed "s/.*\t//" )
+  fi
+
+  # Output the string ID and translatable input.
+  printf -- "$stringid\t$line\t"
+
+  # Apply pre-translation substitutions. The file trans-subs.txt should
+  # contain one substitution per line, in the form "source/new text".
+  # Lines starting with a # are treated as comments.
   while read -ru 11 sub
   do
     if ! echo $sub | grep -q "^ *#"
