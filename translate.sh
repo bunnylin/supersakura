@@ -27,7 +27,9 @@ do
   while [ $tries -gt 0 ]
   do
     tries=$(( tries-1 ))
-    transgoo=$(timeout 16 translate-shell ja:en -e google -no-ansi -no-autocorrect -show-alternatives n -show-languages n -show-prompt-message n -- "$line")
+    transgoo=$(timeout 16 translate-shell ja:en \
+      -e google -no-ansi -no-autocorrect -show-alternatives n \
+      -show-languages n -show-prompt-message n -- "$line")
     if [ "$transgoo" != "" ]; then tries=0; fi
   done
 
@@ -40,11 +42,12 @@ do
   trans2=$(timeout 16 translate-shell -b ja:en -e bing -no-ansi -- "$line")
   trans3=$(timeout 16 translate-shell -b ja:en -e yandex -no-ansi -- "$line")
 
-  # Output a row.
-  printf -- "$trans0\t$trans1\t$trans2\t$trans3\n"
-
   # A brief wait between requests is polite to the translation servers.
   sleep 1
+
+  # Output a row.
+  transall="$trans0\t$trans1\t$trans2\t$trans3"
+  printf -- "$transall\n"
 done 10< <(grep . "$1")
 
 exit 0
