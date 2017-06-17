@@ -66,8 +66,18 @@ do
   # A brief wait between requests is polite to the translation servers.
   sleep 1
 
-  # Output a row.
+  # Pack the translated strings in a single variable for post-processing.
   transall="$trans0\t$trans1\t$trans2\t$trans3"
+
+  # If the output contains ": ", but the input doesn't, then the space was
+  # added unnecessarily and should be removed.
+  if printf -- "$transall" | grep -q ": " \
+  && ! printf -- "$line" | grep -q ": "
+  then
+    transall=$(printf -- "$transall" | sed "s/: /:/g")
+  fi
+
+  # Output the translated, processed strings.
   printf -- "$transall\n"
 done 10< <(grep . "$1")
 
