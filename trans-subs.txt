@@ -1,15 +1,21 @@
 # This file contains pre-translation substitutions for a few standard
 # strings that are frequently encountered. One substitution per line.
+# Sort the substitutions in order of length, longer ones first, so that
+# partial matches from short substitutions won't mess up longer ones.
 # This text file, like all other Supersakura files, should be in UTF-8.
 
 身に付ける:/Wear:
 愛撫する:/Caress:
 キスする:/Kiss:
 移動する:/Move:
+脱がせる:/Take off:
 食べる:/Eat:
 調べる:/Examine:
 いじる:/Fondle:
+入れる:/Put in:
+なめる:/Lick:
 舐める:/Lick:
+動かす:/Move:
 開ける:/Open:
 見せる:/Show:
 撫でる:/Stroke:
@@ -27,7 +33,9 @@
 出る:/Leave:
 見る:/Look:
 探す:/Look for:
+揉む:/Massage:
 拾う:/Pick up:
+もむ:/Rub:
 取る:/Take:
 話す:/Talk:
 触る:/Touch:
