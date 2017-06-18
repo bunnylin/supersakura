@@ -1,0 +1,8 @@
+gfx.clearall
+transition 4
+yield
+tbox.clear
+print "\CThe end"
+waitkey
+sys.restartgame
+
