@@ -542,8 +542,9 @@ procedure PostProcess;
 // After all input files for a game have been converted, call this to handle
 // all necessary post-conversion tasks.
 begin
+ if newgfxcount <> 0 then begin
+  if decomp_param.docomposite then CompositeGraphics;
+  if decomp_param.dobeautify then BeautifyGraphics;
+ end;
  WriteMetadata;
- if newgfxcount = 0 then exit;
- if decomp_param.docomposite then CompositeGraphics;
- if decomp_param.dobeautify then BeautifyGraphics;
 end;
