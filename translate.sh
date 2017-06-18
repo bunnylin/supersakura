@@ -17,7 +17,7 @@ printf "String IDs\tOriginal\tPhonetic\tGoogle\tBing\tYandex\n"
 while IFS= read -ru 10 line
 do
   # Count how many tab characters this line has.
-  numtabs=$(printf -- "$line" | grep -P -o "\t" | wc -l)
+  numtabs=$(echo -n "$line" | grep -P -o "\t" | wc -l)
 
   # If there are no tabs, the line as a whole is used as translatable input.
   # Otherwise everything before the first tab is saved as the string ID, and
@@ -25,8 +25,8 @@ do
   stringid=""
   if [ $numtabs -gt 0 ]
   then
-    stringid=$(printf -- "$line" | cut -f1)
-    line=$(echo "$line" | sed "s/.*\t//" )
+    stringid=$(echo -n "$line" | cut -f1)
+    line=$(echo -n "$line" | sed "s/.*\t//" )
   fi
 
   # Output the string ID and translatable input.
@@ -40,7 +40,7 @@ do
   # Lines starting with a # are treated as comments.
   while read -ru 11 sub
   do
-    if ! echo "$sub" | grep -q "^ *#"
+    if ! echo -n "$sub" | grep -q "^ *#"
     then
       line=$(sed "s/$sub/g" <<< $line)
     fi
@@ -63,8 +63,8 @@ do
 
   # $transgoo is now expected to have the original on line 1, the phonetic
   # on line 2 in brackets, and the translation on line 4, may be last line.
-  trans0=$(echo "$transgoo" | sed -n 2p | sed "s/[()]//g")
-  trans1=$(echo "$transgoo" | sed -n 4p)
+  trans0=$(echo -n "$transgoo" | sed -n 2p | sed "s/[()]//g")
+  trans1=$(echo -n "$transgoo" | sed -n 4p)
 
   # Get the other translations.
   trans2=$(timeout 16 translate-shell -b ja:en -e bing -no-ansi -- "$line")
@@ -79,10 +79,10 @@ do
 
   # If the output contains ": ", but the input doesn't, then the space was
   # added unnecessarily and should be removed.
-  if echo "$transall" | grep -q ": " \
-  && ! echo "$line" | grep -q ": "
+  if echo -n "$transall" | grep -q ": " \
+  && ! echo -n "$line" | grep -q ": "
   then
-    transall=$(echo "$transall" | sed "s/: /:/g")
+    transall=$(echo -n "$transall" | sed "s/: /:/g")
   fi
 
   # The translators tend to add spaces after some backslashes, remove them.
