@@ -8,15 +8,17 @@
 愛撫する:/Caress:
 キスする:/Kiss:
 移動する:/Move:
+指名する:/Nominate:
 脱がせる:/Take off:
 食べる:/Eat:
 調べる:/Examine:
 いじる:/Fondle:
-入れる:/Put in:
 なめる:/Lick:
 舐める:/Lick:
 動かす:/Move:
 開ける:/Open:
+入れる:/Put in:
+脱がす:/Take off:
 見せる:/Show:
 撫でる:/Stroke:
 考える:/Think:
@@ -35,7 +37,9 @@
 探す:/Look for:
 揉む:/Massage:
 拾う:/Pick up:
+読む:/Read:
 もむ:/Rub:
+座る:/Sit:
 取る:/Take:
 話す:/Talk:
 触る:/Touch:
