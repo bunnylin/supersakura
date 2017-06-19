@@ -684,11 +684,16 @@ begin
   exit;
  end;
 
- GetDefaultWindowSizes(ivar, jvar);
- if (ivar <> 0) and (saku_param.overridex = 0) then sysvar.mv_WinSizeX := ivar;
- if (jvar <> 0) and (saku_param.overridey = 0) then sysvar.mv_WinSizeY := jvar;
- sysvar.WindowSizeX := sysvar.mv_WinSizeX;
- sysvar.WindowSizeY := sysvar.mv_WinSizeY;
+ if sysvar.WinSizeAuto then begin
+  GetDefaultWindowSizes(ivar, jvar);
+  if (ivar <> 0) and (saku_param.overridex = 0) then sysvar.mv_WinSizeX := ivar;
+  if (jvar <> 0) and (saku_param.overridey = 0) then sysvar.mv_WinSizeY := jvar;
+  sysvar.WindowSizeX := sysvar.mv_WinSizeX;
+  sysvar.WindowSizeY := sysvar.mv_WinSizeY;
+ end;
+
+ if saku_param.overridex <> 0 then sysvar.WindowSizeX := saku_param.overridex;
+ if saku_param.overridey <> 0 then sysvar.WindowSizeY := saku_param.overridey;
 
  log('Game window size: ' + strdec(sysvar.mv_WinSizeX) + 'x' + strdec(sysvar.mv_WinSizeY));
  UpdateCoscosTable;
