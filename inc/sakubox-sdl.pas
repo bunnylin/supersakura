@@ -22,7 +22,8 @@
 // ------------------------------------------------------------------
 
 procedure GetNewFont(boxnum, heightp : dword);
-var fontnum, minx, maxx : dword;
+var fontnum : dword;
+    minx, maxx : longint;
     facenamu : PChar;
 begin
  fontnum := IsFontLangInList(languagelist[TBox[boxnum].boxlanguage]);
