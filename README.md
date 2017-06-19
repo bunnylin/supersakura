@@ -172,43 +172,51 @@ string, you could try this command:
 
 	translate-shell -b ja:en file://whatever.txt >output.txt
 
-The shell script translate.sh included with SuperSakura's tools may be able
-to do even more, if you're on Linux and have translate-shell installed. You
-can feed it the string table tsv file as is, and it will produce a new tsv
-with a few different translation alternatives, easy to polish manually. The
-script also does constant string substitutions from `trans-subs.txt`, so you
-can add commonly mistranslated terms there to force a correct translation.
+Included with SuperSakura are helper scripts that make using translate-shell
+more robust. You can feed in the string table tsv file as is, and the script
+will produce a new tsv with a few different translation alternatives, easy
+to polish manually. The scripts also do constant string substitutions from
+`trans-subs.txt`, so you can add commonly mistranslated terms there to force
+a correct translation.
+
+If you're on Linux, with translate-shell installed and on the system path:
 
 	translate.sh input.tsv >output.tsv
 
+Of, if you have Python 3, again with translate-shell installed and available
+on the system path:
+
+	python translate.py input.tsv >output.tsv
+
 Automatically translating all strings in a game will likely take hours.
 Perhaps leave it running overnight. You can watch how the translation is
-going by opening your output file, but don't do anything to save changes, as
-that could mess up the translation output.
+going by opening your output file in a text editor, but don't do anything to
+save changes, as that could mess up the translation output.
 
 There are a few other translation options.
 [Translation Aggregator](http://www.hongfire.com/forum/showthread.php/94395-Translation-Aggregator-v0-4-9?p=3648894#post3648894)
 leverages both online and offline resources, but I'm not sure how hard it
 would be to straight up feed a text file through it.
 
-Once you have a translated file, some things still need to be checked
+Once you have a translated tsv file, some things still need to be checked
 manually. At least you should clean up the verb:noun commands, in the first
 few hundred lines of the file. The verbs must be consistently translated, or
 some game scripts may fail to enable or disable the correct verbs. Also,
-check that all escape codes were preserved unchanged; for example, `\n` or
-`\$varname;`. Finally, there is one special string, probably ID `MAIN..1` or
-thereabouts. It says `Japanese`. Change that to `English`. This controls the
-textbox language.
+check that all escape codes were preserved; for example, `\n` or
+`\$varname;` must look exactly the same in the original string and in the
+translated string. Finally, there is one special string, probably ID
+`MAIN..1` or thereabouts. It says `Japanese`. Change that to `English`. This
+controls the textbox language and font.
 
-To make the final string table, delete all columns except `String IDs` and
-your new `English` column. Save this as a tsv file, or csv file with
-tab-separated values. The filename can be anything, as long as it ends with
-the .tsv suffix.
+Finally, delete all columns except `String IDs` and your new `English`
+column. Save this single-tab two-column spreadsheet as a tsv file, or csv
+file with tab-separated values. The filename can be anything, as long as it
+ends with the .tsv suffix, for example `3sis98-en.tsv`.
 
-The translated strings can be put into a game in two ways. The simpler one
-is to copy the .tsv file anywhere under the game's project directory with
-all the other converted game resources. Recompile the game normally, and it
-should now run in English by default.
+The translated strings can be inserted into a game in two ways. The simpler
+way is to copy the .tsv file anywhere under the game's project directory
+with all the other converted game resources. Recompile the game normally,
+and it should now run in English by default.
 
 The second way is to compile a mod, so the translation can be loaded from
 SuperSakura's frontend. These are the minimal steps:
@@ -232,6 +240,7 @@ SuperSakura, the engine will automatically load the parent dat first. An
 extra bonus with this modding approach is that you can also include modified
 graphics in the mod, in case the original graphics have localisable content
 or annoying mosaics or whatever. Just drop the new graphics anywhere under
-the mod's project directory, and they'll get loaded over the original game's
-graphics by the same filenames. (You can replace game scripts as well, but
-that gets more complicated.)
+the mod's project directory and recompile. When the dat is loaded, the
+graphics also get loaded over the original game's graphics by the same
+filenames. (You can replace game scripts as well, but that gets more
+complicated.)
