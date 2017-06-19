@@ -142,6 +142,11 @@ var ivar, jvar : dword;
      inc(inofs);
      while (inofs <= dword(length(newtxt))) and (newtxt[inofs] <> ';') do begin
       inc(reflen);
+      if reflen > length(refstr) then begin
+       byte(refstr[0]) := reflen - 1;
+       LogError('print: too long data for escape code ' + code + ': ' + refstr);
+       break;
+      end;
       if newtxt[inofs] <> ' ' then refstr[reflen] := newtxt[inofs];
       inc(inofs);
      end;
