@@ -6,6 +6,7 @@ recomp.exe
 supersakura.exe
 supersakura-con.exe
 translate.sh
+translate.py
 trans-subs.txt
 data\supersakura.dat
 data\supersakura\*.*
