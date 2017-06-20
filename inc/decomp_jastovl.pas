@@ -1455,7 +1455,7 @@ begin
   end;
 
   gid_TRANSFER98: if scriptname = 'TKEXE' then begin
-   jvar := 0;
+   jvar := 0; lvar := 0;
    while lofs < loadersize do begin
     ivar := byte((loader + lofs)^);
     inc(lofs);
@@ -1463,13 +1463,21 @@ begin
       0: begin
        writebufln('return');
        writebufln('');
-       inc(jvar);
        writebuf('@');
+       inc(jvar);
        if jvar < 10 then writebuf('0');
        writebufln(strdec(jvar) + ': // $' + strhex(lofs));
       end;
       1: writebufln('waitkey');
-      2..$1F: writebufln('//dummy $' + strhex(ivar));
+      2: writebufln('call INTRO.QUESTIONS');
+      3: writebufln('//dummy 03');
+      6: begin
+       writebufln('gfx.clearall // 06');
+       if lvar in [1,2] then writebufln('gfx.show OP_1');
+       inc(lvar);
+       writebufln('gfx.transition 4');
+       writebufln('sleep');
+      end;
       else DoTextOutput;
     end;
    end;
