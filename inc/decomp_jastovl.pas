@@ -304,19 +304,22 @@ var outbuf : record
   end;
 
   procedure AutoloadAnims(const aninamu : string);
-  // 3sis-version games automatically load animations when a sprite is loaded.
+  // 3sis-era games automatically load animations when a sprite is loaded.
   // Some sprites have no animations, most have 1, a few have more than 1.
   var a : byte;
   begin
    a := 1;
    case game of
+
     gid_3SIS, gid_3SIS98: begin
      if aninamu = 'ST37' then a := 0
      else if aninamu = 'ST21' then a := 2; // Eiichi with Keiko, two eyepairs
     end;
+
     gid_RUNAWAY, gid_RUNAWAY98: begin
      if aninamu = 'MB07A' then a := 0; // arcade players overlay, no anims
     end;
+
     gid_SETSUJUU: begin
      a := 0; // Snowcat doesn't have sprite blinkies!
      if (copy(aninamu, 1, 3) = 'SH_') and (aninamu[length(aninamu)] <> 'S')
@@ -327,11 +330,27 @@ var outbuf : record
       if (aninamu = 'SH_31') or (aninamu = 'SH_38') or (aninamu = 'SH_52') then a := 2;
      end;
     end;
+
+    gid_TRANSFER98: begin
+     a := 0;
+     // Sprite blinkies...
+     if copy(aninamu, 1, 3) = 'TT_' then a := 1 else
+     // Event blinkies...
+     if aninamu = 'TI_006' then a := 1 else
+     if aninamu = 'TI_029' then a := 2 else
+     if aninamu = 'TH_067' then a := 2 else
+     if (copy(aninamu, 1, 3) = 'TH_')
+     and (byte(valx(copy(aninamu, 4, 3))) in [13,14,17,18,22,32..34,38..40,
+       44..46,52..54,60..62,66,68,73,74,80,81,83,88..90,95..97,100..102,
+       124..126,130..132]) then a := 1;
+    end;
+
     gid_VANISH: begin
      if (aninamu = 'VT_012') or (aninamu = 'VT_018') or (aninamu = 'VT_019')
      then a := 2;
      if copy(aninamu, 1, 3) = 'VMT' then a := 0;
     end;
+
    end;
    while a <> 0 do begin
     dec(a);
@@ -1721,7 +1740,8 @@ begin
         if gfxlist[jvar].gfxname = 'TB_000' then blackedout := TRUE else blackedout := FALSE;
         // load animations automatically
         if (gfxlist[jvar].data2 = $38)
-        or (game = gid_SETSUJUU) then AutoloadAnims(gfxlist[jvar].gfxname);
+        or (game in [gid_SETSUJUU, gid_TRANSFER98])
+        then AutoloadAnims(gfxlist[jvar].gfxname);
        end;
 
        gid_HOHOEMI, gid_EDEN, gid_FROMH, gid_MAJOKKO,
