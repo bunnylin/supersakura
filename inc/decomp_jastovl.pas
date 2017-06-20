@@ -1505,7 +1505,8 @@ begin
     else writebufln('0'); // instant
   end;
   writebufln('sleep');
-  if game in [gid_SETSUJUU] then AutoLoadAnims(gfxlist[0].gfxname);
+  if game in [gid_SETSUJUU, gid_TRANSFER98]
+   then AutoLoadAnims(gfxlist[0].gfxname);
   persistence := TRUE;
   lastbkg := gfxlist[0].gfxname;
  end;
