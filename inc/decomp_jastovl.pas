@@ -1880,6 +1880,7 @@ begin
         end;
         case byte((loader + lofs - 1)^) of // xx
          1: begin
+             inc(lofs, bitness + bitness);
              AddLocalVar(jvar);
              if bitness = 1 then longint(lvar) := shortint(lvar) else longint(lvar) := integer(lvar);
              if lvar = 1 then writebufln('inc v' + strdec(jvar)) else
@@ -1889,48 +1890,47 @@ begin
               if longint(lvar) >= 0 then writebufln(' += ' + strdec(lvar))
               else writebufln(' -= ' + strdec(-longint(lvar)));
              end;
-             inc(lofs, bitness + bitness);
             end;
          2: begin
-             writebufln('$v' + strdec(jvar) + ' += $v' + strdec(lvar));
              inc(lofs, bitness + bitness);
+             writebufln('$v' + strdec(jvar) + ' += $v' + strdec(lvar));
             end;
          3: begin
-             writebufln('$v' + strdec(jvar) + ' -= $v' + strdec(lvar));
              inc(lofs, bitness + bitness);
+             writebufln('$v' + strdec(jvar) + ' -= $v' + strdec(lvar));
             end;
          4: begin
-             writebufln('$v' + strdec(jvar) + ' := $v' + strdec(lvar));
              inc(lofs, bitness + bitness);
+             writebufln('$v' + strdec(jvar) + ' := $v' + strdec(lvar));
             end;
          5: begin
              AddLocalVar(jvar);
-             writebufln('$v' + strdec(jvar) + ' := ' + strdec(lvar));
              inc(lofs, bitness + bitness);
+             writebufln('$v' + strdec(jvar) + ' := ' + strdec(lvar));
             end;
          6: begin
-             writebufln('$v' + strdec(jvar) + ' := $v' + strdec(lvar) + ' - $v' + strdec(gutan));
              inc(lofs, dword(bitness * 3));
+             writebufln('$v' + strdec(jvar) + ' := $v' + strdec(lvar) + ' - $v' + strdec(gutan));
             end;
          7: begin
-             writebufln('$v' + strdec(jvar) + ' := $v' + strdec(lvar) + ' - ' + strdec(gutan));
              inc(lofs, dword(bitness * 3));
+             writebufln('$v' + strdec(jvar) + ' := $v' + strdec(lvar) + ' - ' + strdec(gutan));
             end;
          8: begin
-             writebufln('$v' + strdec(jvar) + ' := $v' + strdec(lvar) + ' and $v' + strdec(gutan));
              inc(lofs, dword(bitness * 3));
+             writebufln('$v' + strdec(jvar) + ' := $v' + strdec(lvar) + ' and $v' + strdec(gutan));
             end;
          9: begin
-             writebufln('$v' + strdec(jvar) + ' := $v' + strdec(lvar) + ' or $v' + strdec(gutan));
              inc(lofs, dword(bitness * 3));
+             writebufln('$v' + strdec(jvar) + ' := $v' + strdec(lvar) + ' or $v' + strdec(gutan));
             end;
          $A: begin
+              inc(lofs, bitness);
               writebuf('if $v' + strdec(jvar) + ' == 0 then ');
               if haschoices then
                writebufln('choice.go end')
               else
                writebufln('return end');
-              inc(lofs, bitness);
              end;
          $B,$C: begin
                  writebuf('$v' + strdec(lvar) + ' := $v' + strdec(lvar));
@@ -1945,16 +1945,16 @@ begin
                  writebufln('');
                 end;
          $14: begin
-               writebufln('$v' + strdec(jvar) + ' := rnd ' + strdec(lvar));
                inc(lofs, bitness + bitness);
+               writebufln('$v' + strdec(jvar) + ' := rnd ' + strdec(lvar));
               end;
          $15: begin
-               writebufln('//dummy $0B 15 play song var ' + strhex(jvar));
                inc(lofs, bitness);
+               writebufln('//dummy $0B 15 play song var ' + strhex(jvar));
               end;
          $1D: begin
-               writebufln('//dummy $0B 1D // $' + strhex(jvar) + ' $' + strhex(lvar) + ' $' + strhex(gutan));
                inc(lofs, dword(bitness * 3));
+               writebufln('//dummy $0B 1D // $' + strhex(jvar) + ' $' + strhex(lvar) + ' $' + strhex(gutan));
               end;
          $32..$35: begin
                writebuf('if $v' + strdec(jvar) + ' ');
@@ -2028,10 +2028,10 @@ begin
                // Make sure there's room in the jump list, and add this.
                if jumpcount + 16 >= dword(length(jumplist)) then setlength(jumplist, length(jumplist) shl 1);
                jumplist[jumpcount] := word((loader + lofs)^); inc(jumpcount);
+               inc(lofs, 2);
 
                while length(txt) < 4 do txt := '0' + txt;
                writebufln('goto ."' + txt + '" // 0B-38');
-               inc(lofs, 2);
                if byte((loader + lofs)^) <> 0 then writebufln('');
               end;
          $39: begin
@@ -2084,15 +2084,15 @@ begin
                 writebufln('choice.set "' + txt + '"');
                 inc(lvar);
                end;
-               writebufln('$v' + strdec(jvar) + ' := (choice.get)');
                lvar := lvar shr 16;
                inc(lofs, lvar + lvar);
+               writebufln('$v' + strdec(jvar) + ' := (choice.get)');
               end;
          $49: begin
                // Four variable numbers, followed by l word addresses
                // pointing to strings; get user choice, put result in var j.
-               writebufln('choice.reset // 0B-49 bitmasked immediate choice');
                inc(lofs, dword(bitness * 3));
+               writebufln('choice.reset // 0B-49 bitmasked immediate choice');
                // gutan is already the 3rd variable, but it's always set to 0
                // and is never checked afterward, so ignore it.
                // we grab the 4th var into ptrnil. It's the choice bitmask.
@@ -2124,14 +2124,14 @@ begin
                 writebufln('end');
                 inc(lvar);
                end;
-               writebufln('$v' + strdec(jvar) + ' := (choice.get)');
                lvar := lvar shr 16;
                inc(lofs, lvar + lvar);
+               writebufln('$v' + strdec(jvar) + ' := (choice.get)');
               end;
 
          $4B: begin // followed by yy pairs of word addresses
-               writebufln('choice.reset // 0B-4B immediate choice');
                inc(lofs, bitness);
+               writebufln('choice.reset // 0B-4B immediate choice');
                while jvar <> 0 do begin
                 lvar := word((loader + lofs)^); inc(lofs, 2);
                 txt := GetLoaderString(lvar + 1);
@@ -2172,19 +2172,20 @@ begin
    $C: begin
         case byte((loader + lofs)^) of
          1: begin
-             writebufln('$v' + strdec(byte((loader + lofs + 1)^)) + ' := $v' + strdec(byte((loader + lofs + 2)^) + 256));
+             writebuf('$v' + strdec(byte((loader + lofs + 1)^)) + ' := $v' + strdec(byte((loader + lofs + 2)^) + 256));
              inc(lofs, 3);
             end;
          2: begin
-             writebufln('$v' + strdec(byte((loader + lofs + 1)^) + 256) + ' := $v' + strdec(byte((loader + lofs + 2)^)));
+             writebuf('$v' + strdec(byte((loader + lofs + 1)^) + 256) + ' := $v' + strdec(byte((loader + lofs + 2)^)));
              inc(lofs, 3);
             end;
          3: begin
-             writebufln('$v' + strdec(byte((loader + lofs + 1)^) + 256) + ' := ' + strdec(byte((loader + lofs + 2)^)));
+             writebuf('$v' + strdec(byte((loader + lofs + 1)^) + 256) + ' := ' + strdec(byte((loader + lofs + 2)^)));
              inc(lofs, 3);
             end;
          else begin PrintError('Unknown $C subcode $' + strhex(byte((loader + lofs)^)) + ' @ $' + strhex(lofs)); exit; end;
         end;
+        writebufln('');
        end;
 
    // $0D - various more modern graphic functions
@@ -2564,20 +2565,20 @@ begin
          end;
          case byte((loader + lofs)^) of
           1: begin
-              writebufln('choice.off "' + optionlist[jvar].verbtext + '"');
               inc(lofs, 2);
+              writebufln('choice.off "' + optionlist[jvar].verbtext + '"');
              end;
           2: begin
-              writebufln('choice.on "' + optionlist[jvar].verbtext + '"');
               inc(lofs, 2);
+              writebufln('choice.on "' + optionlist[jvar].verbtext + '"');
              end;
           4: begin
-              writebufln('choice.off "' + optionlist[jvar].verbtext + ':' + optionlist[jvar].subjecttext[lvar] + '"');
               inc(lofs, 3);
+              writebufln('choice.off "' + optionlist[jvar].verbtext + ':' + optionlist[jvar].subjecttext[lvar] + '"');
              end;
           5: begin
-              writebufln('choice.on "' + optionlist[jvar].verbtext + ':' + optionlist[jvar].subjecttext[lvar] + '"');
               inc(lofs, 3);
+              writebufln('choice.on "' + optionlist[jvar].verbtext + ':' + optionlist[jvar].subjecttext[lvar] + '"');
              end;
           else begin PrintError('Unknown code $12 ' + strhex(byte((loader + lofs)^)) + ' @ $' + strhex(lofs)); exit; end;
          end;
@@ -2798,8 +2799,8 @@ begin
 
          gid_3SIS, gid_3SIS98, gid_RUNAWAY, gid_RUNAWAY98:
          begin
-          writebufln('sleep ' + strdec(byte((loader + lofs)^) * 100));
-          inc(lofs);
+          jvar := byte((loader + lofs)^); inc(lofs);
+          writebufln('sleep ' + strdec(jvar * 100));
          end;
 
          else begin PrintError('Unknown code $14 @ $' + strhex(lofs)); exit; end;
@@ -2929,8 +2930,8 @@ begin
          gid_HOHOEMI, gid_EDEN, gid_FROMH, gid_MAJOKKO,
          gid_SAKURA, gid_SAKURA98, gid_TASOGARE:
          begin
-          writebufln('sleep ' + strdec(byte((loader + lofs)^) * 100));
-          inc(lofs);
+          jvar := byte((loader + lofs)^); inc(lofs);
+          writebufln('sleep ' + strdec(jvar * 100));
          end;
          else begin PrintError('Unknown code $17 @ $' + strhex(lofs)); exit; end;
         end;
@@ -2967,8 +2968,7 @@ begin
    // 1E xx - unknown
    $1E: case game of
          gid_DEEP: begin
-          jvar := byte((loader + lofs)^);
-          inc(lofs);
+          jvar := byte((loader + lofs)^); inc(lofs);
           writebufln('//dummy $1E v' + strdec(jvar));
          end;
          else begin PrintError('Unknown code $1E @ $' + strhex(lofs)); exit; end;
@@ -2976,8 +2976,7 @@ begin
    // F3 xx - unknown
    $F3: case game of
          gid_DEEP: begin
-          jvar := byte((loader + lofs)^);
-          inc(lofs);
+          jvar := byte((loader + lofs)^); inc(lofs);
           writebufln('//dummy $F3-$' + strhex(jvar));
          end;
          else begin PrintError('Unknown code $F3 @ $' + strhex(lofs)); exit; end;
