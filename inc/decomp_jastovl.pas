@@ -1464,7 +1464,9 @@ begin
        writebufln('return');
        writebufln('');
        inc(jvar);
-       writebufln('@' + strdec(jvar) + ': // $' + strhex(lofs));
+       writebuf('@');
+       if jvar < 10 then writebuf('0');
+       writebufln(strdec(jvar) + ': // $' + strhex(lofs));
       end;
       1: writebufln('waitkey');
       2..$1F: writebufln('//dummy $' + strhex(ivar));
