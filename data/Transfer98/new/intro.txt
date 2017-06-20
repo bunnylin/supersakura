@@ -68,7 +68,7 @@ call TKEXE.01
 print ."\.\?"
 call TKEXE.02
 print ."\."
-$v0 := (choice.get noclear=1 noprint=1)
+$v257 := (choice.get noclear=1 noprint=1)
 tbox.clear
 
 # question 2
@@ -78,7 +78,7 @@ call TKEXE.04
 print ."\.\?"
 call TKEXE.05
 print ."\."
-$v0 := (choice.get noclear=1 noprint=1)
+$v258 := (choice.get noclear=1 noprint=1)
 tbox.clear
 
 # question 3
@@ -88,7 +88,7 @@ call TKEXE.07
 print ."\.\?"
 call TKEXE.08
 print ."\."
-$v0 := (choice.get noclear=1 noprint=1)
+$v259 := (choice.get noclear=1 noprint=1)
 tbox.clear
 
 # question 4
@@ -98,7 +98,7 @@ call TKEXE.10
 print ."\.\?"
 call TKEXE.11
 print ."\."
-$v0 := (choice.get noclear=1 noprint=1)
+$v260 := (choice.get noclear=1 noprint=1)
 tbox.clear
 
 # question 5
@@ -108,7 +108,7 @@ call TKEXE.13
 print ."\.\?"
 call TKEXE.14
 print ."\."
-$v0 := (choice.get noclear=1 noprint=1)
+$v261 := (choice.get noclear=1 noprint=1)
 tbox.clear
 
 # question 6
@@ -118,7 +118,7 @@ call TKEXE.16
 print ."\.\?"
 call TKEXE.17
 print ."\."
-$v0 := (choice.get noclear=1 noprint=1)
+$v262 := (choice.get noclear=1 noprint=1)
 tbox.clear
 
 # question 7
@@ -128,7 +128,7 @@ call TKEXE.19
 print ."\.\?"
 call TKEXE.20
 print ."\."
-$v0 := (choice.get noclear=1 noprint=1)
+$v263 := (choice.get noclear=1 noprint=1)
 tbox.clear
 
 # question 8
@@ -138,7 +138,7 @@ call TKEXE.22
 print ."\.\?"
 call TKEXE.23
 print ."\."
-$v0 := (choice.get noclear=1 noprint=1)
+$v264 := (choice.get noclear=1 noprint=1)
 tbox.clear
 
 # question 9
@@ -148,7 +148,7 @@ call TKEXE.25
 print ."\.\?"
 call TKEXE.26
 print ."\."
-$v0 := (choice.get noclear=1 noprint=1)
+$v265 := (choice.get noclear=1 noprint=1)
 tbox.clear
 
 # question 10
@@ -158,7 +158,7 @@ call TKEXE.28
 print ."\.\?"
 call TKEXE.29
 print ."\."
-$v0 := (choice.get noclear=1 noprint=1)
+$v266 := (choice.get noclear=1 noprint=1)
 tbox.clear
 
 tbox.setdefault 1
