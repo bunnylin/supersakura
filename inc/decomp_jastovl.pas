@@ -1765,36 +1765,41 @@ begin
        end;
        else begin PrintError('Unknown code $06 @ $' + strhex(lofs)); exit; end;
       end;
+
    // 07 - 3sis/Runaway play song xx
-   7: case game of
-       gid_3SIS, gid_3SIS98, gid_RUNAWAY, gid_RUNAWAY98, gid_VANISH,
-       gid_TRANSFER98, gid_SETSUJUU, gid_ANGELSCOLLECTION1,
-       gid_ANGELSCOLLECTION2, gid_DEEP:
-       begin
-        jvar := byte((loader + lofs)^);
-        inc(lofs);
-        if jvar in [0,$FF] then writebufln('mus.stop')
-        else if jvar > dword(length(songlist)) then begin
-         PrintError('Song outside list @ $' + strhex(lofs));
-         writebufln('');
-        end else
-         writebufln('mus.play ' + songlist[jvar - 1]);
-       end;
+   7: begin
+    jvar := byte((loader + lofs)^);
+    inc(lofs);
 
-       gid_MARIRIN: begin
-        jvar := byte((loader + lofs)^);
-        inc(lofs);
-        writebufln('//dummy $07 ' + strhex(jvar));
-       end;
-
-       gid_FROMH, gid_TASOGARE: begin
-        jvar := byte((loader + lofs)^);
-        inc(lofs);
-        writebufln('print \$v' + strdec(jvar));
-       end;
-
-       else begin PrintError('Unknown code $07 @ $' + strhex(lofs)); exit; end;
+    case game of
+      gid_3SIS, gid_3SIS98, gid_RUNAWAY, gid_RUNAWAY98,
+      gid_ANGELSCOLLECTION1, gid_ANGELSCOLLECTION2, gid_DEEP,
+      gid_SETSUJUU, gid_VANISH:
+      begin
+       if jvar in [0,$FF] then writebufln('mus.stop')
+       else if jvar > dword(length(songlist)) then begin
+        PrintError('Song outside list @ $' + strhex(lofs));
+        writebufln('');
+       end else
+        writebufln('mus.play ' + songlist[jvar - 1]);
       end;
+
+      gid_TRANSFER98: if jvar > 38 then writebufln('mus.stop')
+      else if jvar < 10 then writebufln('mus.play TEN00' + strdec(jvar))
+      else writebufln('mus.play TEN0' + strdec(jvar));
+
+      gid_MARIRIN: begin
+       writebufln('//dummy $07 ' + strhex(jvar));
+      end;
+
+      gid_FROMH, gid_TASOGARE: begin
+       writebufln('print \$v' + strdec(jvar));
+      end;
+
+      else begin PrintError('Unknown code $07 @ $' + strhex(lofs)); exit; end;
+    end;
+   end;
+
    // 08 - Wait for keypress, don't clear message area afterward
    8: case game of
        gid_SETSUJUU, gid_TRANSFER98, gid_VANISH:
