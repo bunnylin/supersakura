@@ -526,6 +526,7 @@ begin
 
    gid_TRANSFER98:
    if (copy(imunamu, 1, 3) = 'TT_') or (imunamu = 'TI_135A')
+   or (imunamu = 'ROGOL2')
    then xparency := 8
    else if imunamu = 'TB_149A' then xparency := 7;
 
@@ -575,6 +576,7 @@ begin
     then inc(ivar);
   gid_SETSUJUU: if copy(imunamu, 1, 3) = 'SET' then inc(ivar);
   gid_RUNAWAY, gid_RUNAWAY98: if imunamu = 'OP_013A0' then inc(ivar);
+  gid_TRANSFER98: if imunamu = 'ROGOL2' then inc(ivar);
  end;
 
  if ivar <> 0 then begin
