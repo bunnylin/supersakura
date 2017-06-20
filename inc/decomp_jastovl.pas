@@ -1716,7 +1716,7 @@ begin
    // 06 - [Sakura] play song xx / [3sis] show graphic xx (no persistence)
    6: case game of
        gid_3SIS, gid_3SIS98, gid_ANGELSCOLLECTION1, gid_ANGELSCOLLECTION2,
-       gid_RUNAWAY, gid_RUNAWAY98, gid_SETSUJUU, gid_TRANSFER98, gid_VANISH:
+       gid_RUNAWAY, gid_RUNAWAY98, gid_SETSUJUU, gid_VANISH:
        begin
         if implicitwaitkey = 0 then inc(implicitwaitkey);
         jvar := byte((loader + lofs)^);
@@ -1751,8 +1751,43 @@ begin
         if gfxlist[jvar].gfxname = 'TB_000' then blackedout := TRUE else blackedout := FALSE;
         // load animations automatically
         if (gfxlist[jvar].data2 = $38)
-        or (game in [gid_SETSUJUU, gid_TRANSFER98])
+        or (game in [gid_SETSUJUU])
         then AutoloadAnims(gfxlist[jvar].gfxname);
+       end;
+
+       gid_TRANSFER98:
+       begin
+        if implicitwaitkey = 0 then inc(implicitwaitkey);
+        jvar := byte((loader + lofs)^);
+        inc(lofs);
+        if jvar >= length(gfxlist) then begin PrintError('Graphic draw request out of bounds @ $' + strhex(lofs)); exit; end;
+        if gfxlist[jvar].data2 <> $38 then begin
+         writebufln('gfx.clearkids');
+         if (gfxlist[jvar].data2 = $50) and (gfxlist[jvar].data1 <> 0)
+         and (gfxlist[jvar].gfxname <> 'TB_000') and (blackedout = FALSE)
+         then begin
+          writebufln('gfx.show TB_000 bkg');
+          writebufln('gfx.transition 3');
+          writebufln('sleep');
+         end;
+        end;
+        writebuf('gfx.show ' + gfxlist[jvar].gfxname);
+        if gfxlist[jvar].data2 = $38 then begin
+         waitkeyswipe := 4;
+        end else begin
+         writebuf(' bkg');
+         if waitkeyswipe <> 4 then case gfxlist[jvar].data1 of
+           6,7: waitkeyswipe := 1;
+           11: waitkeyswipe := 2;
+           4,5,8,10: waitkeyswipe := 3;
+           9: waitkeyswipe := 4;
+           else waitkeyswipe := 0;
+         end;
+        end;
+        writebufln(' // $' + strhex(gfxlist[jvar].data2));
+        if gfxlist[jvar].gfxname = 'TB_000' then blackedout := TRUE else blackedout := FALSE;
+        // load animations automatically
+        AutoloadAnims(gfxlist[jvar].gfxname);
        end;
 
        gid_HOHOEMI, gid_EDEN, gid_FROMH, gid_MAJOKKO,
