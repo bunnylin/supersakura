@@ -2,6 +2,7 @@
 // Main menu and game definitions
 
 sys.settitle "Tenshitachi no Gogo - Tenkousei"
+$defaultlang := "Japanese"
 $s1 := "隼人" // Hayato
 
 viewport.setparams viewport:1 parent:0, locx 0 locy 0 sizex 32768 sizey 32768
@@ -13,14 +14,57 @@ viewport.setbkgindex viewport:2 index 1
 
 #gfx.show slot 0 TENK11
 
-// Textbox setup
+
+// ===== Title screen =====
+event.create.interrupt skipahead
+fiber.start titleanim
+fiber.waitsignal
+goto titleanimend
+
+@titleanim:
+gfx.clearall
+gfx.transition
+yield
+gfx.show ."0001_A" name TITLEBKG bkg y=-32768
+gfx.transition 4
+sleep
+gfx.show ."0001_BA0"
+sleep 1800
+gfx.move TITLEBKG y=0 time=4000 style=cos
+wait
+gfx.remove ."0001_BA0"
+sleep 800
+gfx.show ROGOL2
+gfx.transition 4
+sleep
+
+@skipahead:
+signal MAIN
+stop main.titleanim
+stop
+
+@titleanimend:
+event.clear
+gfx.clearall
+gfx.transition
+gfx.show ."0001_A"
+gfx.show ."0001_AA0"
+gfx.show ."0001_AA1"
+gfx.show ROGOL2
+gfx.transition
+sleep
+
+// Intro
+waitkey
+call INTRO.
+
+// ===== Textbox setup =====
 tbox.setnumboxes 5
 tbox.setdiatitlebox 2
 choice.setpartbox 3
 choice.setchoicebox 3
 choice.sethighlightbox 4
 choice.columns 1
-$defaultlang := "Japanese"
 
 tbox.setlanguage 1 $defaultlang
 
@@ -41,10 +85,10 @@ tbox.setlanguage 2 $defaultlang
 tbox.setparam 3 maxrows 10
 tbox.setparam 3 mincols 6
 tbox.setparam 3 lx 640
-tbox.setparam 3 ly 18000
-tbox.setparam 3 ay 6400
-tbox.setparam 3 margintop 768
-tbox.setparam 3 marginbottom 768
+tbox.setparam 3 ly 17000
+tbox.setparam 3 ay 24000
+tbox.setparam 3 margintop 800
+tbox.setparam 3 marginbottom 800
 
 tbox.setparam 3 basecolor 0x8BCF
 tbox.setparam 3 basefill 0
@@ -63,17 +107,6 @@ tbox.setparam 4 margintop 80
 tbox.setparam 4 marginbottom 80
 tbox.setparam 4 bevel 1
 tbox.setparam 4 basecolor 0xFFF7
-
-
-// ===== Title screen =====
-gfx.show ."0001_A" bkg
-gfx.transition 4
-sleep
-waitkey
-gfx.clearall
-
-// Intro
-// runscript INTRO
 
 // Start the game
 call TEN_S003.

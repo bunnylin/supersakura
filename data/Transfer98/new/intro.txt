@@ -1,0 +1,165 @@
+// Tenkousei intro
+
+tbox.setnumboxes 5
+tbox.setdiatitlebox 2
+choice.setchoicebox 3
+choice.sethighlightbox 4
+choice.columns 2
+
+tbox.setlanguage 1 $defaultlang
+
+// 2: Dialogue title box
+tbox.setparam 2 minrows 1
+tbox.setparam 2 maxrows 1
+tbox.setparam 2 mincols 8
+tbox.setparam 2 lx 4800
+tbox.setparam 2 ly 25000
+tbox.setparam 2 margintop 256
+tbox.setparam 2 marginbottom 256
+tbox.setparam 2 marginleft 512
+tbox.setparam 2 marginright 512
+tbox.setparam 2 snaptobox 1
+tbox.setlanguage 2 $defaultlang
+
+// 3: Choice box
+tbox.setparam 3 maxrows 99
+tbox.setparam 3 minsizex 18000
+tbox.setparam 3 maxsizex 18000
+tbox.setparam 3 lx 16384
+tbox.setparam 3 ly 8800
+tbox.setparam 3 ax 16384
+tbox.setparam 3 margintop 768
+tbox.setparam 3 marginbottom 768
+
+tbox.setparam 3 basecolor 0
+tbox.setparam 3 basefill 1
+tbox.setparam 3 textcolor 0xFFFF
+tbox.setparam 3 bevel 0
+tbox.setlanguage 3 $defaultlang
+
+// 4: Highlight box
+tbox.setparam 4 marginleft 300
+tbox.setparam 4 marginright 300
+tbox.setparam 4 margintop 100
+tbox.setparam 4 marginbottom 100
+tbox.setparam 4 bevel 0
+tbox.setparam 4 basecolor 0xFFF7
+tbox.setparam 4 negatebkg 1
+
+
+mus.play TEN020
+call TKEXE.35
+waitkey
+return
+
+@questions:
+gfx.clearall
+gfx.show OP_2
+gfx.transition 4
+sleep
+tbox.setdefault 3
+choice.set ."c1"
+choice.set ."c2"
+
+# question 1
+call TKEXE.
+print ."\n\n\C\?"
+call TKEXE.01
+print ."\.\?"
+call TKEXE.02
+print ."\."
+$v0 := (choice.get noclear=1 noprint=1)
+tbox.clear
+
+# question 2
+call TKEXE.03
+print ."\n\n\C\?"
+call TKEXE.04
+print ."\.\?"
+call TKEXE.05
+print ."\."
+$v0 := (choice.get noclear=1 noprint=1)
+tbox.clear
+
+# question 3
+call TKEXE.06
+print ."\n\n\C\?"
+call TKEXE.07
+print ."\.\?"
+call TKEXE.08
+print ."\."
+$v0 := (choice.get noclear=1 noprint=1)
+tbox.clear
+
+# question 4
+call TKEXE.09
+print ."\n\n\C\?"
+call TKEXE.10
+print ."\.\?"
+call TKEXE.11
+print ."\."
+$v0 := (choice.get noclear=1 noprint=1)
+tbox.clear
+
+# question 5
+call TKEXE.12
+print ."\n\n\C\?"
+call TKEXE.13
+print ."\.\?"
+call TKEXE.14
+print ."\."
+$v0 := (choice.get noclear=1 noprint=1)
+tbox.clear
+
+# question 6
+call TKEXE.15
+print ."\n\n\C\?"
+call TKEXE.16
+print ."\.\?"
+call TKEXE.17
+print ."\."
+$v0 := (choice.get noclear=1 noprint=1)
+tbox.clear
+
+# question 7
+call TKEXE.18
+print ."\n\n\C\?"
+call TKEXE.19
+print ."\.\?"
+call TKEXE.20
+print ."\."
+$v0 := (choice.get noclear=1 noprint=1)
+tbox.clear
+
+# question 8
+call TKEXE.21
+print ."\n\n\C\?"
+call TKEXE.22
+print ."\.\?"
+call TKEXE.23
+print ."\."
+$v0 := (choice.get noclear=1 noprint=1)
+tbox.clear
+
+# question 9
+call TKEXE.24
+print ."\n\n\C\?"
+call TKEXE.25
+print ."\.\?"
+call TKEXE.26
+print ."\."
+$v0 := (choice.get noclear=1 noprint=1)
+tbox.clear
+
+# question 10
+call TKEXE.27
+print ."\n\n\C\?"
+call TKEXE.28
+print ."\.\?"
+call TKEXE.29
+print ."\."
+$v0 := (choice.get noclear=1 noprint=1)
+tbox.clear
+
+tbox.setdefault 1
+return
