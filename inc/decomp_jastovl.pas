@@ -341,7 +341,7 @@ var outbuf : record
 
   procedure DoTextOutput;
   var printstr : UTF8string;
-      printofs : dword;
+      printofs, jvar, lvar : dword;
       u8c : string[4];
       maybetitle : boolean;
   begin
@@ -560,11 +560,15 @@ var outbuf : record
   end;
 
 begin
- // Load the input file into loader^.
- Decomp_JastOvl := LoadFile(srcfile);
- if Decomp_JastOvl <> '' then exit;
+ // Load the input file into loader^. Unless the source file name is an .exe,
+ // in which case assume it's already loaded.
+ Decomp_JastOvl := '';
+ if upcase(ExtractFileExt(srcfile)) <> '.EXE' then begin
+  Decomp_JastOvl := LoadFile(srcfile);
+  if Decomp_JastOvl <> '' then exit;
+ end;
 
- scriptname := ExtractFileName(srcfile);
+ scriptname := ExtractFileName(outputfile);
  scriptname := upcase(copy(scriptname, 1, length(scriptname) - length(ExtractFileExt(scriptname))));
 
  nextgra.style := 0; // just to remove a compiler warning
@@ -1426,6 +1430,26 @@ begin
           writebufln('gfx.clearall');
           writebufln('return');
          end;
+    end;
+   end;
+   lofs := loadersize;
+  end;
+
+  gid_TRANSFER98: if scriptname = 'TKEXE' then begin
+   jvar := 0;
+   while lofs < loadersize do begin
+    ivar := byte((loader + lofs)^);
+    inc(lofs);
+    case ivar of
+      0: begin
+       writebufln('return');
+       writebufln('');
+       inc(jvar);
+       writebufln('@' + strdec(jvar) + ': // $' + strhex(lofs));
+      end;
+      1: writebufln('waitkey');
+      2..$1F: writebufln('//dummy $' + strhex(ivar));
+      else DoTextOutput;
     end;
    end;
    lofs := loadersize;

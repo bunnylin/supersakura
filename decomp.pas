@@ -901,7 +901,7 @@ begin
   for ivar := high(songlist) downto 0 do
   if ivar < 9 then songlist[ivar] := songnamu + '0' + strdec(ivar + 1)
   else songlist[ivar] := songnamu + strdec(ivar + 1);
- if game = gid_TRANSFER98 then songlist[39] := 'TRAIN';
+ //if game = gid_TRANSFER98 then songlist[39] := 'TRAIN';
 
  // Extract songs, if applicable
  if songlistofs <> 0 then begin
@@ -928,7 +928,7 @@ begin
   lofs := animdataofs;
   getmem(poku, 178);
 
-  // Snowcat and Transfer Student use a modified format.
+  // Snowcat and Tenkousei use a modified format.
   if game in [gid_SETSUJUU, gid_TRANSFER98] then begin
    jvar := 0;
    case game of // baseline address for name strings
@@ -950,6 +950,8 @@ begin
       byte(songnamu[0]) := ivar - 1;
       break;
      end;
+    // an empty animation name means we're done.
+    if songnamu = '' then break;
     // find the PNGlist[] entry for this, or create one.
     songnamu := upcase(songnamu);
     ivar := seekpng(songnamu, TRUE);
@@ -981,6 +983,16 @@ begin
   end;
 
   freemem(poku); poku := NIL;
+ end;
+
+ // Tenkousei has some scripts embedded in the executable...
+ if game = gid_TRANSFER98 then begin
+  txt := 'Extracting bytecode from TK.EXE...';
+  writeln(txt); writeln(stdout, txt);
+  lofs := $14FC6;
+  loadersize := $14FC6 + $9A5; // up to excluding $1596B
+  txt := Decomp_JastOvl(exenamu, decomp_param.outputdir + 'scr' + DirectorySeparator + 'tkexe.txt');
+  if txt <> '' then PrintError('TK.EXE: ' + txt);
  end;
 end;
 
