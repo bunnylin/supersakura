@@ -29,11 +29,11 @@ gfx.show ."0001_A" name TITLEBKG bkg y=-32768
 gfx.transition 4
 sleep
 gfx.show ."0001_BA0"
-sleep 1800
+sleep 1600
 gfx.move TITLEBKG y=0 time=4000 style=cos
 wait
 gfx.remove ."0001_BA0"
-sleep 800
+sleep 600
 gfx.show ROGOL2
 gfx.transition 4
 sleep
@@ -84,8 +84,11 @@ tbox.setlanguage 2 $defaultlang
 // 3: Choice box
 tbox.setparam 3 maxrows 10
 tbox.setparam 3 mincols 6
+tbox.setparam 3 minsizex 0
+tbox.setparam 3 maxsizex 32768
 tbox.setparam 3 lx 640
 tbox.setparam 3 ly 17000
+tbox.setparam 3 ax 0
 tbox.setparam 3 ay 24000
 tbox.setparam 3 margintop 800
 tbox.setparam 3 marginbottom 800
