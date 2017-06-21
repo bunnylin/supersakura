@@ -1607,17 +1607,18 @@ begin
         writebufln('return');
        persistence := FALSE;
       end;
+
    // 01 - Wait for keypress, then clear message area
    1: begin
        if implicitwaitkey = 0 then writebuf('tbox.clear // ');
        writebufln('waitkey');
        implicitwaitkey := 0;
       end;
+
    // 02 - Jump to new OVL by number
    2: case game of
        gid_ANGELSCOLLECTION1, gid_SETSUJUU, gid_TRANSFER98: begin
-        jvar := byte((loader + lofs)^);
-        inc(lofs);
+        jvar := byte((loader + lofs)^); inc(lofs);
         txt := strdec(jvar);
         while length(txt) < 3 do txt := '0' + txt;
         case game of
@@ -1644,6 +1645,7 @@ begin
        end;
        else begin PrintError('Unknown code $02 @ $' + strhex(lofs)); exit; end;
       end;
+
    // 03 - Return to wherever last jumped from
    3: begin
        case game of
@@ -1661,6 +1663,7 @@ begin
        end;
        if byte((loader + lofs)^) <> 0 then writebufln('');
       end;
+
    // 04 - Jump to new OVL by name
    4: case game of
        gid_DEEP: begin
@@ -1688,6 +1691,7 @@ begin
         if byte((loader + lofs)^) <> 0 then writebufln('');
        end;
       end;
+
    // 05 - Jump to new OVL by name?
    5: case game of
        gid_HOHOEMI, gid_PARFAIT, gid_TASOGARE: begin
@@ -1707,12 +1711,12 @@ begin
         if byte((loader + lofs)^) in [0,3] = FALSE then writebufln('');
        end;
        gid_MARIRIN: begin
-        jvar := byte((loader + lofs)^);
-        inc(lofs);
+        jvar := byte((loader + lofs)^); inc(lofs);
         writebufln('//dummy $05 ' + strhex(jvar));
        end;
        else begin PrintError('Unknown code $05 @ $' + strhex(lofs)); exit; end;
       end;
+
    // 06 - [Sakura] play song xx / [3sis] show graphic xx (no persistence)
    6: case game of
        gid_3SIS, gid_3SIS98, gid_ANGELSCOLLECTION1, gid_ANGELSCOLLECTION2,
@@ -1758,8 +1762,7 @@ begin
        gid_TRANSFER98:
        begin
         if implicitwaitkey = 0 then inc(implicitwaitkey);
-        jvar := byte((loader + lofs)^);
-        inc(lofs);
+        jvar := byte((loader + lofs)^); inc(lofs);
         if jvar >= length(gfxlist) then begin PrintError('Graphic draw request out of bounds @ $' + strhex(lofs)); exit; end;
         if gfxlist[jvar].data2 <> $38 then begin
          writebufln('gfx.clearkids');
@@ -1794,8 +1797,7 @@ begin
        gid_SAKURA, gid_SAKURA98, gid_TASOGARE:
        begin
         // Play song
-        jvar := byte((loader + lofs)^);
-        inc(lofs);
+        jvar := byte((loader + lofs)^); inc(lofs);
         if jvar in [0,$FF] then writebufln('mus.stop')
         else if jvar > dword(length(songlist)) then begin
          PrintError('Song outside list @ $' + strhex(lofs));
@@ -1850,13 +1852,15 @@ begin
    8: case game of
        gid_SETSUJUU, gid_TRANSFER98, gid_VANISH:
        begin // play sound effect, one data byte
-        writebufln('// sound effect ' + strdec(byte((loader + lofs)^)));
+        writebuf('// sound effect ' + strdec(byte((loader + lofs)^)));
         inc(lofs);
+        writebufln('');
        end;
 
        gid_DEEP: begin
-        writebufln('// begin fight #' + strdec(byte((loader + lofs)^)));
+        writebuf('// begin fight #' + strdec(byte((loader + lofs)^)));
         inc(lofs);
+        writebufln('');
        end;
 
        gid_HOHOEMI, gid_EDEN, gid_FROMH, gid_MAJOKKO, gid_SAKURA,
@@ -1892,9 +1896,9 @@ begin
        gid_TRANSFER98: begin // redundant runscript command
                         inc(lofs);
                         txt := strdec(word((loader + lofs)^));
+                        inc(lofs, 2);
                         while length(txt) < 3 do txt := '0' + txt;
                         writebufln('call TEN_S' + txt + '.');
-                        inc(lofs, 2);
                        end;
        else begin PrintError('Unknown code $09 @ $' + strhex(lofs)); exit; end;
       end;
@@ -2248,8 +2252,9 @@ begin
                  writebufln('');
                 end;
            $09: begin
-                 writebufln('//dummy 0D-09 // gfx.transition? $' + strhex(byte((loader + lofs)^)));
+                 writebuf('//dummy 0D-09 // gfx.transition? $' + strhex(byte((loader + lofs)^)));
                  inc(lofs);
+                 writebufln('');
                 end;
            $0A: begin
                  txt := GetLoaderString(lofs);
@@ -2260,11 +2265,12 @@ begin
                  writebuf('gfx.show type anim');
                  if jvar <> 0 then writebuf(' ofsx ' + strdec(jvar));
                  if lvar <> 0 then writebuf(' ofsy ' + strdec(lvar));
-                 writebufln(' ' + txt + ' // unk word $' + strhex(gutan));
+                 writebuf(' ' + txt + ' // unk word $' + strhex(gutan));
                  inc(lofs, 4);
                  repeat
                   jvar := word((loader + lofs)^); inc(lofs, 2);
                  until jvar = $FFFF;
+                 writebufln('');
                 end;
            $0B: writebufln('//dummy 0D-0B // gfx.clearkids?');
            else begin PrintError('Unknown $D subcode $' + strhex(byte((loader + lofs - 1)^)) + ' @ $' + strhex(lofs - 2)); exit; end;
@@ -2409,8 +2415,9 @@ begin
                end;
           $03: case game of
                 gid_VANISH: begin
-                 writebufln('//dummy $11-03 ' + strhex(byte((loader + lofs)^)));
+                 writebuf('//dummy $11-03 ' + strhex(byte((loader + lofs)^)));
                  inc(lofs);
+                 writebufln('');
                 end;
                 else begin PrintError('Unknown code $11-03 @ $' + strhex(lofs)); exit; end;
                end;
@@ -2419,8 +2426,9 @@ begin
                  writebufln('// sys.savegame');
                 end;
                 gid_VANISH: begin
-                 writebufln('//dummy $11-04: var ' + strdec(byte((loader + lofs)^)) + ' with value ' + strdec(byte((loader + lofs + 1)^)) + '?');
+                 writebuf('//dummy $11-04: var ' + strdec(byte((loader + lofs)^)) + ' with value ' + strdec(byte((loader + lofs + 1)^)) + '?');
                  inc(lofs, 2);
+                 writebufln('');
                 end;
                 else begin PrintError('Unknown code $11-04 @ $' + strhex(lofs)); exit; end;
                end;
@@ -2437,20 +2445,22 @@ begin
           $06: case game of
                 gid_EDEN: begin
                  writebufln('$v600 := ' + strdec(byte((loader + lofs)^)));
-                 writebufln('call NEWMAP.');
                  inc(lofs);
+                 writebufln('call NEWMAP.');
                 end;
                 gid_FROMH, gid_TASOGARE: begin
-                 writebufln('// mark graphic ' + strdec(byte((loader + lofs)^)) + ' as seen');
+                 writebuf('// mark graphic ' + strdec(byte((loader + lofs)^)) + ' as seen');
                  inc(lofs);
+                 writebufln('');
                 end;
                 else begin PrintError('Unknown code $11-06 @ $' + strhex(lofs)); exit; end;
                end;
 
           $07: case game of
                 gid_FROMH, gid_TASOGARE: begin
-                 writebufln('// $v' + strdec(byte((loader + lofs)^)) + ' := GraphicSeen(v' + strdec(byte((loader + lofs + 1)^)) + ')');
+                 writebuf('// $v' + strdec(byte((loader + lofs)^)) + ' := GraphicSeen(v' + strdec(byte((loader + lofs + 1)^)) + ')');
                  inc(lofs, 2);
+                 writebufln('');
                 end;
                 else begin PrintError('Unknown code $11-07 @ $' + strhex(lofs)); exit; end;
                end;
@@ -2552,16 +2562,18 @@ begin
 
           $0E: case game of
                 gid_HOHOEMI: begin
-                 writebufln('// mark graphic ' + strdec(byte((loader + lofs)^)) + ' as seen');
+                 writebuf('// mark graphic ' + strdec(byte((loader + lofs)^)) + ' as seen');
                  inc(lofs);
+                 writebufln('');
                 end;
                 else begin PrintError('Unknown code $11-0E @ $' + strhex(lofs)); exit; end;
                end;
 
           $10: case game of
                 gid_TASOGARE: begin
-                 writebufln('//dummy $11-10 // change cell ' + strdec(byte((loader + lofs + 1)^)) + ',' + strdec(byte((loader + lofs)^)) + ' to $' + strhex(byte((loader + lofs + 2)^)));
+                 writebuf('//dummy $11-10 // change cell ' + strdec(byte((loader + lofs + 1)^)) + ',' + strdec(byte((loader + lofs)^)) + ' to $' + strhex(byte((loader + lofs + 2)^)));
                  inc(lofs, 3);
+                 writebufln('');
                 end;
                 else begin PrintError('Unknown code $11-10 @ $' + strhex(lofs)); exit; end;
                end;
@@ -2777,8 +2789,7 @@ begin
          // Smash/Flash, always combined in these older games
          gid_3SIS, gid_3SIS98, gid_RUNAWAY, gid_RUNAWAY98:
          begin
-          jvar := byte((loader + lofs)^);
-          inc(lofs);
+          jvar := byte((loader + lofs)^); inc(lofs);
           writebufln('gfx.flash ' + strdec(jvar) + ' 1');
           lvar := 2; while lvar * lvar < jvar do inc(lvar);
           lvar := (lvar - 1) shr 1;
@@ -2797,6 +2808,7 @@ begin
 
          else begin PrintError('Unknown code $13 ' + strhex(byte((loader + lofs + 1)^)) + ' @ $' + strhex(lofs)); exit; end;
         end;
+
    // 14 - Variable reset; or, kill the overlay, restore the background
    $14: case game of
          gid_HOHOEMI, gid_EDEN, gid_FROMH, gid_MAJOKKO,
@@ -2806,12 +2818,12 @@ begin
           case byte((loader + lofs - 1)^) of
            // Reset global variables
            1: begin
-               jvar := byte((loader + lofs)^);
-               inc(lofs);
+               jvar := byte((loader + lofs)^); inc(lofs);
                while jvar <> 0 do begin
                 writebufln('$v' + strdec(byte((loader + lofs)^) + 256) + ' := 0');
                 inc(lofs); dec(jvar);
                end;
+               writebufln('');
               end;
            // Black out screen for a bit
            3: begin
@@ -2840,6 +2852,7 @@ begin
 
          else begin PrintError('Unknown code $14 @ $' + strhex(lofs)); exit; end;
         end;
+
    // 15 xx - Handle animations
    $15: case game of
          gid_EDEN, gid_FROMH, gid_HOHOEMI, gid_MAJOKKO,
@@ -2918,13 +2931,13 @@ begin
 
          else begin PrintError('Unknown code $15 @ $' + strhex(lofs)); exit; end;
         end;
+
    // 16 xx - Screen flashes xx times
    $16: case game of
          gid_HOHOEMI, gid_EDEN, gid_FROMH, gid_MAJOKKO,
          gid_SAKURA, gid_SAKURA98, gid_TASOGARE:
          begin
-          jvar := byte((loader + lofs)^);
-          inc(lofs);
+          jvar := byte((loader + lofs)^); inc(lofs);
           {$ifdef enable_hacks}
           case jvar of
            // reduce flashing, it's overdone at points
@@ -2960,6 +2973,7 @@ begin
 
          else begin PrintError('Unknown code $16 @ $' + strhex(lofs)); exit; end;
         end;
+
    // 17 xx - Pause for xx desisecs (or until an impatient key pressed)
    $17: case game of
          gid_HOHOEMI, gid_EDEN, gid_FROMH, gid_MAJOKKO,
@@ -2970,13 +2984,13 @@ begin
          end;
          else begin PrintError('Unknown code $17 @ $' + strhex(lofs)); exit; end;
         end;
+
    // 18 xx - Screen shakes vertically xx times
    $18: case game of
          gid_EDEN, gid_FROMH, gid_MAJOKKO, gid_SAKURA, gid_SAKURA98,
          gid_TASOGARE:
          begin
-          jvar := byte((loader + lofs)^);
-          inc(lofs);
+          jvar := byte((loader + lofs)^); inc(lofs);
           lvar := 1; while lvar * lvar < jvar do inc(lvar);
           lvar := (lvar - 1) shr 1;
           if (scriptname = 'CSA09')
@@ -2985,6 +2999,7 @@ begin
          end;
          else begin PrintError('Unknown code $18 @ $' + strhex(lofs)); exit; end;
         end;
+
    // 19 - Clear textbox immediately
    $19: case game of
          gid_3SIS, gid_EDEN, gid_FROMH, gid_MAJOKKO, gid_PARFAIT,
@@ -3000,6 +3015,7 @@ begin
 
          else begin PrintError('Unknown code $19 @ $' + strhex(lofs)); exit; end;
         end;
+
    // 1E xx - unknown
    $1E: case game of
          gid_DEEP: begin
@@ -3008,6 +3024,7 @@ begin
          end;
          else begin PrintError('Unknown code $1E @ $' + strhex(lofs)); exit; end;
         end;
+
    // F3 xx - unknown
    $F3: case game of
          gid_DEEP: begin
@@ -3016,8 +3033,10 @@ begin
          end;
          else begin PrintError('Unknown code $F3 @ $' + strhex(lofs)); exit; end;
         end;
+
    // ASCII/Shift-JIS text output
    $0A, $20..$EF: DoTextOutput;
+
    // exceptions
    else begin
     PrintError('Unknown code $' + strhex(ivar) + ' @ $' + strhex(lofs - 1));
