@@ -88,6 +88,9 @@ Shift-Pause, Ctrl-Shift-P, Ctrl-Alt-P
 Ctrl-Q
 - If metastate is normal, enter quit confirm metastate.
 
+Ctrl-R [console port only]
+- Redraw the screen.
+
 Ctrl-S
 - If metastate is normal, enter saveload metastate, with save highlighted.
 
@@ -96,6 +99,12 @@ Ctrl-T
 - If box 0 is in showtext state and transcript mode is on, disable transcript
   mode and pop out the box.
 - Otherwise enable transcript mode and pop in the box.
+
+Ctrl-W [console port only]
+- Switches between RGB and LXY palette mixing modes.
+
+Ctrl-XYZZY
+- Typing this enables debug mode.
 
 Gamepad
 -------
