@@ -1,50 +1,31 @@
 SuperSakura
 ===========
 
-SuperSakura is a new engine for running classic eroge games that were
-localised for the English-speaking market:
+SuperSakura is a new engine for running classic VN/eroge games, such as:
     * The Three Sisters' Story (by JAST)
     * Runaway City (by Tiare)
     * Season of the Sakura (by Tiare)
+
 What's more, it can also handle a number of Japanese titles. If you can get
-the files from PC-9801 games, you may be able to convert and run them:
+the files from PC-98 games, you may be able to convert and run them:
     * Magyokko Paradice, Twilight Boundary (Tiare)
     * Shyuukan From H, Scent of Eden, some Angels' Eve titles... (JAST)
     * Venus, Re-No Stayin' Alive (Parsley)
 
-RPGs are generally outside of SuperSakura's scope. They deserve their own
-engine remake. Nevertheless, some titles of interest:
-    * Super Urutoro Muttin Puripuri Cyborg Maririn DX
-    * Vanishing Point
-    * Knights of Xentar, Dragon Knight 4
-    * Cobra Mission
-
-SuperSakura uses converted game resources from the original games, and lets
-you experience the classics with far-improved visuals and a smoother engine.
-Of particular interest is the reverse dithering filter that can render a fair
-approximation of the original full-color images.
+SuperSakura uses converted game resources from the original games, and plays
+with far-improved visuals and a smoother engine. Of additional interest is
+the reverse dithering filter that can render a fair approximation of the
+original full-color images.
 
 The JAST Memorial Collection, while a commendable effort, falls short in
 some ways. The music was good - the cheap anti-aliasing was not.
 
 Incidentally, JAST and Tiare re-used many backgrounds. The same recognisable
-locations can be found as early as Maririn DX. There is a remake of Transfer
-Student, which was poorly localised into English, which has the best-looking
-versions. The backgrounds are all in true color, instead of in dithered
-16 colors. The color hues are subtly different, but that's nothing a little
-photoshopping won't fix. It may be a good idea to rip those graphics using
-Grapholic, and integrating them into the earlier games.
+locations can be found as early as Maririn DX.
 
 -----------------------------------------------------------------------------
   Technical notes
 -----------------------------------------------------------------------------
-
-Sakura's bytecode is not as elegant as in Runaway and 3Sis. However, the
-latter two also seem to have less flexibility regarding sprite functions,
-with apparently identical scripting engines. As far as I can tell, the
-original engine could certainly support animations in closeup images, or even
-basic FMV, they just weren't included for cost or space reasons.
-
 .............................................................................
 How SuperSakura gets rolling:
 
@@ -76,30 +57,9 @@ Random prettification ideas:
   as the text goes on.
 - The HANKO stamp in Sakura bios could be nicely half-transparent.
    * Try making all edges of sprites have semi-transparency?
-- When Reiko teaches you to swim, make the bottom third of the screen get
-  covered in blue alpha, with geometric distortion - underwater effect!
 - Add new blinking animations in all closeup pictures with people.
 - Add a stun blur effect, horizontal blurring of n pixel width; n scales over
   time to the desired amount
-
-- Alter the menus to use a sleek raised or sunken look, transparent glass?
-- Change the menu-driven interface into a hotspot-clicking interface?
-   * Add action icons in the interface for the VERB
-   * Assign hotspot areas on the picture for all SUBJECTS
-   * Mouse hover on a hotspot is acted on only if that particular choice
-     combo is active at the time
-   * When hovering over an active hotspot, show the VERB+SUBJECT command in
-     a text bar, SCUMM-style
-   * For abstract things, such as the THINK-command, a pop-up or dropdown
-     list of things may be needed; or, change the scripting so that clicking
-     the THINK-icon automatically keeps track of which choices have been
-     visited already, and gives the next unseen one available...
-- Adjust some parts of the game to be less demanding
-   * Runaway final puzzle (try to give better hinting at least)
-   * 3Sis wandering around school (maybe think command can suggest at where
-     you haven't been yet)
-   * Sakura wandering around looking for Ruri (-''-)
-   * Implement a clickable map where appropriate
 .............................................................................
 -----------------------------------------------------------------------------
 
@@ -123,9 +83,7 @@ Words are stored in x86-native, least significant byte first, format.
 
 There are a few engine versions. In general, the older one is what 3sis uses,
 and Sakura uses a more advanced one. Some really old titles may be even more
-primitive, though. There are still some inaccuracies and ambiguities in my
-understanding of the bytecode, but with a few carefully applied hacks,
-implementing these specifications makes the games run nearly perfectly.
+primitive, though.
 
 Header:
 =======
@@ -276,6 +234,10 @@ the sprite's name plus A0, and almost every sprite has one. If a sprite has
 two people, there could be an A1 as well, likewise automatically loaded.
 There might not be an A0 at all, in which case there is no animation.
 
+Note, that although in most games only type $38 sprites may have animations,
+in at least Setsujuu and Tenkousei background/event images may have
+automatically loaded animations as well.
+
 
 Deep scripts usually starts with $0008, and have the following header:
 1st word array - the addresses point to variable-length click actions. Each
@@ -313,7 +275,7 @@ are probably in the MAS files.
 00:07 - xxx touch
 00:08 - xxx tongue
 00:09 - xxx lips
-00:10 - xxx screw?
+00:10 - xxx drill? screw?
 
 Example: S30101B.OVL is run when you select the blonde chick, then go in the
 first map square for the second time.
@@ -497,7 +459,8 @@ array.
 
 Special note: This command has an implicit delayed function. Upon the next
 graphic loading command, 06-xx or 11-02-xx, all sprites should be cleared
-automatically to make room for the new ones.
+automatically to make room for the new ones. Except in Tenkousei, 11-02-xx
+doesn't exist, so 06-xx also displayes sprites persistently.
 
   06 xx yy
   Parfait
@@ -1180,43 +1143,50 @@ I have no idea whatsoever.
 
 Transition styles:
 ==================
-The transitions used in 3sis (tested with the original engine):
+3sis transitions (tested with the original engine):
   0 - Instant (or fill from top down if on a slow computer)
   1 - Instant, but drawn at 0,0 top corner rather than the game window!
       No transparency. Could be used to change skins on the fly...
   2 - Seems to also be instant at 0,0, but draws the following graphic
       instead! If the graphic in question is the last in the list, crashes...
   3 - Instant? Or a crash.
-  4 - Box fill inward from edges. No transparency.
-  5 - Spiral fill inward from edges. No transparency.
-  6 - Box fill outward from center.
-  7 - Sweep from left
-  8 - Sweep from center to top and bottom - as if opening your eyes
-  9 - Noisy fade in
-  A - Interlaced sweep from top and bottom
-  B - Ragged uneven sweep from left
+  4 - Box fill inward from edges. No transparency. Map to 3.
+  5 - Spiral fill inward from edges. No transparency. Map to 3.
+  6 - Box fill outward from center. Map to 1.
+  7 - Sweep from left. Map to 1.
+  8 - Sweep from center to top and bottom - opening eyes. Map to 3.
+  9 - Noisy fade in. Map to 4.
+  A - Interlaced sweep from top and bottom. Map to 3.
+  B - Ragged uneven sweep from left. Map to 2.
 
 Tenshitachi Collection 1 uses much the same as 3sis, except:
-  2 - Current image drops out, new image drops in
-  3 - Current image rises out, new image rises in
-  7 - Sweep from center to left and right
+  2 - Current image drops out, new image drops in. Needs special handling.
+  3 - Current image rises out, new image rises in. Needs special handling.
+  7 - Sweep from center to left and right. Map to 1.
 
-The transitions used in Sakura:
-  32 - instant, no transition
+Season of the Sakura transitions:
+  32 - instant, no transition.
   33 - no immediate transition, just a weird flash; upon the next transition
-       command, does a horizontal line swipe from top to bottom?
-  36 - square fill from edges to center
-  37 - rectangular spiral swipe
-  38 - square fill from center to edges; except, for 14-03 black out,
-       actually same as 36 - a square fill from edges to center
-  39 - vertical line swipe from mid toward left and right; except, for
+       command, does a swipe from top to bottom?
+  36 - square fill from edges to center. Map to 3.
+  37 - rectangular spiral swipe. Map to 3.
+  38 - square fill from center to edges. Map to 1. Except, for 14-03 black
+       out, actually same as 36 - a square fill from edges to center.
+  39 - vertical line swipe from mid toward left and right, map to 1. Except
        14-03 black out, a vertical line swipe from left and right to middle.
   3A - horizontal line swipe from mid toward top and bottom; except, for
-       14-03 black out, from top and bottom to middle.
-  3B - a noisy fade; for 14-03 black out, instant.
-  3C - horizontal interlaced lines swipe in from top and bottom
-  3D - ragged swipe left to right
+       14-03 black out, from top and bottom to middle. Map both to 3.
+  3B - a noisy fade, map to 4. For 14-03 black out, instant.
+  3C - horizontal interlaced lines swipe in from top and bottom. Map to 3.
+  3D - ragged swipe left to right. Map to 2.
 
+SuperSakura transitions:
+(I'm only keeping the least tacky, cinematically useful transitions.)
+  0 - instant.
+  1 - wipe from left.
+  2 - ragged wipe from left, old screen melts rightward.
+  3 - interlaced wipe from top and bottom.
+  4 - crossfade.
 
 On variables:
 =============
@@ -1247,28 +1217,54 @@ to code address 065F.
 
 Stuff that may need to be fixed manually:
 =========================================
+[3sis]
 SK_103 has a result-goto into the middle of a string.
 SK_406 tries to draw a non-existent graphic at script offset $055F. This only
-  appears to happen in the English version.
+appears to happen in the English version.
+
+[Sakura]
 CS305 and CS306 have the scene of Seia sleepwalking. The music used is SK_01.
-  However, SK_01.M appears to not exist, and is replaced with SK_20 in all
-  English versions. The Memorial Pack version has the first song as an MP3,
-  and it is apparently meant to be Seia's theme. Now, SK_20 is the scary
-  tune, and while it works for sudden sleepwalking, Seia's theme is used at
-  another moment in the game as well (CS803_4), and replacing that with the
-  scary music is just wrong. So, best rip SK_01 from the PC-98 version.
+However, SK_01.M appears to not exist, and is replaced with SK_20 in all
+English versions. The Memorial Pack version has the first song as an MP3, and
+it is apparently meant to be Seia's theme. Now, SK_20 is the scary tune, and
+while it works for sudden sleepwalking, Seia's theme is used at another
+moment in the game as well (CS803_4), and replacing that with the scary music
+is just wrong. So, best rip SK_01 from the PC-98 version.
+
+[AngelsCollection2] S2_007 at @02FA has a strange character (Shift-JIS 8757).
+The original engine draws that as a weird double-slash; it seems like one of
+those things where a character namedrops a brand but replaces a syllable or
+two with a censorship symbol.
+
 [Eden] JO3404x repeat an oddity; ET03 is drawn, then she is removed, and at
-  the next 13-03 command without a filename, she is mysteriously restored.
-  This is not how the other games, and Eden at other points, handle graphic
-  stack pushing and popping...
-[Magic] MP8702, MP8503D and MP8102 have character $14 in the middle of
-  a graphic filename. Doesn't make sense except as a scripting error.
-  Also, MP0001 has graphic file names without a loading command. The context
-  suggests they should be drawn anyway...
-[Transfer.98] TEN_S108 tries to draw graphic index 2, whose definition is in
-  the header, but the graphics list forgets to point to its definition.
-  Moreover, the graphic is TT_06, a palette-squeezed version of TT_02, with
-  an incorrect animation. Best to make the script draw TT_02 instead.
+the next 13-03 command without a filename, she is mysteriously restored.
+This is not how the other games, and Eden at other points, handle graphic
+stack pushing and popping...
+
+[Majokko] MP8702, MP8503D and MP8102 have character $14 in the middle of
+a graphic filename. Doesn't make sense except as a scripting error.
+Also, MP0001 has graphic file names without a loading command. The context
+suggests they should be drawn anyway...
+
+[Tenkousei] TEN_S108 tries to draw graphic index 2, whose definition is in
+the header, but the graphics list forgets to point to its definition.
+Moreover, the graphic is TT_06, a palette-squeezed version of TT_02, with
+an incorrect animation. Best to make the script draw TT_02 instead.
+
+Also, the game should start with an introduction sequence before a fortune
+teller. The script for this is in TK.EXE from $15347. It's mostly text, with
+a few commands in between. The sequence music is TEN020.
+0: return from call or exit
+1: waitkey
+2: draw OP_2 and go over 10 dual-choice questions, from $14FC6 onward. After
+   all questions are answered, resume main.
+3: depending on the user's answers, call one of three addresses: $151C8,
+   $15241, or $152C4. These are the fortune-teller's creepy prediction.
+6: draw an image. There are four of these commands, and in order they should
+   draw: TB_000, OP_1, OP_1, TB_000
+
+The player's responses go in global variables 1..10, or in SuperSakura, vars
+$v257..$v266. The first, left response is value 0; the right is value 1.
 
 -----------------------------------------------------------------------------
 .GRA files
@@ -1345,7 +1341,7 @@ Offset Datatype              Description
 Total size: 178 bytes
 
 
-Setsuyuu and Tenkousei have animation data embedded in the executable, but in
+Setsujuu and Tenkousei have animation data embedded in the executable, but in
 a mildly different way. Instead of a 36-byte file name at offset 2, they have
 string of 32 words, mostly zero. The first word is an offset from a baseline
 address, pointing to a zero-terminated filename. The baseline address is
@@ -1354,7 +1350,7 @@ are all stored after the end of the animation records. You could keep reading
 records until the sequence length gets bigger than $FF or is 0, or the
 filename pointed to is empty; and then read all the filenames sequentially.
 
-In Setsuyuu the animation records start at $15816; there are 52 records.
+In Setsujuu the animation records start at $15816; there are 52 records.
 In Tenkousei TK.EXE the animation records start at $159CC; about 70 records.
 
 
@@ -1630,7 +1626,7 @@ ground-breaking synthesizer devices. They also adapted the General Midi
 standard faster. As a result, many PC-98 games come with original FM music,
 as well as a midi option.
 
-Look at c:\temp\prog\fm\ for PMD docs as well as Delphi sources for FM-PMD.
+[Note to self: C:\temp\prog\fm\ has PMD docs plus Delphi sources for FM-PMD.]
 
 As western computers were lagging behind, during localisation of some titles,
 like Season of the Sakura or the Three Sisters' Story, the best option for
@@ -2411,7 +2407,6 @@ for a number of different Japanese companies.
 
 The following games, published under each brand, may be of interest:
 (the ones in quotation marks are poor translations from Japanese)
-(www.sogame8.com has a bunch of stuff available)
 
 JAST:
 -----
