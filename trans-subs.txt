@@ -6,6 +6,7 @@
 
 身に付ける:/Wear:
 愛撫する:/Caress:
+相談する:/Consult:
 キスする:/Kiss:
 移動する:/Move:
 指名する:/Nominate:
@@ -32,6 +33,7 @@
 抱く:/Embrace:
 行く:/Go:
 帰る:/Go back:
+隠す:/Hide:
 出る:/Leave:
 見る:/Look:
 探す:/Look for:
