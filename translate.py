@@ -17,16 +17,16 @@ if len(sys.argv) < 2:
 
 def GetTranslation(com):
 # Handy retry loop with a timeout for easily invoking translate-shell.
-  tries = 4
+  tries = 8
   while tries != 0:
     tries -= 1
     try:
       transres = subprocess.check_output(com, timeout = 16)
       transres = transres.decode(sys.stdout.encoding).split("\n")
-    except subprocess.CalledProcessError:
+    except:
       transres = [""]
     if len(transres) != 0: tries = 0
-    else: time.sleep(4)
+    else: time.sleep(16)
   return transres
 
 
