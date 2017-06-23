@@ -717,6 +717,16 @@ begin truename := 'ssakura'; end;
 
 // ------------------------------------------------------------------
 
+procedure Log(const ert : UTF8string); inline;
+begin
+ writeln(logfile, ert);
+ if length(ert) > length(debugbuffer[debugbufindex])
+  then setlength(debugbuffer[debugbufindex], 0);
+ setlength(debugbuffer[debugbufindex], length(ert));
+ move(ert[1], debugbuffer[debugbufindex][1], length(ert));
+ debugbufindex := (debugbufindex + 1) and high(debugbuffer);
+end;
+
 // Some con/sdl -specific helper functions.
 {$ifdef sakucon}
   {$include sakuhead-con.pas}
@@ -1832,6 +1842,10 @@ begin
 
  // Reset all textboxes.
  ResetAllBoxes;
+
+ // Clear the transcript log.
+ for ivar := high(transcriptbuffer) downto 0 do
+  transcriptbuffer[ivar] := '';
 
  // Reset various stuff
  RGBtweakactive := $FF;

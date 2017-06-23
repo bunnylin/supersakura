@@ -25,12 +25,14 @@ var mv_MainWinH : PSDL_Window;
 
 procedure ScreenModeSwitch(usefull : boolean); forward;
 
-
-procedure Log(const ert : UTF8string); inline;
-begin writeln(logfile, ert); end;
-procedure LogError(const ert : UTF8string); inline;
+procedure LogError(const ert : UTF8string);
 begin
  writeln(logfile, '[!] ', ert);
+ if length(ert) > length(debugbuffer[debugbufindex])
+  then setlength(debugbuffer[debugbufindex], 0);
+ setlength(debugbuffer[debugbufindex], length(ert));
+ move(ert[1], debugbuffer[debugbufindex][1], length(ert));
+ debugbufindex := (debugbufindex + 1) and high(debugbuffer);
  SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, 'Error', @ert[1], mv_MainWinH);
 end;
 

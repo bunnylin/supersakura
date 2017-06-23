@@ -36,6 +36,7 @@ begin
  // Otherwise turn off transcript mode and slide in the box.
  sysvar.transcriptmode := FALSE;
  Box0SlideDown;
+ PrintDebugBuffer;
 end;
 
 procedure UserInput_CtrlT;
@@ -53,6 +54,7 @@ begin
  // Otherwise turn on transcript mode and slide in the box.
  sysvar.transcriptmode := TRUE;
  Box0SlideDown;
+ PrintTranscriptBuffer;
 end;
 
 procedure UserInput_CtrlB; inline;

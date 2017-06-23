@@ -142,11 +142,70 @@ begin
   end;
 end;
 
+procedure PrintBoxFast(boxnum : dword; srcp : pointer; srclen : dword);
+// Adds the given string to the box's text content. Ignores escape codes.
+// Srcp should point to the first byte of a UTF8string. Srclen should be the
+// string's byte length.
+begin
+ with TBox[boxnum] do begin
+  // Expand the txtcontent to fit estimated input string size.
+  if txtlength + srclen + 8 >= dword(length(txtcontent))
+  then setlength(txtcontent, txtlength + srclen + 64);
+
+  move(srcp^, txtcontent[txtlength], srclen);
+  inc(txtlength, srclen);
+
+  // Add a hard newline at the end of every line.
+  if txtescapecount >= dword(length(txtescapelist)) then setlength(txtescapelist, length(txtescapelist) + 8);
+  txtescapelist[txtescapecount].escapeofs := txtlength;
+  txtescapelist[txtescapecount].escapecode := byte('n');
+  inc(txtescapecount);
+ end;
+end;
+
+procedure PrintDebugBuffer;
+// Prints the debug buffer in the dropdown console TBox[0].
+var ivar : dword;
+begin
+ ClearTextbox(0);
+ ivar := debugbufindex;
+ repeat
+  if debugbuffer[ivar] <> '' then
+   PrintBoxFast(0, @debugbuffer[ivar][1], length(debugbuffer[ivar]));
+  ivar := (ivar + 1) and high(debugbuffer);
+ until ivar = debugbufindex;
+
+ with TBox[0] do begin
+  contentbuftextvalid := FALSE;
+  if boxstate = BOXSTATE_EMPTY then boxstate := BOXSTATE_SHOWTEXT;
+  //ScrollBoxTo(0, 0, MOVETYPE_INSTANT);
+ end;
+end;
+
+procedure PrintTranscriptBuffer;
+// Prints the game transcript in the dropdown console TBox[0].
+var ivar : dword;
+begin
+ ClearTextbox(0);
+ ivar := transcriptbufindex;
+ repeat
+  if transcriptbuffer[ivar] <> '' then
+   PrintBoxFast(0, @transcriptbuffer[ivar][1], length(transcriptbuffer[ivar]));
+  ivar := (ivar + 1) and high(transcriptbuffer);
+ until ivar = transcriptbufindex;
+
+ with TBox[0] do begin
+  if txtescapecount <> 0 then dec(txtescapecount); // remove last newline
+  contentbuftextvalid := FALSE;
+  if boxstate = BOXSTATE_EMPTY then boxstate := BOXSTATE_SHOWTEXT;
+ end;
+end;
+
 procedure PrintBox(boxnum : dword; const newtxt : UTF8string);
 // Adds the given string to the box's text content. Separates escape codes
 // from displayable text first, and immediately dereferences variables.
 var ivar, jvar : dword;
-    inofs : dword;
+    initialofs, inofs : dword;
     refstr : string[63];
 
   procedure addescape(code : char; more : boolean);
@@ -205,6 +264,7 @@ begin
   then setlength(txtcontent, txtlength + dword(length(newtxt)) + 64);
 
   // Parse newtxt.
+  initialofs := txtlength;
   inofs := 0;
   while inofs < dword(length(newtxt)) do begin
    inc(inofs);
@@ -247,6 +307,7 @@ begin
    case byte(newtxt[inofs]) of
      byte('0'): inc(inofs); // \0 empty char
      byte(':'): begin // \: dialogue title end
+      initialofs := 0;
       ClearTextbox(boxnum);
       ClearTextbox(gamevar.dialoguetitlebox);
       PrintBox(gamevar.dialoguetitlebox, copy(newtxt, 1, inofs - 2));
@@ -278,6 +339,30 @@ begin
   case boxstate of
     BOXSTATE_NULL, BOXSTATE_VANISHING: boxstate := BOXSTATE_APPEARING;
     BOXSTATE_EMPTY: boxstate := BOXSTATE_SHOWTEXT;
+  end;
+
+  // The string that was just printed, with escapes removed, needs to be
+  // also copied to either the debug or transcript buffer.
+  ivar := txtlength - initialofs;
+
+  // Anything printed in boxes other than the dropdown console TBox[0] counts
+  // as interesting game text and must be dumped in the transcript buffer.
+  if boxnum <> 0 then begin
+   if ivar > dword(length(transcriptbuffer[transcriptbufindex]))
+    then setlength(transcriptbuffer[transcriptbufindex], 0);
+   setlength(transcriptbuffer[transcriptbufindex], ivar);
+   move(txtcontent[initialofs], transcriptbuffer[transcriptbufindex][1], ivar);
+   transcriptbufindex := (transcriptbufindex + 1) and high(transcriptbuffer);
+  end
+
+  // Anything printed in the dropdown console must be debug output and must
+  // be dumped in the debug buffer.
+  else begin
+   if ivar > dword(length(debugbuffer[debugbufindex]))
+    then setlength(debugbuffer[debugbufindex], 0);
+   setlength(debugbuffer[debugbufindex], ivar);
+   move(txtcontent[initialofs], debugbuffer[debugbufindex][1], ivar);
+   debugbufindex := (debugbufindex + 1) and high(debugbuffer);
   end;
  end;
 end;

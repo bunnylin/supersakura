@@ -17,10 +17,15 @@
 { along with SuperSakura.  If not, see <https://www.gnu.org/licenses/>.     }
 {                                                                           }
 
-procedure Log(const ert : UTF8string); inline;
-begin writeln(logfile, ert); end;
-procedure LogError(const ert : UTF8string); inline;
-begin writeln(logfile, '[!] ', ert); end;
+procedure LogError(const ert : UTF8string);
+begin
+ writeln(logfile, '[!] ', ert);
+ if length(ert) > length(debugbuffer[debugbufindex])
+  then setlength(debugbuffer[debugbufindex], 0);
+ setlength(debugbuffer[debugbufindex], length(ert));
+ move(ert[1], debugbuffer[debugbufindex][1], length(ert));
+ debugbufindex := (debugbufindex + 1) and high(debugbuffer);
+end;
 
 type LXYtriplet = record luma : byte; x, y : longint; end;
 
