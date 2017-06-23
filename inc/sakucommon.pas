@@ -1692,6 +1692,7 @@ var ivar : dword;
        style.freescrollable := TRUE;
        style.poptype := 2;
        style.poptime := 512;
+       style.autovanish := FALSE;
       end;
 
       1: begin // game text box
