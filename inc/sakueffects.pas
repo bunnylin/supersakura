@@ -124,7 +124,7 @@ end;
 
 // ------------------------------------------------------------------
 
-function addBashEffect(direction, freq, amp, duration : longint; const targetgob : string) : dword;
+function AddBashEffect(direction, freq, amp, duration : longint; const targetgob : string) : dword;
 // This causes the target gob and its children to start oscillating.
 //
 // Direction: an angle expressed in 32k, with 0 pointing up, +8k pointing
@@ -204,7 +204,7 @@ begin
  addBashEffect := fxvar;
 end;
 
-function addFlashEffect(amount, vp : byte) : byte;
+function AddFlashEffect(amount, vp : byte) : byte;
 var fxvar : byte;
 begin
  {$note Re-implement flash effect}
@@ -229,7 +229,7 @@ begin
  addFlashEffect := fxvar;
 end;
 
-procedure addGobMoveEffect(gobnum : dword; fibernum, tox, toy, msecs: longint; style : byte);
+procedure AddGobMoveEffect(gobnum : dword; fibernum, tox, toy, msecs: longint; style : byte);
 var fxvar : dword;
 begin
  if IsGobValid(gobnum) = FALSE then exit;
@@ -263,7 +263,7 @@ begin
  end;
 end;
 
-procedure addBoxMoveEffect(boxnum : dword; fibernum, tox, toy, ankhx, ankhy, msecs : longint; style : byte);
+procedure AddBoxMoveEffect(boxnum : dword; fibernum, tox, toy, ankhx, ankhy, msecs : longint; style : byte);
 // Moves a box from its current pixel position to a new pixel position, over
 // a period of msecs. Tox and toy are pixel values.
 var fxvar : dword;
@@ -308,7 +308,7 @@ begin
  end;
 end;
 
-procedure addBoxSizeEffect(boxnum : dword; fibernum, tox, toy, msecs : longint; style : byte);
+procedure AddBoxSizeEffect(boxnum : dword; fibernum, tox, toy, msecs : longint; style : byte);
 // Resized a box from its current 32k size to a new 32k size, over a period
 // of msecs.
 var fxvar : dword;
@@ -344,7 +344,7 @@ begin
  end;
 end;
 
-procedure addBoxScrollEffect(boxnum : dword; fibernum, toy, msecs : longint; style : byte);
+procedure AddBoxScrollEffect(boxnum : dword; fibernum, toy, msecs : longint; style : byte);
 // Scrolls a box from its current pixel ofs to a new pixel ofs, over a period
 // of msecs.
 var fxvar : dword;
