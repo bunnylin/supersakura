@@ -141,7 +141,7 @@ begin
    if fiber[ivar].fiberstate in [FIBERSTATE_WAITKEY, FIBERSTATE_WAITCLEAR]
    then begin
     if fiber[ivar].fiberstate = FIBERSTATE_WAITCLEAR then
-     for jvar := high(TBox) downto 0 do ClearTextbox(jvar);
+     for jvar := high(TBox) downto 1 do ClearTextbox(jvar);
     fiber[ivar].fiberstate := FIBERSTATE_NORMAL;
     ClearWaitKey := TRUE;
    end;
