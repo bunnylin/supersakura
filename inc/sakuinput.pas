@@ -284,7 +284,7 @@ end;
 
 procedure UserInput_Wheel(y : longint);
 // Input positive numbers to scroll up/away, negative to scroll down/toward.
-var ivar : dword;
+var ivar, jvar : dword;
     newpos : longint;
 begin
  // If choicematic is active, move the highlight forward/backward directly.
@@ -300,7 +300,19 @@ begin
  // Scroll freescrollable boxes.
  for ivar := high(TBox) downto 0 do with TBox[ivar] do
   if (style.freescrollable) then begin
-   newpos := longint(contentwinscrollofsp) - y * longint(fontheightp);
+   newpos := contentwinscrollofsp;
+   // Check for an existing scroll effect.
+   jvar := fxcount;
+   while jvar <> 0 do begin
+    dec(jvar);
+    if (fx[jvar].kind = FX_BOXSCROLL) and (fx[jvar].fxbox = ivar) then begin
+     // Found one. Import it's target scroll offset.
+     newpos := fx[jvar].y2;
+     break;
+    end;
+   end;
+
+   dec(newpos, y * longint(fontheightp));
    if newpos + longint(contentwinsizeyp) > longint(contentfullheightp) then newpos := contentfullheightp - contentwinsizeyp;
    if newpos < 0 then newpos := 0;
    ScrollBoxTo(ivar, newpos, MOVETYPE_HALFCOS);
