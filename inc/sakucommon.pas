@@ -1637,6 +1637,8 @@ var ivar : dword;
   procedure setbasics(b : dword);
   begin
    fillbyte(TBox[b], sizeof(boxtype), 0);
+
+   // Default styles.
    with TBox[b] do begin
     origfontheight := 1200; // ~15px/400px
     contentwinmaxcols := $FFFFFFFF;
@@ -1656,6 +1658,36 @@ var ivar : dword;
     style.poptime := 384;
     style.autovanish := TRUE;
     style.dobevel := 1;
+
+    case b of
+      0: begin // console/system box
+       origfontheight := 768;
+       dword(style.textcolor) := $FF000000;
+       dword(style.basecolor[0]) := $CCCCCCCC;
+       dword(style.basecolor[1]) := $CCCCCCCC;
+       dword(style.basecolor[2]) := $FFAAAAAA;
+       dword(style.basecolor[3]) := $FF999999;
+       contentwinminsizex := 32000;
+       contentwinmaxsizex := 32000;
+       contentwinminsizey := 14000;
+       contentwinmaxsizey := 14000;
+       boxlocx := 16384; boxlocy := 0;
+       anchorx := 16384; anchory := 32768;
+       style.freescrollable := TRUE;
+       style.poptype := 2;
+       style.poptime := 512;
+      end;
+
+      1: begin // game text box
+       boxlocx := 16384; boxlocy := 32000;
+       anchorx := 16384; anchory := 32768;
+       contentwinminrows := 4;
+       contentwinmaxrows := 4;
+       contentwinminsizex := 26214;
+       contentwinmaxsizex := 26214;
+       style.autowaitkey := TRUE;
+      end;
+    end;
    end;
   end;
 
@@ -1721,37 +1753,6 @@ begin
  DestroyTextbox(0);
  // Set the new amount of textboxes.
  InitTextbox(2);
-
- // Set styles to defaults
- with TBox[0] do begin // console/system box
-  dword(style.textcolor) := $FF;
-  dword(style.basecolor[0]) := $CCCCCCCC;
-  dword(style.basecolor[1]) := $CCCCCCCC;
-  dword(style.basecolor[2]) := $FFAAAAAA;
-  dword(style.basecolor[3]) := $FF999999;
-  style.basefill := 2;
-  contentwinminsizex := 32000;
-  contentwinmaxsizex := 32000;
-  contentwinminsizey := 14000;
-  contentwinmaxsizey := 14000;
-  boxlocx := 16384; boxlocy := 0;
-  anchorx := 16384; anchory := 32768;
-  style.freescrollable := TRUE;
-  style.poptype := 2;
-  style.poptime := 512;
-  style.dobevel := 1;
- end;
- with TBox[1] do begin // game text box
-  boxlocx := 16384;
-  boxlocy := 32000;
-  anchorx := 16384;
-  anchory := 32768;
-  contentwinminrows := 4;
-  contentwinmaxrows := 4;
-  contentwinminsizex := 26214;
-  contentwinmaxsizex := 26214;
-  style.autowaitkey := TRUE;
- end;
 end;
 
 // ------------------------------------------------------------------
