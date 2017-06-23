@@ -1061,9 +1061,9 @@ end;
 procedure Invoke_SYS_SETTITLE; inline;
 begin
  numvalue := GetBestString($FFFF);
- if FetchParam(WOPP_TEXT) then mv_ProgramName := strvalue[numvalue]
- else mv_ProgramName := '';
- SetProgramName(mv_ProgramName);
+ if FetchParam(WOPP_TEXT) then gamevar.windowtitle := strvalue[numvalue]
+ else gamevar.windowtitle := '';
+ SetProgramName(gamevar.windowtitle);
 end;
 
 procedure Invoke_TBOX_CLEAR; inline;

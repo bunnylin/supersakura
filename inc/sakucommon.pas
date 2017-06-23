@@ -604,6 +604,7 @@ var // Commandline parameters.
 
     // Game session variables, imported/exported in save states.
     gamevar : record
+      windowtitle : UTF8string; // the game window's title text
       defaulttextbox : dword; // print commands default to this TBox[]
       dialoguetitlebox : dword; // print dialogue titles in this TBox[]
       defaultviewport : dword; // new gobs are relative to this by default
@@ -674,14 +675,8 @@ var // Commandline parameters.
       active : boolean;
     end;
 
-var logfile : text;
-    mv_ProgramName : UTF8string;
-    // Table of cos(cos) values, interpolated from mcg_costable, for effects
-    coscos : array of word;
-
-    seengfxsize : dword; // bytesize reserved for below pointer
-    seengfxp : pointer; // stream of string[15] graphic names
-    seengfxitems : dword; // number of strings[15] stored in above
+var // Logging variables.
+    logfile : text;
 
 var // BGRA buffer for the full game window: mv_WinSizeX * mv_WinSizeY * 4
     mv_OutputBuffy : pointer;
@@ -703,6 +698,12 @@ var refresh : array of tfresh;
     alphamixtab : array[0..255, 0..255] of byte;
     RGBtweaktable : array[0..767] of byte; // fullscreen 3-chn adjustment
     RGBtweakactive : byte;
+    // Table of cos(cos) values, interpolated from mcg_costable, for effects
+    coscos : array of word;
+
+    seengfxsize : dword; // bytesize reserved for below pointer
+    seengfxp : pointer; // stream of string[15] graphic names
+    seengfxitems : dword; // number of strings[15] stored in above
 
 // Override "supersakura-whatever" with "ssakura" for conciseness.
 // This is used by GetAppConfigDir to decide on a good config directory.
@@ -1750,8 +1751,8 @@ procedure ResetDefaults;
 // ensure returning to main menu will not have carryover oddities.
 var ivar : dword;
 begin
- mv_ProgramName := sysvar.activeprojectname;
- SetProgramName(mv_ProgramName);
+ gamevar.windowtitle := sysvar.activeprojectname;
+ SetProgramName(gamevar.windowtitle);
  // Init/restart the variable monster. Languagelist was set equal to the
  // number of languages when the DAT was loaded. We'll start with 16 variable
  // buckets, plenty for most purposes.
@@ -2176,11 +2177,11 @@ procedure SetPauseState(newstate : tpausestate);
 begin
  if (newstate = PAUSESTATE_PAUSED) and (pausestate <> PAUSESTATE_PAUSED)
  then begin
-  SetProgramName(mv_ProgramName + ' [paused]');
+  SetProgramName(gamevar.windowtitle + ' [paused]');
  end else
  if (newstate <> PAUSESTATE_PAUSED) and (pausestate = PAUSESTATE_PAUSED)
  then begin
-  SetProgramName(mv_ProgramName);
+  SetProgramName(gamevar.windowtitle);
  end;
 
  pausestate := newstate;

@@ -183,8 +183,8 @@ begin
 
  // Rename the window!
  if (pausestate = PAUSESTATE_PAUSED)
- then SetProgramName(mv_ProgramName + ' [paused]')
- else SetProgramName(mv_ProgramName);
+ then SetProgramName(gamevar.windowtitle + ' [paused]')
+ else SetProgramName(gamevar.windowtitle);
 
  // Confirm what we got. When switching away from fullscreen, the display
  // mode may show an incorrect size, so the new window size must be taken
