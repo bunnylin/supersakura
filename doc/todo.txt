@@ -58,7 +58,6 @@ FUTURE
 REQUIRED FOR 1.0
 - Test whether mods show up as expected on the frontend; should only be shown
   if all parent dats are present; also check if infinite parent loops work
-- Implement banners for frontend
 - A mod should probably have an empty banner, so the engine can fall back to
   the main project's banner image
 - Create a Settings dialog, video and audio config
@@ -80,7 +79,6 @@ REQUIRED FOR 1.0
 - Check how well multiple displays and hi-DPI are working
 - Check how well touch controls work if at all
 - Textboxes:
-   + Add test for if normal text and choices can now coexist in boxes
    + Add a box padding parameter; boxsize = content + margins + padding;
      background gradient, texture, and bevel apply to non-padded area, but
      frame decor is relative to the padded area
@@ -91,7 +89,7 @@ REQUIRED FOR 1.0
      option to fade alpha to transparent toward the outline edge; the
      thickness and offset must be 32k values relative to fontheight
 - Rework Moonsynth into Bunnysynth, plain midi; as for sound effects,
-  consider internal support for wav/flac/opus
+  consider internal support for wav/flac/ogg
 - Change mcsassm unit logging to somehow feed into the main program's log
   procedure; needs quick timestamps (perhaps just use tickmark) and the log
   proc might be thread-safe with just a critical section? The log attach
@@ -114,18 +112,12 @@ REQUIRED FOR 1.0
 - Change animation sequence handling to run code snippets in minifibers
   instead of the current special syntax monstrosity; anim snippets should
   be a list of their own, and gobs and box decors point to list items
-- Designate a banner graphic in each dat, define in newdata.txt as "banner";
-  this should generally be the title screen, and it can be displayed as
-  a background on the main dat selector menu
-- Implement drop-down console in box 0
-   + The drop-down console should probably work in two modes: either show all
-     debug stdout text, or show a game text transcript as you play, which can
-     be brought up if you missed a textbox accidentally
-   + When in debug mode, can type sakurascript lines in the box, which get
-     compiled and executed in a new fiber
-   + Commandline option to dump the game transcript into a file as you play
+- When in dropdown debug mode, can type sakurascript lines in the box, which
+  get compiled and executed in a new fiber
+- Commandline option to dump the game transcript into a file as you play
 - Language changing at runtime probably shouldn't change choicebox language
-  if any choices are visible, choicematic's not set up for that...
+  if any choices are visible, choicematic's not set up for that... although
+  if choice control commands just use strvalue[0], maybe no problem?
 - Viewframe option in metamenu for games that have one
 - Implement a metamenu as per uidesign doc
    + New wops needed:
@@ -133,11 +125,11 @@ REQUIRED FOR 1.0
      choice.typeinbox [box]
      fiber.waittyping
      gfx.stashthumbnail [name]
-     sys.closemetamenu
+     sys.exitmeta
      sys.getnumsaves
      sys.getsavedate [index]
      sys.getsavename [index]
-     sys.loaddatbanner [index] [name]
+     sys.haslanguage [name]
      sys.loadsavethumb [index] [name]
      sys.loadstate [index]
      sys.savestate [index] [name]
