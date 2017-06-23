@@ -675,9 +675,12 @@ begin
  LoadDatCommon(saku_param.appname, '');
 
  // Load the other dats given on the commandline.
- if length(saku_param.datnames) <> 0 then
+ if length(saku_param.datnames) <> 0 then begin
   for ivar := 0 to length(saku_param.datnames) - 1 do
    LoadDatCommon(saku_param.datnames[ivar], '');
+  // Clean up. The dat names are now in DATlist[].
+  setlength(saku_param.datnames, 0);
+ end;
 
  if GetScr(mainscriptname) = 0 then begin
   LogError('Main script not found.');
