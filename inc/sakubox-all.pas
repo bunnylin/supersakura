@@ -72,8 +72,11 @@ begin
   contentbuftextvalid := FALSE;
   txtlength := 0; txtescapecount := 0; txtlinebreakcount := 0;
   if length(txtcontent) > 4096 then setlength(txtcontent, length(txtcontent) shr 1);
-  if boxstate in [BOXSTATE_NULL, BOXSTATE_EMPTY, BOXSTATE_VANISHING] = FALSE
-  then boxstate := BOXSTATE_EMPTY;
+  case boxstate of
+   BOXSTATE_NULL, BOXSTATE_EMPTY, BOXSTATE_VANISHING:;
+   BOXSTATE_APPEARING: if style.autovanish then boxstate := BOXSTATE_EMPTY;
+   else boxstate := BOXSTATE_EMPTY;
+  end;
  end;
 end;
 
@@ -352,7 +355,8 @@ begin
    if ivar > dword(length(transcriptbuffer[transcriptbufindex]))
     then setlength(transcriptbuffer[transcriptbufindex], 0);
    setlength(transcriptbuffer[transcriptbufindex], ivar);
-   move(txtcontent[initialofs], transcriptbuffer[transcriptbufindex][1], ivar);
+   if ivar <> 0 then
+    move(txtcontent[initialofs], transcriptbuffer[transcriptbufindex][1], ivar);
    transcriptbufindex := (transcriptbufindex + 1) and high(transcriptbuffer);
    // If the transcript is currently visible, redraw it.
    if (TBox[0].boxstate <> BOXSTATE_NULL)
@@ -365,7 +369,8 @@ begin
    if ivar > dword(length(debugbuffer[debugbufindex]))
     then setlength(debugbuffer[debugbufindex], 0);
    setlength(debugbuffer[debugbufindex], ivar);
-   move(txtcontent[initialofs], debugbuffer[debugbufindex][1], ivar);
+   if ivar <> 0 then
+    move(txtcontent[initialofs], debugbuffer[debugbufindex][1], ivar);
    debugbufindex := (debugbufindex + 1) and high(debugbuffer);
    // If the debug log is currently visible, redraw it.
    if (TBox[0].boxstate <> BOXSTATE_NULL)
