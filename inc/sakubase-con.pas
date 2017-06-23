@@ -306,6 +306,9 @@ begin
   exit;
  end;
 
+ transcriptbufindex := 0;
+ debugbufindex := 0;
+
  log('---===--- SuperSakura ' + SSver + ' ---===---');
 
  // Basic variable init. Sysvars carry over even when returning to a game's

@@ -613,6 +613,9 @@ begin
   exit;
  end;
 
+ transcriptbufindex := 0;
+ debugbufindex := 0;
+
  mv_MainWinH := NIL; mv_RendererH := NIL; mv_MainTexH := NIL;
  mv_GamepadH := NIL;
 

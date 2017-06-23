@@ -679,6 +679,9 @@ var // Commandline parameters.
 
 var // Logging variables.
     logfile : text;
+    transcriptbuffer : array[0..63] of UTF8string;
+    debugbuffer : array[0..63] of UTF8string;
+    transcriptbufindex, debugbufindex : dword;
 
 var // BGRA buffer for the full game window: mv_WinSizeX * mv_WinSizeY * 4
     mv_OutputBuffy : pointer;
