@@ -76,7 +76,10 @@ begin
  if com = '' then exit;
  if com[1] = chr(0) then begin
   // Ctrl-B
-  if com = chr(0) + chr(4) + chr(2) then UserInput_HideBoxes;
+  if com = chr(0) + chr(4) + chr(2) then UserInput_CtrlB;
+
+  // Ctrl-D
+  if com = chr(0) + chr(4) + chr(4) then UserInput_CtrlD;
 
   // Ctrl-P
   if com = chr(0) + chr(4) + chr($10) then
@@ -93,13 +96,24 @@ begin
   if com = chr(0) + chr(4) + chr($12) then ScreenModeSwitch;
 
   // Ctrl-T
-  if com = chr(0) + chr(4) + chr($14) then begin
+  if com = chr(0) + chr(4) + chr($14) then UserInput_CtrlT;
+
+  // Ctrl-W
+  if com = chr(0) + chr(4) + chr($17) then begin
    saku_param.lxymix := NOT saku_param.lxymix;
    initxpal;
    AddRefresh(0, 0, sysvar.mv_WinSizeX, sysvar.mv_WinSizeY);
    for ivar := high(TBox) downto 0 do
     if TBox[ivar].style.hidable and 1 = 0 then TBox[ivar].needsredraw := TRUE;
   end;
+
+  // Debug mode activation.
+  if com = chr(0) + chr(4) + chr($18) then
+   if sysvar.debugallowed = 0 then inc(sysvar.debugallowed);
+  if com = chr(0) + chr(4) + chr($19) then
+   if sysvar.debugallowed in [1,4] then inc(sysvar.debugallowed);
+  if com = chr(0) + chr(4) + chr($1A) then
+   if sysvar.debugallowed in [2,3] then inc(sysvar.debugallowed);
  end
 
  else if com[1] = chr($EE) then begin
@@ -116,7 +130,7 @@ begin
   // Esc
   if com = chr(27) then UserInput_Esc else
 
-  if com = '*' then UserInput_HideBoxes else
+  if com = '*' then UserInput_CtrlB else
   if com = '@' then Debug_PrintGobs;
  end;
 end;
@@ -307,6 +321,8 @@ begin
   skipseentext := FALSE;
   fullscreen := FALSE; // meaningless on consoles
   WinSizeAuto := TRUE;
+  debugallowed := 0;
+  transcriptmode := TRUE;
   restart := FALSE;
   quit := FALSE; // set to TRUE to quit
  end;

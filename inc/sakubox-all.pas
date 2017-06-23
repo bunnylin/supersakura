@@ -17,11 +17,30 @@
 { along with SuperSakura.  If not, see <https://www.gnu.org/licenses/>.     }
 {                                                                           }
 
-procedure addBoxScrollEffect(boxnum : dword; fibernum, toy, msecs : longint; style : byte); forward;
+procedure AddBoxScrollEffect(boxnum : dword; fibernum, toy, msecs : longint; style : byte); forward;
+procedure AddBoxMoveEffect(boxnum : dword; fibernum, tox, toy, ankhx, ankhy, msecs : longint; style : byte); forward;
 
 procedure ScrollBoxTo(boxnum : dword; scrollto : dword; style : byte); inline;
 begin
  addBoxScrollEffect(boxnum, -1, scrollto, 160, style);
+end;
+
+// Box 0 is the transcript/debug console box. It slides down to visibility
+// and up to vanish.
+procedure Box0SlideDown; inline;
+begin
+ with TBox[0] do begin
+  boxstate := BOXSTATE_APPEARING;
+  AddBoxMoveEffect(0, -1, 16384, 0, 16384, 0, 768, MOVETYPE_HALFCOS);
+ end;
+end;
+
+procedure Box0SlideUp; inline;
+begin
+ with TBox[0] do begin
+  boxstate := BOXSTATE_VANISHING;
+  AddBoxMoveEffect(0, -1, 16384, 0, 16384, 32768, 768, MOVETYPE_HALFCOS);
+ end;
 end;
 
 procedure HideBoxes(dohide : boolean);

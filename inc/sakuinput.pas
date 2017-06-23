@@ -19,7 +19,43 @@
 
 // SuperSakura user input
 
-procedure UserInput_HideBoxes; inline;
+procedure UserInput_CtrlD;
+// Toggles the dropdown console in debug mode.
+begin
+ // User must type Ctrl-XYZZY to allow debug mode.
+ if sysvar.debugallowed < 5 then exit;
+ // If boxes hidden, show them.
+ if sysvar.hideboxes <> 0 then HideBoxes(FALSE);
+ // If box 0 already displayed and not in transcript mode, remove the box.
+ if (TBox[0].boxstate = BOXSTATE_SHOWTEXT)
+ and (sysvar.transcriptmode = FALSE)
+ then begin
+  Box0SlideUp;
+  exit;
+ end;
+ // Otherwise turn off transcript mode and slide in the box.
+ sysvar.transcriptmode := FALSE;
+ Box0SlideDown;
+end;
+
+procedure UserInput_CtrlT;
+// Toggles the dropdown console in transcript mode.
+begin
+ // If not in normal metastate or boxes are hidden, ignore it.
+ if (metastate <> METASTATE_NORMAL)
+ or (sysvar.hideboxes <> 0) then exit;
+ // If box 0 already displayed and in transcript mode, remove the box.
+ if (TBox[0].boxstate = BOXSTATE_SHOWTEXT) and (sysvar.transcriptmode)
+ then begin
+  Box0SlideUp;
+  exit;
+ end;
+ // Otherwise turn on transcript mode and slide in the box.
+ sysvar.transcriptmode := TRUE;
+ Box0SlideDown;
+end;
+
+procedure UserInput_CtrlB; inline;
 begin
  HideBoxes(sysvar.hideboxes = 0);
 end;
@@ -141,7 +177,7 @@ begin
 
   // If textboxes are hidden, make them visible.
   if sysvar.hideboxes and 1 <> 0 then begin
-   UserInput_HideBoxes;
+   HideBoxes(FALSE);
    exit;
   end;
 
@@ -338,6 +374,11 @@ begin
  if sysvar.hideboxes <> 0 then exit;
 
  // If box 0 as transcript log is in showtext state, pop out the box.
+ if (TBox[0].boxstate = BOXSTATE_SHOWTEXT) and (sysvar.transcriptmode)
+ then begin
+  Box0SlideUp;
+  exit;
+ end;
 
  // If the game is paused, any further actions are forbidden.
  if pausestate <> PAUSESTATE_NORMAL then exit;

@@ -598,6 +598,8 @@ var // Commandline parameters.
       WinSizeAuto : boolean; // use default winsize values?
       usevsync : boolean;
       skipseentext : boolean;
+      debugallowed : byte; // if 5+, debug mode is allowed
+      transcriptmode : boolean; // tbox[0]: false = debug mode, true = log
       restart : boolean; // set to TRUE to restart main script
       quit : boolean; // set to TRUE when quitting or restarting
     end;
@@ -1719,16 +1721,22 @@ begin
 
  // Set styles to defaults
  with TBox[0] do begin // console/system box
-  dword(style.basecolor[0]) := $B0B0B0FF;
-  dword(style.basecolor[1]) := $B0B0B0FF;
-  dword(style.basecolor[2]) := $909090FF;
-  dword(style.basecolor[3]) := $808080FF;
+  dword(style.textcolor) := $FF;
+  dword(style.basecolor[0]) := $CCCCCCCC;
+  dword(style.basecolor[1]) := $CCCCCCCC;
+  dword(style.basecolor[2]) := $FFAAAAAA;
+  dword(style.basecolor[3]) := $FF999999;
+  style.basefill := 2;
   contentwinminsizex := 32000;
   contentwinmaxsizex := 32000;
   contentwinminsizey := 14000;
   contentwinmaxsizey := 14000;
   boxlocx := 16384; boxlocy := 0;
-  anchorx := 16384; anchory := 0;
+  anchorx := 16384; anchory := 32768;
+  style.freescrollable := TRUE;
+  style.poptype := 2;
+  style.poptime := 512;
+  style.dobevel := 1;
  end;
  with TBox[1] do begin // game text box
   boxlocx := 16384;

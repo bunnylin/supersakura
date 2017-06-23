@@ -317,8 +317,14 @@ procedure HandleSDLevent(evd : PSDL_event);
   begin
    // === Keyboard shortcuts ===
    if modifier and KMOD_CTRL <> 0 then case sym of
-    SDLK_B: UserInput_HideBoxes;
+    SDLK_B: UserInput_CtrlB;
+    SDLK_D: UserInput_CtrlD;
+    SDLK_T: UserInput_CtrlT;
 
+    // Debug mode activation.
+    SDLK_X: if sysvar.debugallowed = 0 then inc(sysvar.debugallowed);
+    SDLK_Y: if sysvar.debugallowed in [1,4] then inc(sysvar.debugallowed);
+    SDLK_Z: if sysvar.debugallowed in [2,3] then inc(sysvar.debugallowed);
    end;
 
    // === Cursor keys, Enter and ESC ===
@@ -652,6 +658,8 @@ begin
   fullscreen := FALSE;
   WinSizeAuto := TRUE;
   usevsync := TRUE;
+  debugallowed := 0;
+  transcriptmode := TRUE;
   restart := FALSE;
   quit := FALSE; // set to TRUE to quit
  end;
