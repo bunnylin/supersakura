@@ -195,7 +195,7 @@ level : 2),
 (CRC : $799265F3; gidnum : gid_SETSUJUU; namu : 'Setsujuu';
 desc : 'Setsujuu - Yuganda Kioku (PC98)';
 baseresx : 496; baseresy : 255;
-level : 1),
+level : 3),
 
 (CRC : $A876CC7E; gidnum : gid_TASOGARE; namu : 'Tasogare';
 desc : 'Tasogare no Kyoukai (PC98)';
