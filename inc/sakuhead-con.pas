@@ -25,6 +25,9 @@ begin
  setlength(debugbuffer[debugbufindex], length(ert));
  move(ert[1], debugbuffer[debugbufindex][1], length(ert));
  debugbufindex := (debugbufindex + 1) and high(debugbuffer);
+ // If the debug log is currently visible, redraw it.
+ if (TBox[0].boxstate <> BOXSTATE_NULL)
+ and (sysvar.transcriptmode = FALSE) then PrintDebugBuffer;
 end;
 
 type LXYtriplet = record luma : byte; x, y : longint; end;

@@ -225,8 +225,10 @@ begin
  if mv_OutputBuffy <> NIL then begin freemem(mv_OutputBuffy); mv_OutputBuffy := NIL; end;
  if stashbuffy <> NIL then begin freemem(stashbuffy); stashbuffy := NIL; end;
 
- // Free textboxes.
+ // Free textboxes, except keep the debug console a little longer.
  DestroyTextbox(0);
+ setlength(TBox, 1);
+ TBox[0].boxstate := BOXSTATE_NULL;
 
  // Free whatever other memory was reserved.
  if seengfxp <> NIL then begin freemem(seengfxp); seengfxp := NIL; end;
@@ -308,6 +310,9 @@ begin
 
  transcriptbufindex := 0;
  debugbufindex := 0;
+ // Dropdown debug console must immediately exist, though not displayed.
+ setlength(TBox, 1);
+ TBox[0].boxstate := BOXSTATE_NULL;
 
  log('---===--- SuperSakura ' + SSver + ' ---===---');
 

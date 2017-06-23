@@ -178,7 +178,7 @@ begin
  with TBox[0] do begin
   contentbuftextvalid := FALSE;
   if boxstate = BOXSTATE_EMPTY then boxstate := BOXSTATE_SHOWTEXT;
-  //ScrollBoxTo(0, 0, MOVETYPE_INSTANT);
+  contentwinscrollofsp := $FFFFFFFF;
  end;
 end;
 
@@ -198,6 +198,7 @@ begin
   if txtescapecount <> 0 then dec(txtescapecount); // remove last newline
   contentbuftextvalid := FALSE;
   if boxstate = BOXSTATE_EMPTY then boxstate := BOXSTATE_SHOWTEXT;
+  contentwinscrollofsp := $FFFFFFFF;
  end;
 end;
 
@@ -353,6 +354,9 @@ begin
    setlength(transcriptbuffer[transcriptbufindex], ivar);
    move(txtcontent[initialofs], transcriptbuffer[transcriptbufindex][1], ivar);
    transcriptbufindex := (transcriptbufindex + 1) and high(transcriptbuffer);
+   // If the transcript is currently visible, redraw it.
+   if (TBox[0].boxstate <> BOXSTATE_NULL)
+   and (sysvar.transcriptmode) then PrintTranscriptBuffer;
   end
 
   // Anything printed in the dropdown console must be debug output and must
@@ -363,6 +367,9 @@ begin
    setlength(debugbuffer[debugbufindex], ivar);
    move(txtcontent[initialofs], debugbuffer[debugbufindex][1], ivar);
    debugbufindex := (debugbufindex + 1) and high(debugbuffer);
+   // If the debug log is currently visible, redraw it.
+   if (TBox[0].boxstate <> BOXSTATE_NULL)
+   and (sysvar.transcriptmode = FALSE) then PrintDebugBuffer;
   end;
  end;
 end;
@@ -905,6 +912,7 @@ var boxnum : dword;
 
   procedure updateconbuftext; inline;
   var oldcxp, oldcyp : dword;
+      scrollmaxpos : longint;
   begin
    with TBox[boxnum] do begin
     // Remember the previous content window pixel size.
@@ -912,6 +920,11 @@ var boxnum : dword;
     oldcyp := contentwinsizeyp;
     // Figure out where implicit linebreaks go and how many rows there are.
     FlowTextboxContent(boxnum);
+    // Check that the scroll offset isn't beyond the end of the box.
+    scrollmaxpos := contentfullheightp - contentwinsizeyp;
+    if scrollmaxpos < 0 then scrollmaxpos := 0;
+    if contentwinscrollofsp > dword(scrollmaxpos)
+     then contentwinscrollofsp := scrollmaxpos;
     {$ifndef sakucon}
     // Draw the full content buffer.
     RenderTextboxContent(boxnum);

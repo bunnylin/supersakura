@@ -33,6 +33,9 @@ begin
  setlength(debugbuffer[debugbufindex], length(ert));
  move(ert[1], debugbuffer[debugbufindex][1], length(ert));
  debugbufindex := (debugbufindex + 1) and high(debugbuffer);
+ // If the debug log is currently visible, redraw it.
+ if (TBox[0].boxstate <> BOXSTATE_NULL)
+ and (sysvar.transcriptmode = FALSE) then PrintDebugBuffer;
  SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, 'Error', @ert[1], mv_MainWinH);
 end;
 

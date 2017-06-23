@@ -717,6 +717,9 @@ begin truename := 'ssakura'; end;
 
 // ------------------------------------------------------------------
 
+// Log output may need to be immediately refreshed on screen using this.
+procedure PrintDebugBuffer; forward;
+
 procedure Log(const ert : UTF8string); inline;
 begin
  writeln(logfile, ert);
@@ -725,6 +728,9 @@ begin
  setlength(debugbuffer[debugbufindex], length(ert));
  move(ert[1], debugbuffer[debugbufindex][1], length(ert));
  debugbufindex := (debugbufindex + 1) and high(debugbuffer);
+ // If the debug log is currently visible, redraw it.
+ if (TBox[0].boxstate <> BOXSTATE_NULL)
+ and (sysvar.transcriptmode = FALSE) then PrintDebugBuffer;
 end;
 
 // Some con/sdl -specific helper functions.

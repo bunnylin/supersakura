@@ -504,8 +504,10 @@ begin
  if logfileavail then log('Quitting...');
  sysvar.quit := TRUE;
 
- // Free textboxes.
+ // Free textboxes, except keep the debug console a little longer.
  DestroyTextbox(0);
+ setlength(TBox, 1);
+ TBox[0].boxstate := BOXSTATE_NULL;
 
  // Release SDL resources.
  if mv_GamepadH <> NIL then SDL_GameControllerClose(mv_GamepadH);
@@ -615,6 +617,9 @@ begin
 
  transcriptbufindex := 0;
  debugbufindex := 0;
+ // Dropdown debug console must immediately exist, though not displayed.
+ setlength(TBox, 1);
+ TBox[0].boxstate := BOXSTATE_NULL;
 
  mv_MainWinH := NIL; mv_RendererH := NIL; mv_MainTexH := NIL;
  mv_GamepadH := NIL;
