@@ -1026,6 +1026,7 @@ begin
  sysvar.quit := TRUE;
  yieldnow := TRUE;
  fibercount := 0;
+ fxcount := 0;
 end;
 
 procedure Invoke_SYS_RESTARTGAME; inline;
@@ -1035,6 +1036,7 @@ begin
  sysvar.restart := TRUE;
  yieldnow := TRUE;
  fibercount := 0;
+ fxcount := 0;
 end;
 
 procedure Invoke_SYS_SETCURSOR; inline;
