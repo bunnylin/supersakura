@@ -215,6 +215,77 @@ begin
  inc(fibercount);
 end;
 
+procedure RunDebugCommand;
+// Extracts the last line from TBox[0], compiles and runs it in a new fiber.
+var srcp, resultp : pointer;
+    logline : UTF8string;
+    ivar : dword;
+begin
+ // Stop any previous debug command fiber.
+ StopFiber(chr(0));
+
+ with TBox[0] do begin
+  // Get the command line.
+  srcp := @txtcontent[txtlength - userinputlen];
+  setlength(logline, userinputlen + 1);
+  move(srcp^, logline[1], userinputlen);
+  logline[userinputlen + 1] := chr($A); // implicit newline at end
+  srcp := @logline[1];
+  // Compile the line.
+  resultp := CompileScript('', srcp, srcp + userinputlen + 1);
+  // Log the line and remove it from TBox[0].
+  srcp := NIL;
+  setlength(logline, userinputlen);
+  log(logline);
+  logline := '';
+  dec(txtlength, userinputlen);
+  caretpos := 0;
+  userinputlen := 0;
+ end;
+
+ // Reassign label indexes to all active fibers first.
+ ivar := fibercount;
+ while ivar <> 0 do begin
+  dec(ivar);
+  fiber[ivar].labelindex := GetScr(fiber[ivar].labelname);
+ end;
+
+ if resultp <> NIL then begin
+  // Script compile failed. Print error messages in log.
+  srcp := resultp;
+  while byte(srcp^) <> 0 do begin
+   log(string(srcp^));
+   inc(srcp, byte(srcp^) + 1);
+  end;
+  freemem(resultp); resultp := NIL; srcp := NIL;
+ end
+ else begin
+  // Script compile succeeded. Start new fiber in this script.
+  // Resize the fiber list if needed.
+  if (fibercount + 8 < dword(length(fiber)) shr 1)
+  or (fibercount >= dword(length(fiber)))
+  then setlength(fiber, fibercount + fibercount shr 1 + 4);
+  // Initialise fiber data.
+  with fiber[fibercount] do begin
+   fibername := chr(0);
+   labelname := '';
+   labelindex := 0;
+   codeofs := 0;
+   fxrefcount := 0;
+   for ivar := 0 to high(callstack) do begin
+    callstack[ivar].labelname := ''; callstack[ivar].ofs := 0;
+   end;
+   filldword(datastack[0], FIBER_STACK_SIZE + 1, 0);
+   dataindex := 0;
+   datacount := 0;
+   callstackindex := 0;
+   fiberstate := FIBERSTATE_NORMAL;
+  end;
+  writeln('debug command in fiber '+strdec(fibercount));
+  inc(fibercount);
+ end;
+end;
+
 // ------------------------------------------------------------------
 
 procedure ExecuteFiber(fiberid : dword; yieldnow : boolean);
@@ -561,7 +632,12 @@ begin // ExecuteFiber
 
  repeat with fiber[fiberid] do begin
   // Run the next label, if reached the end of the current one.
-  if codeofs >= script[labelindex].codesize then ScriptGoto(fiberid, script[labelindex].nextlabel);
+  // If there is no next label, terminate the fiber.
+  if codeofs >= script[labelindex].codesize then
+   if script[labelindex].nextlabel = ''
+    then fiberstate := FIBERSTATE_STOPPING
+    else ScriptGoto(fiberid, script[labelindex].nextlabel);
+
   if fiberstate = FIBERSTATE_STOPPING then exit;
 
   // Process a script token from the current execution address.
@@ -1133,7 +1209,8 @@ begin
   // Stopping fibers
   if fiber[fiberid].fiberstate = FIBERSTATE_STOPPING
   then begin
-   log('Stopping fiber ' + fiber[fiberid].fibername);
+   if fiber[fiberid].fibername <> chr(0)
+    then log('Stopping fiber ' + fiber[fiberid].fibername);
    // Stop this fiber's effects, shift above fibers' effects down a notch.
    if fxcount <> 0 then for ivar := fxcount - 1 downto 0 do begin
     if fx[ivar].fxfiber = longint(fiberid) then DeleteFx(ivar)

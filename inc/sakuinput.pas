@@ -351,6 +351,11 @@ begin
  end;
 
  // If box 0 as debug console is in showtext state, execute the last line.
+ if (TBox[0].boxstate = BOXSTATE_SHOWTEXT) and (sysvar.transcriptmode = FALSE)
+ and (TBox[0].userinputlen <> 0) then begin
+  RunDebugCommand;
+  exit;
+ end;
 
  // If the game is paused, any further actions are forbidden.
  if pausestate <> PAUSESTATE_NORMAL then exit;
