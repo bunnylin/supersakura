@@ -542,8 +542,39 @@ begin
  end;
 end;
 
+procedure UserInput_Delete;
+// Part of localised keyboard input.
+var ivar, jvar : dword;
+begin
+ // If textboxes are hidden, ignore.
+ if sysvar.hideboxes <> 0 then exit;
+
+ // If the dropdown console is active in debug mode, delete goes there.
+ if (TBox[0].boxstate = BOXSTATE_SHOWTEXT) and (sysvar.transcriptmode = FALSE)
+ then with TBox[0] do if dword(caretpos) < userinputlen then begin
+  ivar := caretpos;
+  inc(ivar);
+  while (ivar < userinputlen)
+  and (txtcontent[txtlength - userinputlen + ivar] and $C0 = $80)
+  do inc(ivar);
+  jvar := txtlength - userinputlen + caretpos;
+  dec(ivar, caretpos);
+  dec(txtlength, ivar);
+  dec(userinputlen, ivar);
+  while jvar < txtlength do begin
+   txtcontent[jvar] := txtcontent[jvar + ivar];
+   inc(jvar);
+  end;
+  contentbuftextvalid := FALSE;
+  exit;
+ end;
+end;
+
 procedure UserInput_Home;
 begin
+ // If textboxes are hidden, ignore.
+ if sysvar.hideboxes <> 0 then exit;
+
  // If the dropdown console is active in debug mode, move caret to far left.
  if (TBox[0].boxstate = BOXSTATE_SHOWTEXT) and (sysvar.transcriptmode = FALSE)
  then with TBox[0] do if caretpos > 0 then begin
@@ -558,6 +589,9 @@ end;
 
 procedure UserInput_End;
 begin
+ // If textboxes are hidden, ignore.
+ if sysvar.hideboxes <> 0 then exit;
+
  // If the dropdown console is active in debug mode, move caret to far right.
  if (TBox[0].boxstate = BOXSTATE_SHOWTEXT) and (sysvar.transcriptmode = FALSE)
  then with TBox[0] do if dword(caretpos) < userinputlen then begin

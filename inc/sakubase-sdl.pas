@@ -338,6 +338,7 @@ procedure HandleSDLevent(evd : PSDL_event);
     SDLK_BACKSPACE: UserInput_Backspace;
     SDLK_HOME: UserInput_Home;
     SDLK_END: UserInput_End;
+    SDLK_DELETE: UserInput_Delete;
     else
      writeln('KeyDown: ',sym,' mod $',strhex(modifier));
    end;
