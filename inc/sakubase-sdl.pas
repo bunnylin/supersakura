@@ -327,7 +327,7 @@ procedure HandleSDLevent(evd : PSDL_event);
     SDLK_Z: if sysvar.debugallowed in [2,3] then inc(sysvar.debugallowed);
    end;
 
-   // === Cursor keys, Enter and ESC ===
+   // === Cursor keys, Enter, ESC, etc ===
    case sym of
     SDLK_RETURN, SDLK_RETURN2, SDLK_KP_ENTER: UserInput_Enter;
     SDLK_ESCAPE: UserInput_Esc;
@@ -335,9 +335,28 @@ procedure HandleSDLevent(evd : PSDL_event);
     SDLK_LEFT, SDLK_KP_4: UserInput_Left;
     SDLK_DOWN, SDLK_KP_2: UserInput_Down;
     SDLK_UP, SDLK_KP_8: UserInput_Up;
+    SDLK_BACKSPACE: UserInput_Backspace;
+    SDLK_HOME: UserInput_Home;
+    SDLK_END: UserInput_End;
     else
      writeln('KeyDown: ',sym,' mod $',strhex(modifier));
    end;
+  end;
+
+  procedure HandleTextInput(intxt : pointer);
+  // SDL gives us an array[0..32] of char, a null-terminated UTF-8 string.
+  var instr : UTF8string;
+      ivar : byte;
+  begin
+   setlength(instr, 32);
+   ivar := 0;
+   while (ivar < 32) and (byte(intxt^) <> 0) do begin
+    inc(ivar);
+    byte(instr[ivar]) := byte(intxt^);
+    inc(intxt);
+   end;
+   setlength(instr, ivar);
+   UserInput_TextInput(instr);
   end;
 
 begin
@@ -403,6 +422,7 @@ begin
 
  case evd^.type_ of
   SDL_KEYDOWN: HandleKeyPress(evd^.key.keysym.sym, evd^.key.keysym._mod);
+  SDL_TEXTINPUT: HandleTextInput(@evd^.text.text[0]);
   SDL_MOUSEMOTION: UserInput_Mouse(evd^.motion.x, evd^.motion.y, 0);
   SDL_MOUSEBUTTONDOWN: UserInput_Mouse(evd^.button.x, evd^.button.y, evd^.button.button);
   //SDL_MOUSEBUTTONUP: writeln('Musbutt up: ',evd^.button.button);

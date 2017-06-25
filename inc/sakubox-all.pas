@@ -71,6 +71,7 @@ begin
   contentfullrows := 0; contentfullheightp := 0; contentwinscrollofsp := 0;
   contentbuftextvalid := FALSE;
   txtlength := 0; txtescapecount := 0; txtlinebreakcount := 0;
+  userinputlen := 0; if caretpos > 0 then caretpos := 0;
   if length(txtcontent) > 4096 then setlength(txtcontent, length(txtcontent) shr 1);
   case boxstate of
    BOXSTATE_NULL, BOXSTATE_EMPTY, BOXSTATE_VANISHING:;
@@ -150,35 +151,67 @@ procedure PrintBoxFast(boxnum : dword; srcp : pointer; srclen : dword);
 // Srcp should point to the first byte of a UTF8string. Srclen should be the
 // string's byte length.
 begin
- with TBox[boxnum] do begin
+ if srclen <> 0 then with TBox[boxnum] do begin
   // Expand the txtcontent to fit estimated input string size.
   if txtlength + srclen + 8 >= dword(length(txtcontent))
   then setlength(txtcontent, txtlength + srclen + 64);
 
   move(srcp^, txtcontent[txtlength], srclen);
   inc(txtlength, srclen);
-
-  // Add a hard newline at the end of every line.
-  if txtescapecount >= dword(length(txtescapelist)) then setlength(txtescapelist, length(txtescapelist) + 8);
-  txtescapelist[txtescapecount].escapeofs := txtlength;
-  txtescapelist[txtescapecount].escapecode := byte('n');
-  inc(txtescapecount);
  end;
 end;
 
 procedure PrintDebugBuffer;
 // Prints the debug buffer in the dropdown console TBox[0].
 var ivar : dword;
+    txt : string[3];
+    comstash : pointer;
 begin
- ClearTextbox(0);
- ivar := debugbufindex;
- repeat
-  if debugbuffer[ivar] <> '' then
-   PrintBoxFast(0, @debugbuffer[ivar][1], length(debugbuffer[ivar]));
-  ivar := (ivar + 1) and high(debugbuffer);
- until ivar = debugbufindex;
-
  with TBox[0] do begin
+  // Stash the current debug command line, if any.
+  comstash := NIL;
+  if userinputlen <> 0 then begin
+   getmem(comstash, userinputlen);
+   move(txtcontent[txtlength - userinputlen], comstash^, userinputlen);
+  end;
+  // Wipe out the box contents.
+  contentfullrows := 0; contentfullheightp := 0; contentwinscrollofsp := 0;
+  txtlength := 0; txtescapecount := 0; txtlinebreakcount := 0;
+
+  // Make sure box 0's escape codes list is big enough for us.
+  if length(debugbuffer) + 4 >= dword(length(txtescapelist))
+   then setlength(txtescapelist, length(debugbuffer) + 4);
+  // Print the debug ring buffer into box 0.
+  ivar := debugbufindex;
+  repeat
+   if debugbuffer[ivar] <> '' then begin
+    PrintBoxFast(0, @debugbuffer[ivar][1], length(debugbuffer[ivar]));
+    // Add a hard newline at the end of every line.
+    txtescapelist[txtescapecount].escapeofs := txtlength;
+    txtescapelist[txtescapecount].escapecode := byte('n');
+    inc(txtescapecount);
+   end;
+   ivar := (ivar + 1) and high(debugbuffer);
+  until ivar = debugbufindex;
+
+  // Change text color for the debug command line.
+  txtescapelist[txtescapecount].escapeofs := txtlength;
+  txtescapelist[txtescapecount].escapecode := byte('c');
+  txtescapelist[txtescapecount].escapedata := $FFFFFFFF;
+  inc(txtescapecount);
+
+  // Add an escape code for the caret position.
+  txtescapelist[txtescapecount].escapeofs := txtlength + dword(caretpos);
+  txtescapelist[txtescapecount].escapecode := 1;
+  inc(txtescapecount);
+
+  // Reprint the current debug line, if any.
+  if userinputlen <> 0 then begin
+   PrintBoxFast(0, comstash, userinputlen);
+   freemem(comstash); comstash := NIL;
+  end;
+
+  // Mark the box for redrawing, scroll to the bottom.
   contentbuftextvalid := FALSE;
   if boxstate = BOXSTATE_EMPTY then boxstate := BOXSTATE_SHOWTEXT;
   contentwinscrollofsp := $FFFFFFFF;
@@ -189,16 +222,31 @@ procedure PrintTranscriptBuffer;
 // Prints the game transcript in the dropdown console TBox[0].
 var ivar : dword;
 begin
- ClearTextbox(0);
- ivar := transcriptbufindex;
- repeat
-  if transcriptbuffer[ivar] <> '' then
-   PrintBoxFast(0, @transcriptbuffer[ivar][1], length(transcriptbuffer[ivar]));
-  ivar := (ivar + 1) and high(transcriptbuffer);
- until ivar = transcriptbufindex;
-
  with TBox[0] do begin
-  if txtescapecount <> 0 then dec(txtescapecount); // remove last newline
+  // Wipe out the box contents.
+  contentfullrows := 0; contentfullheightp := 0; contentwinscrollofsp := 0;
+  txtlength := 0; txtescapecount := 0; txtlinebreakcount := 0;
+
+  // Make sure box 0's escape codes list is big enough for us.
+  if length(transcriptbuffer) + 4 >= dword(length(txtescapelist))
+   then setlength(txtescapelist, length(transcriptbuffer) + 4);
+  // Print the debug ring buffer into box 0.
+  ivar := transcriptbufindex;
+  repeat
+   if transcriptbuffer[ivar] <> '' then begin
+    PrintBoxFast(0, @transcriptbuffer[ivar][1], length(transcriptbuffer[ivar]));
+    // Add a hard newline at the end of every line.
+    txtescapelist[txtescapecount].escapeofs := txtlength;
+    txtescapelist[txtescapecount].escapecode := byte('n');
+    inc(txtescapecount);
+   end;
+   ivar := (ivar + 1) and high(transcriptbuffer);
+  until ivar = transcriptbufindex;
+
+  // Remove the last newline.
+  if txtescapecount <> 0 then dec(txtescapecount);
+
+  // Mark the box for redrawing, scroll to the bottom.
   contentbuftextvalid := FALSE;
   if boxstate = BOXSTATE_EMPTY then boxstate := BOXSTATE_SHOWTEXT;
   contentwinscrollofsp := $FFFFFFFF;

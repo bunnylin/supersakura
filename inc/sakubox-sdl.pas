@@ -206,6 +206,22 @@ var txtsurface : PSDL_Surface;
    end;
   end;
 
+  procedure drawcaret; inline;
+  // Draws a non-blinking text input caret at the current text position.
+  var basep : pointer;
+      y, caretw : dword;
+  begin
+   with TBox[boxnum] do begin
+    caretw := lineheightp shr 4 + 1;
+    basep := rowbuf + rowsizexp * 4;
+    for y := lineheightp - 1 downto 0 do begin
+     filldword(basep^, caretw, dword(textcoloramul));
+     inc(basep, contentwinsizexp * 4);
+    end;
+    inc(rowsizexp, caretw);
+   end;
+  end;
+
   procedure stashtext; inline;
   // Appends the SDL-provided text surface to the current row.
   var srcp, basep, writep : pointer;
@@ -216,7 +232,7 @@ var txtsurface : PSDL_Surface;
     srcp := txtsurface^.pixels;
     basep := rowbuf + rowsizexp * 4;
     rowendskip := (4 - (txtsurface^.w and 3)) and 3;
-    for y := 0 to txtsurface^.h - 1 do begin
+    for y := txtsurface^.h - 1 downto 0 do begin
      writep := basep;
      for x := txtsurface^.w - 1 downto 0 do begin
       case byte(srcp^) of
@@ -226,6 +242,7 @@ var txtsurface : PSDL_Surface;
          inc(writep, 4);
         end;
         else begin
+         {$note use amultable here?}
          a := (byte(srcp^) * runcolor.a) div 255;
          byte(writep^) := runcolor.b * a div 255; inc(writep);
          byte(writep^) := runcolor.g * a div 255; inc(writep);
@@ -318,6 +335,7 @@ begin
     and (txtescapelist[escindex].escapeofs = txtofs)
     do begin
      case txtescapelist[escindex].escapecode of
+       1: drawcaret;
        byte('B'): TTF_SetFontStyle(fonth, TTF_STYLE_BOLD);
        byte('b'): TTF_SetFontStyle(fonth, 0);
        byte('c'): newcolor(txtescapelist[escindex].escapedata);

@@ -299,6 +299,8 @@ type boxtype = record
        // separated. (Variable references get dereferenced immediately.)
        txtcontent : array of byte;
        txtlength : dword; // in bytes
+       userinputlen : dword; // user input portion, bytes from end of content
+       caretpos : longint; // -1 for disabled, up to userinputlen
 
        // List of escape codes and their offsets in txtcontent[]. Codes:
        // \0 = empty character
@@ -610,6 +612,7 @@ var // Commandline parameters.
       defaulttextbox : dword; // print commands default to this TBox[]
       dialoguetitlebox : dword; // print dialogue titles in this TBox[]
       defaultviewport : dword; // new gobs are relative to this by default
+      activetextinput : byte; // 0 = no; +1 for each box accepting text input
     end;
 
     // Font preferences.
@@ -1787,14 +1790,21 @@ begin
  // buckets, plenty for most purposes.
  VarmonInit(length(languagelist), 16);
 
- // Viewports
+ // Reset viewports.
  setlength(viewport, 0);
  InitViewport(0);
 
+ // Stop accepting SDL text input, if appropriate.
+ {$ifndef sakucon}
+ if SDL_IsTextInputActive = SDL_TRUE then SDL_StopTextInput;
+ {$endif}
+
+ // Reset state variables.
  with gamevar do begin
   defaulttextbox := 1;
   dialoguetitlebox := 1;
   defaultviewport := 0;
+  activetextinput := 0;
  end;
  with choicematic do begin
   choicebox := 1;

@@ -30,13 +30,24 @@ begin
  if (TBox[0].boxstate = BOXSTATE_SHOWTEXT)
  and (sysvar.transcriptmode = FALSE)
  then begin
+  dec(gamevar.activetextinput);
+  {$ifndef sakucon}
+  if gamevar.activetextinput = 0 then SDL_StopTextInput;
+  {$endif}
   Box0SlideUp;
   exit;
  end;
- // Otherwise turn off transcript mode and slide in the box.
+ // If transcript mode is on, delete the user input portion in the box.
+ if sysvar.transcriptmode then TBox[0].userinputlen := 0;
+ // Turn off transcript mode and slide in the box.
  sysvar.transcriptmode := FALSE;
+ TBox[0].caretpos := TBox[0].userinputlen;
  Box0SlideDown;
  PrintDebugBuffer;
+ {$ifndef sakucon}
+ if gamevar.activetextinput = 0 then SDL_StartTextInput;
+ {$endif}
+ inc(gamevar.activetextinput);
 end;
 
 procedure UserInput_CtrlT;
@@ -50,6 +61,15 @@ begin
  then begin
   Box0SlideUp;
   exit;
+ end;
+ // If transcript mode is off, we're leaving debug mode.
+ if sysvar.transcriptmode = FALSE then begin
+  TBox[0].caretpos := -1;
+  TBox[0].userinputlen := 0;
+  dec(gamevar.activetextinput);
+  {$ifndef sakucon}
+  if gamevar.activetextinput = 0 then SDL_StopTextInput;
+  {$endif}
  end;
  // Otherwise turn on transcript mode and slide in the box.
  sysvar.transcriptmode := TRUE;
@@ -387,10 +407,10 @@ begin
  // If textboxes are hidden, ignore it.
  if sysvar.hideboxes <> 0 then exit;
 
- // If box 0 as transcript log is in showtext state, pop out the box.
+ // If box 0 as transcript log is in showtext state, slide out the box.
  if (TBox[0].boxstate = BOXSTATE_SHOWTEXT) and (sysvar.transcriptmode)
  then begin
-  Box0SlideUp;
+  UserInput_CtrlT;
   exit;
  end;
 
@@ -460,6 +480,96 @@ begin
   UserInput_Mouse(sysvar.mousex + bestx, sysvar.mousey + besty, 0);
 end;
 
+procedure UserInput_TextInput(const instr : UTF8string);
+// Localised keyboard input comes in as UTF8 snippets.
+var ivar : dword;
+begin
+ if instr = '' then exit;
+ // If textboxes are hidden, ignore.
+ if sysvar.hideboxes <> 0 then exit;
+
+ // If the dropdown console is active in debug mode, the input goes there.
+ if (TBox[0].boxstate = BOXSTATE_SHOWTEXT) and (sysvar.transcriptmode = FALSE)
+ then with TBox[0] do begin
+  inc(userinputlen, dword(length(instr)));
+  inc(txtlength, dword(length(instr)));
+  if txtlength >= dword(length(txtcontent)) then setlength(txtcontent, txtlength + 64);
+
+  if dword(caretpos) < userinputlen then begin
+   for ivar := txtlength - 1 downto txtlength - userinputlen + caretpos do
+    txtcontent[ivar] := txtcontent[ivar - length(instr)];
+  end;
+
+  move(instr[1], txtcontent[txtlength - userinputlen + caretpos], length(instr));
+  inc(caretpos, length(instr));
+
+  if (txtescapecount <> 0)
+  and (txtescapelist[txtescapecount - 1].escapecode = 1)
+  then inc(txtescapelist[txtescapecount - 1].escapeofs, dword(length(instr)));
+  contentbuftextvalid := FALSE;
+  exit;
+ end;
+end;
+
+procedure UserInput_Backspace;
+// Part of localised keyboard input.
+var ivar, jvar : dword;
+begin
+ // If textboxes are hidden, ignore.
+ if sysvar.hideboxes <> 0 then exit;
+
+ // If the dropdown console is active in debug mode, backspace goes there.
+ if (TBox[0].boxstate = BOXSTATE_SHOWTEXT) and (sysvar.transcriptmode = FALSE)
+ then with TBox[0] do if caretpos > 0 then begin
+  ivar := caretpos;
+  dec(caretpos);
+  while (caretpos <> 0)
+  and (txtcontent[txtlength - userinputlen + caretpos] and $C0 = $80)
+  do dec(caretpos);
+  jvar := txtlength - userinputlen + caretpos;
+  dec(ivar, caretpos);
+  dec(txtlength, ivar);
+  dec(userinputlen, ivar);
+  while jvar < txtlength do begin
+   txtcontent[jvar] := txtcontent[jvar + ivar];
+   inc(jvar);
+  end;
+  if (txtescapecount <> 0)
+  and (txtescapelist[txtescapecount - 1].escapecode = 1)
+  then dec(txtescapelist[txtescapecount - 1].escapeofs, ivar);
+  contentbuftextvalid := FALSE;
+  exit;
+ end;
+end;
+
+procedure UserInput_Home;
+begin
+ // If the dropdown console is active in debug mode, move caret to far left.
+ if (TBox[0].boxstate = BOXSTATE_SHOWTEXT) and (sysvar.transcriptmode = FALSE)
+ then with TBox[0] do if caretpos > 0 then begin
+  caretpos := 0;
+  if (txtescapecount <> 0)
+  and (txtescapelist[txtescapecount - 1].escapecode = 1)
+  then txtescapelist[txtescapecount - 1].escapeofs := txtlength - userinputlen;
+  contentbuftextvalid := FALSE;
+  exit;
+ end;
+end;
+
+procedure UserInput_End;
+begin
+ // If the dropdown console is active in debug mode, move caret to far right.
+ if (TBox[0].boxstate = BOXSTATE_SHOWTEXT) and (sysvar.transcriptmode = FALSE)
+ then with TBox[0] do if dword(caretpos) < userinputlen then begin
+  caretpos := userinputlen;
+  if (txtescapecount <> 0)
+  and (txtescapelist[txtescapecount - 1].escapecode = 1)
+  then txtescapelist[txtescapecount - 1].escapeofs := txtlength;
+  contentbuftextvalid := FALSE;
+  exit;
+ end;
+end;
+
 procedure UserInput_Up;
 var ivar : dword;
 begin
@@ -499,6 +609,21 @@ end;
 
 procedure UserInput_Left; inline;
 begin
+ // If the dropdown console is active in debug mode, move the caret.
+ if (TBox[0].boxstate = BOXSTATE_SHOWTEXT) and (sysvar.transcriptmode = FALSE)
+ then with TBox[0] do if caretpos > 0 then begin
+  repeat
+   dec(caretpos);
+  until (caretpos = 0)
+  or (txtcontent[txtlength - userinputlen + caretpos] and $C0 <> $80);
+
+  if (txtescapecount <> 0)
+  and (txtescapelist[txtescapecount - 1].escapecode = 1)
+  then txtescapelist[txtescapecount - 1].escapeofs := txtlength - userinputlen + caretpos;
+  contentbuftextvalid := FALSE;
+  exit;
+ end;
+
  {$ifdef sakucon}
  sysvar.keysdown := sysvar.keysdown or 2;
  {$endif}
@@ -512,6 +637,21 @@ end;
 
 procedure UserInput_Right; inline;
 begin
+ // If the dropdown console is active in debug mode, move the caret.
+ if (TBox[0].boxstate = BOXSTATE_SHOWTEXT) and (sysvar.transcriptmode = FALSE)
+ then with TBox[0] do if dword(caretpos) < userinputlen then begin
+  repeat
+   inc(caretpos);
+  until (dword(caretpos) >= userinputlen)
+  or (txtcontent[txtlength - userinputlen + caretpos] and $C0 <> $80);
+
+  if (txtescapecount <> 0)
+  and (txtescapelist[txtescapecount - 1].escapecode = 1)
+  then txtescapelist[txtescapecount - 1].escapeofs := txtlength - userinputlen + caretpos;
+  contentbuftextvalid := FALSE;
+  exit;
+ end;
+
  {$ifdef sakucon}
  sysvar.keysdown := sysvar.keysdown or 4;
  {$endif}
