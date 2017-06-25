@@ -197,6 +197,7 @@ begin
     and (txtescapelist[escindex].escapeofs <= txtofs)
     do begin
      case txtescapelist[escindex].escapecode of
+       1: UTF8Write('|'); // text input caret
        byte('B'): ; // Bold on
        byte('b'): ; // Bold off
        byte('c'): newcolor(txtescapelist[escindex].escapedata);

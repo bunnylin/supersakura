@@ -52,6 +52,7 @@ procedure Debug_PrintGobs;
 var ivar : dword;
     txt : UTF8string;
 begin
+ {$note Move debugprintgobs to fiberwops as listgobs}
  log('=== GOBS ===');
  if length(gob) = 0 then exit;
  for ivar := 0 to high(gob) do begin
@@ -117,21 +118,24 @@ begin
  end
 
  else if com[1] = chr($EE) then begin
+  //if com = chr($EE) + chr($90) + chr($A1) then UserInput_PageUp else
+  //if com = chr($EE) + chr($90) + chr($A2) then UserInput_PageDown else
+  if com = chr($EE) + chr($90) + chr($A3) then UserInput_End else
+  if com = chr($EE) + chr($90) + chr($A4) then UserInput_Home else
   if com = chr($EE) + chr($90) + chr($A5) then UserInput_Left else
   if com = chr($EE) + chr($90) + chr($A6) then UserInput_Up else
   if com = chr($EE) + chr($90) + chr($A7) then UserInput_Right else
-  if com = chr($EE) + chr($90) + chr($A8) then UserInput_Down;
+  if com = chr($EE) + chr($90) + chr($A8) then UserInput_Down else
+  if com = chr($EE) + chr($90) + chr($AE) then UserInput_Delete;
  end
 
  else begin
-  // Enter
-  if com = chr($D) then UserInput_Enter else
-
-  // Esc
-  if com = chr(27) then UserInput_Esc else
-
-  if com = '*' then UserInput_CtrlB else
-  if com = '@' then Debug_PrintGobs;
+  case byte(com[1]) of
+    $8: UserInput_Backspace;
+    $D: UserInput_Enter;
+    $1B: UserInput_Esc;
+    else UserInput_TextInput(com);
+  end;
  end;
 end;
 
