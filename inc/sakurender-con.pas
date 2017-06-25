@@ -138,6 +138,7 @@ var ivar, breakindex, escindex, choiceindex : dword;
   begin
    textpal := xpal[(c shr 20) and $F][(c shr 12) and $F][(c shr 4) and $F] and $F;
    if (choicematic.active) and (choiceindex = choicematic.highlightindex)
+   and (boxnum = choicematic.choicebox)
    then SetColor(backpal + textpal shl 4)
    else SetColor(textpal + backpal shl 4);
   end;
