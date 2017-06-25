@@ -281,7 +281,6 @@ begin
    callstackindex := 0;
    fiberstate := FIBERSTATE_NORMAL;
   end;
-  writeln('debug command in fiber '+strdec(fibercount));
   inc(fibercount);
  end;
 end;
