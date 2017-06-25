@@ -1657,6 +1657,7 @@ var linestart : pointer;
    end;
 
    // save the built bytecode
+   newlabel.code := NIL;
    newlabel.codesize := codeofs;
    if codeofs <> 0 then begin
     {$ifdef ssscriptdebugoutput}
