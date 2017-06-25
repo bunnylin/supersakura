@@ -1674,7 +1674,7 @@ var linestart : pointer;
 
    // add the new label to the script[] array
    ivar := GetScr(newlabel.labelnamu);
-   if ivar = 0 then begin
+   if (ivar = 0) and (scriptname <> '') then begin
     // add as a new script[] item
     ivar := length(script);
     setlength(script, ivar + 1);
@@ -1688,8 +1688,14 @@ var linestart : pointer;
     script[ivar].nextlabel := newlabel.nextlabel;
     script[ivar].code := newlabel.code;
     script[ivar].codesize := newlabel.codesize;
-    setlength(script[ivar].stringlist[0].txt, 0);
-    script[ivar].stringlist[0] := newlabel.stringlist[0];
+    // overwrite the unique string list too, unless we're compiling
+    // a nameless script at runtime; that goes in index 0, and uses only
+    // hardcoded strings, and index 0's unique string list is actually the
+    // global string list. Wouldn't want to overwrite that!
+    if ivar <> 0 then begin
+     setlength(script[ivar].stringlist[0].txt, 0);
+     script[ivar].stringlist[0] := newlabel.stringlist[0];
+    end;
    end;
    newlabel.code := NIL;
   end;
