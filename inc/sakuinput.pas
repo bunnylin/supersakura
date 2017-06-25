@@ -520,24 +520,27 @@ begin
 
  // If the dropdown console is active in debug mode, backspace goes there.
  if (TBox[0].boxstate = BOXSTATE_SHOWTEXT) and (sysvar.transcriptmode = FALSE)
- then with TBox[0] do if caretpos > 0 then begin
-  ivar := caretpos;
-  dec(caretpos);
-  while (caretpos <> 0)
-  and (txtcontent[txtlength - userinputlen + caretpos] and $C0 = $80)
-  do dec(caretpos);
-  jvar := txtlength - userinputlen + caretpos;
-  dec(ivar, caretpos);
-  dec(txtlength, ivar);
-  dec(userinputlen, ivar);
-  while jvar < txtlength do begin
-   txtcontent[jvar] := txtcontent[jvar + ivar];
-   inc(jvar);
+ then with TBox[0] do begin
+  if caretpos > 0 then begin
+   ivar := caretpos;
+   repeat
+    dec(caretpos);
+   until (caretpos = 0)
+   or (txtcontent[txtlength - userinputlen + caretpos] and $C0 <> $80);
+
+   jvar := txtlength - userinputlen + caretpos;
+   dec(ivar, caretpos);
+   dec(txtlength, ivar);
+   dec(userinputlen, ivar);
+   while jvar < txtlength do begin
+    txtcontent[jvar] := txtcontent[jvar + ivar];
+    inc(jvar);
+   end;
+   if (txtescapecount <> 0)
+   and (txtescapelist[txtescapecount - 1].escapecode = 1)
+   then dec(txtescapelist[txtescapecount - 1].escapeofs, ivar);
+   contentbuftextvalid := FALSE;
   end;
-  if (txtescapecount <> 0)
-  and (txtescapelist[txtescapecount - 1].escapecode = 1)
-  then dec(txtescapelist[txtescapecount - 1].escapeofs, ivar);
-  contentbuftextvalid := FALSE;
   exit;
  end;
 end;
@@ -551,21 +554,24 @@ begin
 
  // If the dropdown console is active in debug mode, delete goes there.
  if (TBox[0].boxstate = BOXSTATE_SHOWTEXT) and (sysvar.transcriptmode = FALSE)
- then with TBox[0] do if dword(caretpos) < userinputlen then begin
-  ivar := caretpos;
-  inc(ivar);
-  while (ivar < userinputlen)
-  and (txtcontent[txtlength - userinputlen + ivar] and $C0 = $80)
-  do inc(ivar);
-  jvar := txtlength - userinputlen + caretpos;
-  dec(ivar, caretpos);
-  dec(txtlength, ivar);
-  dec(userinputlen, ivar);
-  while jvar < txtlength do begin
-   txtcontent[jvar] := txtcontent[jvar + ivar];
-   inc(jvar);
+ then with TBox[0] do begin
+  if dword(caretpos) < userinputlen then begin
+   ivar := caretpos;
+   repeat
+    inc(ivar);
+   until (ivar >= userinputlen)
+   or (txtcontent[txtlength - userinputlen + ivar] and $C0 <> $80);
+
+   jvar := txtlength - userinputlen + caretpos;
+   dec(ivar, caretpos);
+   dec(txtlength, ivar);
+   dec(userinputlen, ivar);
+   while jvar < txtlength do begin
+    txtcontent[jvar] := txtcontent[jvar + ivar];
+    inc(jvar);
+   end;
+   contentbuftextvalid := FALSE;
   end;
-  contentbuftextvalid := FALSE;
   exit;
  end;
 end;
@@ -577,12 +583,14 @@ begin
 
  // If the dropdown console is active in debug mode, move caret to far left.
  if (TBox[0].boxstate = BOXSTATE_SHOWTEXT) and (sysvar.transcriptmode = FALSE)
- then with TBox[0] do if caretpos > 0 then begin
-  caretpos := 0;
-  if (txtescapecount <> 0)
-  and (txtescapelist[txtescapecount - 1].escapecode = 1)
-  then txtescapelist[txtescapecount - 1].escapeofs := txtlength - userinputlen;
-  contentbuftextvalid := FALSE;
+ then with TBox[0] do begin
+  if caretpos > 0 then begin
+   caretpos := 0;
+   if (txtescapecount <> 0)
+   and (txtescapelist[txtescapecount - 1].escapecode = 1)
+   then txtescapelist[txtescapecount - 1].escapeofs := txtlength - userinputlen;
+   contentbuftextvalid := FALSE;
+  end;
   exit;
  end;
 end;
@@ -594,12 +602,14 @@ begin
 
  // If the dropdown console is active in debug mode, move caret to far right.
  if (TBox[0].boxstate = BOXSTATE_SHOWTEXT) and (sysvar.transcriptmode = FALSE)
- then with TBox[0] do if dword(caretpos) < userinputlen then begin
-  caretpos := userinputlen;
-  if (txtescapecount <> 0)
-  and (txtescapelist[txtescapecount - 1].escapecode = 1)
-  then txtescapelist[txtescapecount - 1].escapeofs := txtlength;
-  contentbuftextvalid := FALSE;
+ then with TBox[0] do begin
+  if dword(caretpos) < userinputlen then begin
+   caretpos := userinputlen;
+   if (txtescapecount <> 0)
+   and (txtescapelist[txtescapecount - 1].escapecode = 1)
+   then txtescapelist[txtescapecount - 1].escapeofs := txtlength;
+   contentbuftextvalid := FALSE;
+  end;
   exit;
  end;
 end;
@@ -645,16 +655,18 @@ procedure UserInput_Left; inline;
 begin
  // If the dropdown console is active in debug mode, move the caret.
  if (TBox[0].boxstate = BOXSTATE_SHOWTEXT) and (sysvar.transcriptmode = FALSE)
- then with TBox[0] do if caretpos > 0 then begin
-  repeat
-   dec(caretpos);
-  until (caretpos = 0)
-  or (txtcontent[txtlength - userinputlen + caretpos] and $C0 <> $80);
+ then with TBox[0] do begin
+  if caretpos > 0 then begin
+   repeat
+    dec(caretpos);
+   until (caretpos = 0)
+   or (txtcontent[txtlength - userinputlen + caretpos] and $C0 <> $80);
 
-  if (txtescapecount <> 0)
-  and (txtescapelist[txtescapecount - 1].escapecode = 1)
-  then txtescapelist[txtescapecount - 1].escapeofs := txtlength - userinputlen + caretpos;
-  contentbuftextvalid := FALSE;
+   if (txtescapecount <> 0)
+   and (txtescapelist[txtescapecount - 1].escapecode = 1)
+   then txtescapelist[txtescapecount - 1].escapeofs := txtlength - userinputlen + caretpos;
+   contentbuftextvalid := FALSE;
+  end;
   exit;
  end;
 
@@ -673,16 +685,18 @@ procedure UserInput_Right; inline;
 begin
  // If the dropdown console is active in debug mode, move the caret.
  if (TBox[0].boxstate = BOXSTATE_SHOWTEXT) and (sysvar.transcriptmode = FALSE)
- then with TBox[0] do if dword(caretpos) < userinputlen then begin
-  repeat
-   inc(caretpos);
-  until (dword(caretpos) >= userinputlen)
-  or (txtcontent[txtlength - userinputlen + caretpos] and $C0 <> $80);
+ then with TBox[0] do begin
+  if dword(caretpos) < userinputlen then begin
+   repeat
+    inc(caretpos);
+   until (dword(caretpos) >= userinputlen)
+   or (txtcontent[txtlength - userinputlen + caretpos] and $C0 <> $80);
 
-  if (txtescapecount <> 0)
-  and (txtescapelist[txtescapecount - 1].escapecode = 1)
-  then txtescapelist[txtescapecount - 1].escapeofs := txtlength - userinputlen + caretpos;
-  contentbuftextvalid := FALSE;
+   if (txtescapecount <> 0)
+   and (txtescapelist[txtescapecount - 1].escapecode = 1)
+   then txtescapelist[txtescapecount - 1].escapeofs := txtlength - userinputlen + caretpos;
+   contentbuftextvalid := FALSE;
+  end;
   exit;
  end;
 
