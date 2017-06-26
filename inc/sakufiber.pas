@@ -241,6 +241,9 @@ begin
   dec(txtlength, userinputlen);
   caretpos := 0;
   userinputlen := 0;
+  if (txtescapecount <> 0)
+  and (txtescapelist[txtescapecount - 1].escapecode = 1)
+  then txtescapelist[txtescapecount - 1].escapeofs := txtlength;
  end;
 
  // Reassign label indexes to all active fibers first.
