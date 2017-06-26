@@ -1961,7 +1961,7 @@ begin
   // already exists, then resize the window.
   else if (mv_MainWinH <> NIL) and (bannername = '') then
   if (ivar <> dword(asman_baseresx)) or (jvar <> dword(asman_baseresy))
-  and (sysvar.WinSizeAuto)
+  then if sysvar.WinSizeAuto
   then begin
    GetDefaultWindowSizes(ivar, jvar);
    if (ivar <> 0) and (saku_param.overridex = 0) then sysvar.WindowSizeX := ivar;
