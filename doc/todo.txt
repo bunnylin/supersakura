@@ -112,8 +112,6 @@ REQUIRED FOR 1.0
 - Change animation sequence handling to run code snippets in minifibers
   instead of the current special syntax monstrosity; anim snippets should
   be a list of their own, and gobs and box decors point to list items
-- When in dropdown debug mode, can type sakurascript lines in the box, which
-  get compiled and executed in a new fiber
 - Commandline option to dump the game transcript into a file as you play
 - Language changing at runtime probably shouldn't change choicebox language
   if any choices are visible, choicematic's not set up for that... although
@@ -134,13 +132,10 @@ REQUIRED FOR 1.0
      sys.loadstate [index]
      sys.savestate [index] [name]
      sys.showhistory
-     tbox.getlastline [box]
+     tbox.getlastline [box] (must autodouble all backslashes)
    + As long as choicematic.typeinbox is valid, user keypresses are added to
      the last line of the box; pressing enter in this case takes precedence
-     and ends typing, resuming fibers waiting for typing to end; typing must
-     allow spaces and backspaces, but backslashes are automatically doubled;
-     tbox.getlastline should return all characters from the box content up to
-     the last escape code or newline
+     and ends typing, resuming fibers waiting for typing to end
 - Mcsassm needs a way to add run-time incidental graphics
 - Test mouseonly mouseoverables
 - Mousewheel should just scroll choicebox directly
@@ -163,7 +158,7 @@ REQUIRED FOR 1.0
   save files DAT-style modular
    + Should have a separate save state command for each engine component and
      a main command that invokes the others
-- Re-implement quick RGB tweak?
+- Re-implement quick RGB tweak? And by extension the flash effect
 - Re-add gamepad support
 - Scrollable boxes should have fading text to signal more content
 - By default, binaries should be in a write-protected executable
@@ -207,7 +202,6 @@ FUTURE
 - Treat .hdi and .fdi files as subdirectories, if can figure out the
   format, so it'll be easier to convert games
 REQUIRED FOR 1.0
-- Add color to dialogue titles?
 - Make sure output data goes under user profile if workdir not accessible
 - Specific global vars with known uses in games should be named
 - Fix music conversion, polish code
@@ -245,5 +239,4 @@ REQUIRED FOR 1.0
    + 3sis: Emi glowering at Risa over logo, Yuki in middle with drop
    + Runaway: Hiroaki with two clingy chicks shouted at by wossname?
    + Sakura: Last Supper scene in classroom, desks piled at door
-- MCGLoder.mcg_ScaleBitmap32: in horizontal shrink, use source^ directly?
 -------------------- ===== TO DO END ===== -----------------------
