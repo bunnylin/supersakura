@@ -2116,16 +2116,28 @@ begin
    end;
    {$endif}
 
+   cline := lowercase(cline);
+
+   // UI magnification.
+   if copy(cline, 1, 6) = 'uimag ' then begin
+    ivar := abs(valx(copy(cline, 7, length(cline))));
+    // Force min/max bounds.
+    if ivar < 2048 then ivar := 2048 else
+    if ivar > 262144 then ivar := 262144;
+    sysvar.uimagnification := ivar;
+    continue;
+   end;
+
    // Vsync setting.
-   if lowercase(copy(cline, 1, 6)) = 'vsync ' then begin
-    txt := lowercase(copy(cline, 7, length(cline)));
+   if copy(cline, 1, 6) = 'vsync ' then begin
+    txt := copy(cline, 7, length(cline));
     if (txt = 'on') or (txt = '1') or (txt = 'true') or (txt = 'enabled')
     or (txt = 'yes') or (txt = 'auto') then sysvar.usevsync := TRUE
     else sysvar.usevsync := FALSE;
+    continue;
    end;
 
    // Game window size.
-   cline := lowercase(cline);
    if copy(cline, 1, 8) = 'winsize ' then begin
     ivar := 9;
     while (ivar < dword(length(cline))) and (cline[ivar] in ['0'..'9'] = FALSE) do inc(ivar);
@@ -2191,8 +2203,15 @@ begin
   writeln(cfile, '# resolution, scaled as large as comfortably fits on your screen.');
   writeln(cfile, '# Override the default by giving a pixel size, for example: WinSize 512x384');
   write(cfile, 'winsize ');
-  if sysvar.WinSizeAuto then writeln(cfile, 'auto') else writeln(cfile, strdec(sysvar.WindowSizeX) + 'x' + strdec(sysvar.WindowSizeY));
+  if sysvar.WinSizeAuto then writeln(cfile, 'auto')
+  else writeln(cfile, strdec(sysvar.WindowSizeX), 'x', strdec(sysvar.WindowSizeY));
   {$ifndef sakucon}
+  writeln(cfile, '');
+  writeln(cfile, '# Interface size multiplier. If you want the in-game font to be slightly');
+  writeln(cfile, '# smaller or larger, change this. The multiplier is this value divided by');
+  writeln(cfile, '# 32768. For example, 32768 = normal, 16384 = half size, 65536 = double size.');
+  writeln(cfile, 'uimag ', strdec(sysvar.uimagnification));
+
   writeln(cfile, '');
   writeln(cfile, '# Preferred font for each language. You must specify a font file name, with');
   writeln(cfile, '# optional * and ? wildcards. The first matching .ttf/.otf file in the given');
