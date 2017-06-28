@@ -445,6 +445,7 @@ begin
  ss_rwoppargtype[WOPP_LOCY] := ARG_NUM;
  ss_rwoppargtype[WOPP_MOUSEOFF] := ARG_STR;
  ss_rwoppargtype[WOPP_MOUSEON] := ARG_STR;
+ ss_rwoppargtype[WOPP_MOUSEONLY] := ARG_NUM;
  ss_rwoppargtype[WOPP_NAME] := ARG_STR;
  ss_rwoppargtype[WOPP_NOCLEAR] := ARG_NUM;
  ss_rwoppargtype[WOPP_NOPRINT] := ARG_NUM;
