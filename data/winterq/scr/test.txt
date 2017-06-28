@@ -320,6 +320,7 @@ gfx.show EMO name EMO6 type sprite frame 3 x 17000 y 13000
 gfx.show EMO name EMO1 type sprite frame 2 x 12000 y 16000
 gfx.show EMO name EMO3 type sprite frame 1 x 16000 y 16000
 gfx.show WISP x -32000
+gfx.show EMO name EMO0 type sprite frame 0 x 16000 y 2000
 
 event.create.gob etopleft EMO7
 event.create.gob etopright EMO9
@@ -328,6 +329,8 @@ event.create.gob emiddle EMO5
 event.create.gob eright EMO6
 event.create.gob ebottomleft EMO1
 event.create.gob ebottomright EMO3
+event.create.gob especial EMO0 mouseonly 1
+event.create.area aspecial x 16000 y 0 sizex 2000 sizey 2000 mouseonly 1
 
 event.setlabel etopleft mouseon test.e7 mouseoff test.e0
 event.setlabel etopright mouseon test.e9 mouseoff test.e0
@@ -336,6 +339,8 @@ event.setlabel emiddle mouseon test.e5 mouseoff test.e0
 event.setlabel eright mouseon test.e6 mouseoff test.e0
 event.setlabel ebottomleft mouseon test.e1 mouseoff test.e0
 event.setlabel ebottomright mouseon test.e3 mouseoff test.e0
+event.setlabel especial mouseon test.esp mouseoff test.e0
+event.setlabel aspecial mouseon test.asp mouseoff test.e0
 
 gfx.transition 0
 $v0 := 0
@@ -413,6 +418,12 @@ stop
 stop
 @e3:
   gfx.move WISP 16000 16000
+stop
+@esp:
+  gfx.move WISP 16000 2000
+stop
+@asp:
+  gfx.move WISP 16000 0
 stop
 
 # -------------------------------------------------------------------
