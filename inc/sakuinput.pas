@@ -310,11 +310,13 @@ begin
  // If choicematic is active, move the highlight forward/backward directly.
  if choicematic.active then with choicematic do begin
   newpos := highlightindex - y;
-  if newpos >= longint(showcount) then highlightindex := showcount - 1
-  else if newpos < 0 then highlightindex := 0
-  else highlightindex := newpos;
-  HighlightChoice(MOVETYPE_HALFCOS);
-  exit;
+  if newpos >= longint(showcount) then newpos := showcount - 1
+  else if newpos < 0 then newpos := 0;
+  if dword(newpos) <> highlightindex then begin
+   highlightindex := newpos;
+   HighlightChoice(MOVETYPE_HALFCOS);
+   exit;
+  end;
  end;
 
  // Scroll freescrollable boxes.
@@ -326,7 +328,8 @@ begin
    while jvar <> 0 do begin
     dec(jvar);
     if (fx[jvar].kind = FX_BOXSCROLL) and (fx[jvar].fxbox = ivar) then begin
-     // Found one. Import it's target scroll offset.
+     // Found one. Import it's target scroll offset. This allows multiple
+     // sequential wheel ticks to add up naturally.
      newpos := fx[jvar].y2;
      break;
     end;
