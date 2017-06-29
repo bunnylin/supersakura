@@ -29,6 +29,7 @@ WOPP_DYNAMIC = 0; // autofit to next appropriate parameter type
 WOPP_ALPHA = 3;
 WOPP_ANCHORX = 6;
 WOPP_ANCHORY = 7;
+WOPP_ANGLE = 8;
 WOPP_BOX = 9;
 WOPP_BY = 11;
 WOPP_COLOR = 14;
@@ -64,14 +65,17 @@ WOPP_ZLEVEL = 63;
 
 // Word of power parameter definitions
 // Must be arranged in ascending ascii order!
-const ss_rwopplist : array[0..39] of record
+const ss_rwopplist : array[0..42] of record
   id : string[13];
   code : byte;
 end = (
 // WOPP_DYNAMIC has special handling, so it's not listed among these
 (id : 'alpha';         code : WOPP_ALPHA),
+(id : 'amp';           code : WOPP_BY),
+(id : 'amplitude';     code : WOPP_BY),
 (id : 'anchorx';       code : WOPP_ANCHORX),
 (id : 'anchory';       code : WOPP_ANCHORY),
+(id : 'angle';         code : WOPP_ANGLE),
 (id : 'box';           code : WOPP_BOX),
 (id : 'by';            code : WOPP_BY),
 (id : 'color';         code : WOPP_COLOR),
@@ -431,6 +435,7 @@ begin
  ss_rwoppargtype[WOPP_ALPHA] := ARG_NUM;
  ss_rwoppargtype[WOPP_ANCHORX] := ARG_NUM;
  ss_rwoppargtype[WOPP_ANCHORY] := ARG_NUM;
+ ss_rwoppargtype[WOPP_ANGLE] := ARG_NUM;
  ss_rwoppargtype[WOPP_BOX] := ARG_NUM;
  ss_rwoppargtype[WOPP_BY] := ARG_NUM;
  ss_rwoppargtype[WOPP_COLOR] := ARG_NUM;
@@ -688,7 +693,16 @@ begin
  ss_rwopparams[WOP_GFX_ADOPT][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB];
  // default: empty string, gob is orphaned
  ss_rwopparams[WOP_GFX_ADOPT][WOPP_PARENT] := ss_rwoppargtype[WOPP_PARENT];
+ // default: default viewport's background gob
  ss_rwopparams[WOP_GFX_BASH][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB];
+ // default: 1024 msec
+ ss_rwopparams[WOP_GFX_BASH][WOPP_TIME] := ss_rwoppargtype[WOPP_TIME];
+ // default: 32768 = 1 Hz
+ ss_rwopparams[WOP_GFX_BASH][WOPP_FREQ] := ss_rwoppargtype[WOPP_FREQ];
+ // default: amplitude 8192, 25% of gob size
+ ss_rwopparams[WOP_GFX_BASH][WOPP_BY] := ss_rwoppargtype[WOPP_BY];
+ // default: random angle
+ ss_rwopparams[WOP_GFX_BASH][WOPP_ANGLE] := ss_rwoppargtype[WOPP_ANGLE];
  ss_rwopparams[WOP_GFX_CLEARKIDS][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB];
  ss_rwopparams[WOP_GFX_FLASH][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB];
  ss_rwopparams[WOP_GFX_GETFRAME][WOPP_GOB] := ss_rwoppargtype[WOPP_GOB];
