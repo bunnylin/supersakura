@@ -588,7 +588,22 @@ begin
  end;
 end;
 
-procedure Invoke_GFX_BASH; inline; begin end;
+procedure Invoke_GFX_BASH; inline;
+var gobnum, time, fq, amp, angle : longint;
+begin
+ gobnum := viewport[gamevar.defaultviewport].backgroundgob;
+ if FetchParam(WOPP_GOB) then gobnum := GetGob(strvalue[0]);
+ time := 1024;
+ if FetchParam(WOPP_TIME) then time := numvalue;
+ fq := 32768;
+ if FetchParam(WOPP_FREQ) then fq := numvalue;
+ amp := 8192;
+ if FetchParam(WOPP_BY) then amp := numvalue;
+ if FetchParam(WOPP_ANGLE) then angle := numvalue
+ else angle := random(32768);
+
+ AddBashEffect(gobnum, fiberid, angle, fq, amp, time);
+end;
 
 procedure Invoke_GFX_CLEARALL; inline;
 var ivar : dword;
