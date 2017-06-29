@@ -99,6 +99,11 @@ begin
      gob[fxgob].alphaness := x2;
      if gob[fxgob].drawstate and 2 <> 0 then gob[fxgob].drawstate := gob[fxgob].drawstate or 1;
     end;
+
+    FX_GOBBASH: begin
+     // Cancel the latest applied displacement.
+     MoveGob(fxgob, -x2, -y2);
+    end;
   end;
 
   // Zero out the effect data.
@@ -124,16 +129,15 @@ end;
 
 // ------------------------------------------------------------------
 
-function AddBashEffect(direction, freq, amp, duration : longint; const targetgob : string) : dword;
+procedure AddBashEffect(gobnum : dword; fibernum, direction, freq, amp, msecs : longint);
 // This causes the target gob and its children to start oscillating.
 //
 // Direction: an angle expressed in 32k, with 0 pointing up, +8k pointing
 //   right, +/- 16k pointing down, and so on. It wraps around smoothly.
 // Frequency: 16k = 0.5 Hz, 32k = 1 Hz, 64k = 2Hz
-// Amplitude: 32k = +/- 100% of gob's width, 64k = +/- 200% of gob's width
-// Duration: milliseconds, amplitude shrinks toward 0 over the duration.
-//   If duration <= 0, amplitude remains constant and the effect lasts until
-//   the gob is removed.
+// Amplitude: 32k = +/- 100% of viewport size, 64k = +/- 200% of vp size
+// Msecs: amplitude shrinks toward 0 over this duration. If msecs <= 0,
+//   amplitude remains constant and effect lasts until gob is removed.
 //
 // Multiple bash effects can apply simultaneously to the same gob, although
 // you can't consistently achieve a perfectly circular motion since this
@@ -148,20 +152,9 @@ function AddBashEffect(direction, freq, amp, duration : longint; const targetgob
 // oscillator. Using coscos looks the same but is faster to calculate.
 var fxvar, ivar : dword;
 begin
- {$note Re-implement bash effect}
- addBashEffect := 0;
- // Find the victim
- for ivar := high(gob) downto 0 do
-  if (IsGobValid(ivar)) and (gob[ivar].gobnamu = targetgob) then break;
- if ivar = 0 then begin
-  LogError('fx.bash target gob ' + targetgob + ' not found');
-  exit;
- end;
-
- // Sanity checks
- if duration < 0 then duration := 0
- else if duration > 65000 then duration := 65000;
- //if direction < 0 then inc(direction, $80000000);
+ if (IsGobValid(gobnum) = FALSE) or (freq = 0) or (amp = 0) then exit;
+ // Sanity checks.
+ if msecs < 0 then msecs := 0;
  direction := direction mod 32768; // result: angle 0..32767
  if freq < 0 then begin
   direction := direction xor $4000;
@@ -171,19 +164,24 @@ begin
   direction := direction xor $4000;
   amp := abs(amp);
  end;
- if (freq = 0) or (amp = 0) then exit;
+ if amp > 65535 then amp := 65535;
 
  // Create the effect
- fxvar := NewFx(0);
- fx[fxvar].kind := 5;
- fx[fxvar].fxgob := ivar;
- fx[fxvar].data := freq;
- fx[fxvar].data2 := amp;
- fx[fxvar].time2 := duration; // this stays unchanged
- fx[fxvar].time := 0; // this accumulates tickcount, grows up to starttime
- Log('Bash direction=' + strdec(direction) + ' freq=' + strdec(freq) + ' amp=' + strdec(amp) + ' dura=' + strdec(duration));
+ fxvar := NewFx(fibernum);
+ // Set up the effect.
+ with fx[fxvar] do begin
+  kind := FX_GOBBASH;
+  fxgob := gobnum;
+  x2 := 0; y2 := 0; // most recent gob displacement
+  data := freq;
+  data2 := amp;
+  time := msecs; // remaining msecs
+  time2 := msecs; // full msecs
+ end;
 
- // Convert the direction to a 32k unit vector
+ log('Bash direction=' + strdec(direction) + ' freq=' + strdec(freq) + ' amp=' + strdec(amp) + ' dura=' + strdec(msecs));
+
+ // Convert the direction to a 32k unit vector.
  // Y component:
  if direction >= 16384
  then ivar := direction - 16384 // down-left-up (16k:+max to 32k:-max) arc
@@ -199,9 +197,7 @@ begin
  ivar := (ivar * dword(high(coscos)) + 8192) shr 14; // scale to 0..high(coscos)
  fx[fxvar].x1 := coscos[ivar] - 32768; // 32767..-32768
 
- Log('Bash vector: ' + strdec(fx[fxvar].x1) + ',' + strdec(fx[fxvar].y1));
-
- addBashEffect := fxvar;
+ log('Bash vector=' + strdec(fx[fxvar].x1) + ',' + strdec(fx[fxvar].y1));
 end;
 
 function AddFlashEffect(amount, vp : byte) : byte;
@@ -699,6 +695,70 @@ begin
      end;
     end;
 
+    FX_GOBBASH: with fx[fxi] do begin
+     if (time2 <> 0) and (tickcount >= time) then DeleteFx(fxi)
+     else begin
+      // 1 rotation per (32k * 1000 / freq) msecs
+      // slowest freq = 1: 1 rotation per 32 million msecs (9.1 hours)
+      // fastest freq = 2G: 1 per 0.015 msecs (way beyond our accuracy)
+      jvar := (32768000 + data shr 1) div data;
+
+      // Calculate the current phase.
+      if time2 = 0 then begin
+       // infinite bash
+       time := (time + tickcount) mod dword(jvar);
+       ivar := time;
+      end else begin
+       // diminishing bash: phase is time elapsed modulo time_per_rotation
+       dec(time, tickcount);
+       ivar := (time2 - time) mod dword(jvar);
+      end;
+
+      // convert to range [0..high(coscos) * 2]
+      ivar := (dword(ivar) * dword(high(coscos) shl 1) + dword(jvar) shr 1) div dword(jvar);
+      // get the appropriate coscos value for this phase
+      if ivar < high(coscos) shr 1 then
+       // 1Q: rising wave from 0 to maximum
+       ivar := (high(coscos) shr 1) - ivar
+      else if ivar < (high(coscos) shr 1) * 3 then
+       // 2Q: falling wave from maximum to 0
+       // also 3Q: falling wave from 0 to minimum
+       ivar := ivar - high(coscos) shr 1
+      else
+       // 4Q: rising wave from minimum to 0
+       ivar := 5 * (high(coscos) shr 1) - ivar;
+
+      // Get the final coscos phase in the range -32768..32767.
+      ivar := coscos[ivar] - 32768;
+
+      // Calculate the current decayed amplitude, unless infinite bash.
+      dword(jvar) := data2;
+      if time2 <> 0 then begin
+       jvar := (dword(high(coscos) shr 1) * time + time2 shr 1) div time2;
+       jvar := (data2 * coscos[high(coscos) - jvar] + 16384) shr 15;
+      end;
+
+      // Multiply the phase by the amplitude.
+      jvar := jvar * ivar div 32768;
+
+      // Cancel the previous displacement.
+      MoveGob(fxgob, -x2, -y2);
+
+      // Calculate the new displacement by multiplying the direction vector
+      // by the phased amp.
+      x2 := (x1 * jvar div 32768);
+      y2 := (y1 * jvar div 32768);
+      // Make sure the displacement doesn't go too far.
+      if gob[fxgob].locx + x2 > 65535 then x2 := 65535 - gob[fxgob].locx else
+      if gob[fxgob].locx + x2 < -65535 then x2 := -gob[fxgob].locx - 65535;
+      if gob[fxgob].locy + y2 > 65535 then y2 := 65535 - gob[fxgob].locy else
+      if gob[fxgob].locy + y2 < -65535 then y2 := -gob[fxgob].locy - 65535;
+
+      // Place shaken gob at its new displaced location.
+      MoveGob(fxgob, x2, y2);
+     end;
+    end;
+
     else begin
      LogError('Effector: bad fx kind: ' + strdec(fx[fxi].kind));
      DeleteFx(fxi);
@@ -709,75 +769,6 @@ end;
 
 {$ifdef bonk}
   case fx[ivar].kind of
-   // Screen bash, elastic bounce
-   5: begin
-       inc(fx[ivar].time, tickcount);
-       if (fx[ivar].time2 <> 0) and (fx[ivar].time >= fx[ivar].time2)
-       then begin
-        // Duration has elapsed, delete the effect
-        MoveGob(fx[ivar].gob, 0, 0);
-        fx[ivar].kind := 0; fx[ivar].gob := 0;
-        Log('Bash finished');
-       end else begin
-        // The bash is still live!
-        // Calculate the current decayed amplitude, unless infinite bash
-        jvar := fx[ivar].data2;
-        if fx[ivar].time2 <> 0 then begin
-         jvar := ((high(coscos) shr 1) * (fx[ivar].time2 - fx[ivar].time) + fx[ivar].time2 shr 1) div fx[ivar].time2;
-         jvar := (fx[ivar].data2 * coscos[high(coscos) - jvar] + 16384) shr 15;
-        end;
-        // Calculate the current phase and multiply amplitude with it
-        // freq x: 1 rotation per (32k * 1000 / x) msecs
-        // slowest freq = 1: 1 rotation per 32 million msecs (9.1 hours)
-        // fastest freq = 2G: 1 per 0.015 msecs (way beyond our accuracy)
-        xvar0 := (32768000 + fx[ivar].data shr 1) div fx[ivar].data;
-        xvar1 := fx[ivar].time mod dword(xvar0); // phase as frac'n of .time2
-        // convert to range [0..high(coscos) * 2]
-        xvar1 := (xvar1 * (high(coscos) shl 1) + xvar0 shr 1) div xvar0;
-        // get the appropriate coscos value for this phase
-        if xvar1 < high(coscos) shr 1 then
-         // 1Q: rising wave from 0 to maximum
-         xvar1 := (high(coscos) shr 1) - xvar1
-        else if xvar1 < (high(coscos) shr 1) * 3 then
-         // 2Q: falling wave from maximum to 0
-         // also 3Q: falling wave from 0 to minimum
-         xvar1 := xvar1 - high(coscos) shr 1
-        else
-         // 4Q: rising wave from minimum to 0
-         xvar1 := 5 * (high(coscos) shr 1) - xvar1;
-        xvar2 := coscos[xvar1] - 32768; // range -32768..32767
-
-        // Multiply the 32k unit direction vector by the amp/phase
-        fx[ivar].x2 := fx[ivar].x1 * xvar2;
-        if fx[ivar].x2 < 0
-        then fx[ivar].x2 := (fx[ivar].x2 - 16384) div 32768
-        else fx[ivar].x2 := (fx[ivar].x2 + 16384) shr 15;
-        fx[ivar].x2 := fx[ivar].x2 * longint(jvar);
-        if fx[ivar].x2 < 0
-        then fx[ivar].x2 := (fx[ivar].x2 - 16384) div 32768
-        else fx[ivar].x2 := (fx[ivar].x2 + 16384) shr 15;
-
-        fx[ivar].y2 := fx[ivar].y1 * xvar2;
-        if fx[ivar].y2 < 0
-        then fx[ivar].y2 := (fx[ivar].y2 - 16384) div 32768
-        else fx[ivar].y2 := (fx[ivar].y2 + 16384) shr 15;
-        fx[ivar].y2 := fx[ivar].y2 * longint(jvar);
-        if fx[ivar].y2 < 0
-        then fx[ivar].y2 := (fx[ivar].y2 - 16384) div 32768
-        else fx[ivar].y2 := (fx[ivar].y2 + 16384) shr 15;
-
-        // Multiply the unit vector by the correct length, gob's pixel width
-        if fx[ivar].x2 < 0
-        then fx[ivar].x2 := (fx[ivar].x2 * longint(gob[fx[ivar].gob].sizexp) - 16384) div 32768
-        else fx[ivar].x2 := (fx[ivar].x2 * longint(gob[fx[ivar].gob].sizexp) + 16384) shr 15;
-        if fx[ivar].y2 < 0
-        then fx[ivar].y2 := (fx[ivar].y2 * longint(gob[fx[ivar].gob].sizexp) - 16384) div 32768
-        else fx[ivar].y2 := (fx[ivar].y2 * longint(gob[fx[ivar].gob].sizexp) + 16384) shr 15;
-
-        // Place shaken gob at its new displaced location
-        MoveGob(fx[ivar].gob, gob[fx[ivar].gob].locxp + fx[ivar].x2, gob[fx[ivar].gob].locyp + fx[ivar].y2);
-       end;
-      end;
    // Gamma slide effect
    7: begin
        // Initialisation
