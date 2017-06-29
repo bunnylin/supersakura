@@ -566,7 +566,9 @@ goto intesc2
 
 // ------------------------------------------------------------------
 @effys:
-  gfx.clearkids
+  gfx.clearall
+  gfx.transition
+  gfx.show TITLE bkg
   gfx.transition
   tbox.clear 2
   tbox.clear 6
@@ -683,7 +685,7 @@ gfx.show BIGMACa1 locx 12345
 
 $v300 := 0
 $v301 := 256 // 256^2 / 4 = 16384 = 0.5 Hz
-$v303 := 256 // 256^2 7 4 = 16384 = 50% of gob width
+$v303 := 128 // 128^2 = 16384 = 50% of gob width
 $v305 := 3000 // 3 seconds
 choice.reset
 choice.set "Direction+" bashdirplus
@@ -705,49 +707,51 @@ if $v301 < -768 then $v301 := -768 end
 if $v301 > 768 then $v301 := 768 end
 $v302 := $v301 * $v301 / 4
 if $v301 < 0 then $v302 := 0 - $v302 end
-if $v303 < -768 then $v303 := -768 end
-if $v303 > 768 then $v303 := 768 end
-$v304 := $v303 * $v303 / 4
-if $v303 < 0 then $v304 := 0 - $v304 end
+if $v303 < -256 then $v303 := -256 end
+if $v303 > 256 then $v303 := 256 end
+$v304 := $v303 * $v303
+if $v303 < 0 then $v304 := -$v304 end
 if $v305 <= 0 then $v305 := 0 end
 if $v305 > 8000 then $v305 := 8000 end
+
 tbox.clear 6
-print 6 "Direction: \v$300;\n"
-print 6 "Frequency: \v$302;/32768 Hz\n"
-print 6 "Amplitude: \v$304;/32768 of gob width\n"
+$v306 := $v300 * 360 / 32768
+print 6 "Direction: \$v306; deg\n"
+print 6 "Frequency: \$v302;/32768 Hz\n"
+print 6 "Amplitude: \$v304;/32768 of viewport\n"
 print 6 "Duration: \$v305; msec"
 choice.go
 
 @bashdirplus:
-$v300 := $v300 + 2048
+  $v300 := $v300 + 2048
 goto printbash
 @bashdirminus:
-$v300 := $v300 - 2048
+  $v300 := $v300 - 2048
 goto printbash
 @bashfreqplus:
-$v301 := $v301 + 16
+  $v301 := $v301 + 16
 goto printbash
 @bashfreqminus:
-$v301 := $v301 - 16
+  $v301 := $v301 - 16
 goto printbash
 @bashampplus:
-$v303 := $v303 + 16
+  $v303 := $v303 + 16
 goto printbash
 @bashampminus:
-$v303 := $v303 - 16
+  $v303 := $v303 - 16
 goto printbash
 @bashduraplus:
-$v305 := $v305 + 250
+  $v305 := $v305 + 250
 goto printbash
 @bashduraminus:
-$v305 := $v305 - 250
+  $v305 := $v305 - 250
 goto printbash
 
 @dobash:
-gfx.bash $v300, $v302, $v304, $v305, TITLE
+gfx.bash TITLE angle $v300 freq $v302 amplitude $v304 time $v305
 goto printbash
 @dorandombash:
-gfx.bash rnd 32768, (rnd 80000 + 80000), rnd 3333 + 3333, 1200 + rnd 1200, TITLE
+gfx.bash time rnd(3333) + 3333 freq rnd(99999) + 9999 amp rnd(48000) + 16000
 goto printbash
 
 // ------------------------------------------------------------------
