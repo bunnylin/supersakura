@@ -14,6 +14,10 @@ FUTURE
 - Console mode textboxes must each redraw completely if overlapping; also add
   clipping against screen/viewport at least for the background if not the
   text content
+- Mousewheel should just scroll choicebox directly; tougher than at first
+  glance, since the box scroll effect is gradual and the normal choice
+  highlighter doesn't easily take the future scroll position into account,
+  leaving the highlight box out of sync with its parent box's scroll offset
 - Eye candy
    + Add a pixelisation effect, dynamically slidable pixel size?
    + Add nice wind for sakura petals and snowfall
@@ -124,6 +128,7 @@ REQUIRED FOR 1.0
      fiber.waittyping
      gfx.stashthumbnail [name]
      sys.exitmeta
+     sys.getuimag
      sys.getnumsaves
      sys.getsavedate [index]
      sys.getsavename [index]
@@ -131,15 +136,14 @@ REQUIRED FOR 1.0
      sys.loadsavethumb [index] [name]
      sys.loadstate [index]
      sys.savestate [index] [name]
+     sys.setuimag [value]
      sys.showhistory
      tbox.getlastline [box] (must autodouble all backslashes)
    + As long as choicematic.typeinbox is valid, user keypresses are added to
      the last line of the box; pressing enter in this case takes precedence
      and ends typing, resuming fibers waiting for typing to end
 - Mcsassm needs a way to add run-time incidental graphics
-- Test mouseonly mouseoverables
-- Mousewheel should just scroll choicebox directly
-- Add uimagnifiq'n in config file
+- Add abs operator for sakuscript
 - Set up Vagrant configs for the below VMs?
 - Set up another distro or two in VMs and make sure can build on them; should
   try Ubuntu and Fedora? Also FreeBSD, should be trivial to support
