@@ -55,7 +55,6 @@ var outbuf : record
     implicitwaitkey, waitkeyswipe : byte;
     persistence, blackedout, haschoices, stashactive : boolean;
     txt : string;
-    lastbkg : string;
     nextgra : record
       style, ofsx : word;
       transition, unswiped : byte;
@@ -274,31 +273,31 @@ var outbuf : record
    end;
   end;
 
-  procedure WriteThwomp(numthwomp : byte; namu : string);
+  procedure WriteThwomp(numthwomp : byte);
   // Writes out 1 + numthwomp vertical bashes.
   var ivar : byte;
   begin
-   writebufln('gfx.bash 0 2000 10 14 ' + namu);
+   writebufln('gfx.bash time 1280 freq 128000 amp 6400 angle 16384');
    ivar := numthwomp;
    while ivar <> 0 do begin
     dec(ivar);
     writebufln('sleep ' + strdec(240 + byte(numthwomp - ivar) shl 7));
-    writebufln('gfx.bash 0 ' + strdec(2000 + byte(numthwomp - ivar) shl 8) + ' 10 14 ' + namu);
+    writebufln('gfx.bash ' + strdec(1024 + byte(numthwomp - ivar) shl 8) + ' 128000 6400 16384');
    end;
   end;
 
-  procedure WriteBash(numbash : byte; namu : string);
+  procedure WriteBash(numbash : byte);
   // Writes out 1 + numbash mostly horizontal bashes.
   begin
-   writebufln('$v42 := rnd 4000 + 6000');
+   writebufln('$v42 := rnd 8192 + 4096');
    writebufln('if rnd 2 = 0 then $v42 := -$v42 end');
-   writebufln('$v43 := rnd 2048 - 512');
-   writebufln('gfx.bash $v42 $v43 60 12 ' + namu);
+   writebufln('$v43 := rnd 2048 + 6000');
+   writebufln('gfx.bash time 1280 freq 128000 amp $v43 angle $v42');
    while numbash <> 0 do begin
     writebufln('sleep ' + strdec(480 + numbash shl 7));
     writebufln('$v42 := -$v42 + rnd 2000 - 1000');
-    writebufln('$v43 := rnd 2048 - 512');
-    writebufln('gfx.bash $v42 $v43 50 12 ' + namu);
+    writebufln('$v43 := rnd 2048 + 6000');
+    writebufln('gfx.bash 1280 128000 $v43 $v42');
     dec(numbash);
    end;
   end;
@@ -594,7 +593,6 @@ begin
  animslot[0].ofsx := 0;
  choicecombo[0].id := 0;
  gfxlist[0].gfxname := '';
- lastbkg := '';
 
  // Initialisation
  setlength(outbuf.labellist, 640);
@@ -1508,7 +1506,6 @@ begin
   if game in [gid_SETSUJUU, gid_TRANSFER98]
    then AutoLoadAnims(gfxlist[0].gfxname);
   persistence := TRUE;
-  lastbkg := gfxlist[0].gfxname;
  end;
  blackedout := FALSE; stashactive := FALSE;
  waitkeyswipe := $FF;
@@ -2711,7 +2708,6 @@ begin
            if nextgra.style and 16 <> 0 then begin
             writebufln('gfx.remove TB_008 // clearstate');
             stashactive := FALSE;
-            lastbkg := txt;
            end;
            // HACK: chapter title card in Majokko is named "NOT"
            if txt = 'NOT' then writebuf('gfx.show ."NOT"')
@@ -2800,8 +2796,8 @@ begin
           case game of
            gid_3SIS, gid_3SIS98:
              case jvar of
-              123,216,217,220,223,541,702,713,719,733,737,738: WriteBash(lvar, gfxlist[0].gfxname);
-              104,110,117,206,306,402,508,605,725,731: WriteThwomp(lvar, gfxlist[0].gfxname);
+              123,216,217,220,223,541,702,713,719,733,737,738: WriteBash(lvar);
+              104,110,117,206,306,402,508,605,725,731: WriteThwomp(lvar);
              end;
           end;
          end;
@@ -2995,7 +2991,7 @@ begin
           lvar := (lvar - 1) shr 1;
           if (scriptname = 'CSA09')
           or (scriptname = 'CS507_D')
-          then WriteBash(1, lastbkg) else WriteThwomp(lvar, lastbkg);
+          then WriteBash(1) else WriteThwomp(lvar);
          end;
          else begin PrintError('Unknown code $18 @ $' + strhex(lofs)); exit; end;
         end;
