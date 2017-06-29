@@ -748,6 +748,8 @@ end;
 procedure DrawRGB24(clipdata : pblitstruct); forward;
 procedure DrawRGBA32(clipdata : pblitstruct); forward;
 procedure DrawRGBA32hardlight(clipdata : pblitstruct); forward;
+// Common effect remover.
+procedure DeleteFx(fxnum : dword); forward;
 {$ifndef sakucon}
 // The dat-loader may need to resize the game window.
 procedure GetDefaultWindowSizes(var sizex, sizey : dword); forward;
@@ -758,6 +760,7 @@ procedure StashRender; forward;
 procedure StartFiber(labelnamu, fibernamu : UTF8string); forward;
 // The box renderer etc may need to set the highlighted choice.
 procedure HighlightChoice(style : byte); forward;
+
 
 // Uncomment this when compiling with HeapTrace. Call this whenever to test
 // if at that moment the heap has yet been messed up.
@@ -1395,10 +1398,7 @@ begin
  // Kill related effects.
  for ivar := high(fx) downto 0 do
   if (fx[ivar].kind <> 0) and (fx[ivar].fxgob = gobnum)
-  then begin
-   if fx[ivar].poku <> NIL then begin freemem(fx[ivar].poku); fx[ivar].poku := NIL; end;
-   fx[ivar].kind := 0;
-  end;
+   then DeleteFx(ivar);
  // Kill events.
  ivar := length(event.gob);
  while ivar <> 0 do begin
