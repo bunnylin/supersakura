@@ -133,7 +133,7 @@ function CheckPageableBoxes : boolean;
 var ivar : dword;
 begin
  CheckPageableBoxes := FALSE;
- for ivar := high(TBox) downto 0 do
+ for ivar := high(TBox) downto 1 do
   with TBox[ivar] do begin
    if (boxstate = BOXSTATE_SHOWTEXT)
    and (style.freescrollable = FALSE) and (style.autowaitkey)

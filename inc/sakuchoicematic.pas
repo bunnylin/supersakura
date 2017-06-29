@@ -33,7 +33,7 @@ begin
   end;
  end;
 
- for ivar := high(TBox) downto 0 do ClearTextbox(ivar);
+ for ivar := high(TBox) downto 1 do ClearTextbox(ivar);
 
  if fibercount <> 0 then
   for ivar := fibercount - 1 downto 0 do
