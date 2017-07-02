@@ -1143,9 +1143,11 @@ begin
 end;
 
 begin
- recomp_param.sourcedir := ''; // stupid compiler warning
- if DoParams = FALSE then exit;
- if DoInits = FALSE then exit;
+ recomp_param.sourcedir := ''; // silence a compiler warning
+ errorcount := 0;
+
+ if DoParams = FALSE then begin ExitCode := errorcount; exit; end;
+ if DoInits = FALSE then begin ExitCode := errorcount; exit; end;
 
  // Find and process all files under the source directory
  if recomp_param.sourcedir <> ''
@@ -1158,4 +1160,5 @@ begin
  then GenerateDataFile;
 
  DoCleanup;
+ ExitCode := errorcount;
 end.
