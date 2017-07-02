@@ -11,5 +11,8 @@ if NOT %ERRORLEVEL%==0 exit /b
 call comp -f supersakura
 if NOT %ERRORLEVEL%==0 exit /b
 
+call recomp supersakura
+if NOT %ERRORLEVEL%==0 exit /b
+
 7z a -mx9 sakubin.zip @releasefiles.txt
 move /Y sakubin.zip \website\ssakura\
