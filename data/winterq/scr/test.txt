@@ -705,12 +705,10 @@ if $v300 < 0 then $v300 := $v300 + 32768 end
 if $v300 >= 32768 then $v300 := $v300 - 32768 end
 if $v301 < -768 then $v301 := -768 end
 if $v301 > 768 then $v301 := 768 end
-$v302 := $v301 * $v301 / 4
-if $v301 < 0 then $v302 := 0 - $v302 end
+$v302 := $v301 * abs($v301) / 4
 if $v303 < -256 then $v303 := -256 end
 if $v303 > 256 then $v303 := 256 end
-$v304 := $v303 * $v303
-if $v303 < 0 then $v304 := -$v304 end
+$v304 := $v303 * abs($v303)
 if $v305 <= 0 then $v305 := 0 end
 if $v305 > 8000 then $v305 := 8000 end
 
