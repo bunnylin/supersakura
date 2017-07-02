@@ -1,1 +1,1 @@
-const SSver = 'v0.91';
+const SSver = 'v0.92';
