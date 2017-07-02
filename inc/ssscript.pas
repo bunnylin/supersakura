@@ -800,6 +800,7 @@ const
 // unary operators
 TOKEN_NOT = '!'; // NOT !
 TOKEN_NEG = '_'; // unary prefix negation
+TOKEN_ABS = 'a'; // absolute value
 TOKEN_VAR = '$';
 TOKEN_RND = 'r'; // RND
 TOKEN_TONUM = 't'; // TONUMBER
@@ -1168,7 +1169,8 @@ var linestart : pointer;
       // Special case: equals-sign after parameter name is fine, skip it
       if (token = TOKEN_EQ) and (lasttoken = paramtoken) then exit;
       // Check for expected element order
-      if token in [TOKEN_NOT, TOKEN_NEG, TOKEN_VAR, TOKEN_RND, TOKEN_TONUM, TOKEN_TOSTR]
+      if token in [TOKEN_NOT, TOKEN_NEG, TOKEN_VAR, TOKEN_RND, TOKEN_ABS,
+       TOKEN_TONUM, TOKEN_TOSTR]
       then begin
        // unary prefix operator
        if lasttoken in [none, flowcontrol, woptoken, operand] then startnewexpr(FALSE);
@@ -1190,7 +1192,7 @@ var linestart : pointer;
         TOKEN_EQ, TOKEN_LT, TOKEN_GT, TOKEN_LE, TOKEN_GE, TOKEN_NE: precedence := 30;
         TOKEN_OR, TOKEN_XOR, TOKEN_PLUS, TOKEN_MINUS: precedence := 40;
         TOKEN_MUL, TOKEN_DIV, TOKEN_MOD, TOKEN_AND, TOKEN_SHL, TOKEN_SHR: precedence := 50;
-        TOKEN_NOT, TOKEN_NEG, TOKEN_VAR, TOKEN_RND, TOKEN_TONUM, TOKEN_TOSTR: precedence := 60;
+        TOKEN_NOT, TOKEN_NEG, TOKEN_VAR, TOKEN_RND, TOKEN_ABS, TOKEN_TONUM, TOKEN_TOSTR: precedence := 60;
       end;
 
       // Establish this token's associativity, lefty by default.
@@ -1198,7 +1200,7 @@ var linestart : pointer;
       // precedence of topmost in opstack > this righty token, keep popping.
       if token in
         [TOKEN_NOT, TOKEN_NEG, TOKEN_VAR, TOKEN_RND, TOKEN_TONUM, TOKEN_TOSTR,
-        TOKEN_SET, TOKEN_INC, TOKEN_DEC]
+        TOKEN_ABS, TOKEN_SET, TOKEN_INC, TOKEN_DEC]
         then opstackpop(precedence + 1) // righty
         else opstackpop(precedence); // lefty
 
@@ -1625,6 +1627,7 @@ var linestart : pointer;
     if strip = 'div' then begin opstackpush(TOKEN_DIV); exit; end else
     if strip = 'mod' then begin opstackpush(TOKEN_MOD); exit; end else
     if strip = 'rnd' then begin opstackpush(TOKEN_RND); exit; end else
+    if strip = 'abs' then begin opstackpush(TOKEN_ABS); exit; end else
     if strip = 'shl' then begin opstackpush(TOKEN_SHL); exit; end else
     if strip = 'shr' then begin opstackpush(TOKEN_SHR); exit; end;
     4:

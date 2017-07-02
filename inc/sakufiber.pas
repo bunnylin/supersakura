@@ -780,6 +780,15 @@ begin // ExecuteFiber
      end;
     end;
 
+    TOKEN_ABS: begin
+     PopThing;
+     if length(strvalue) <> 0 then fibererror('Can''t ABS a string: ' + strvalue[GetBestString($FFFF)])
+     else begin
+      PushInt(abs(numvalue));
+      PushInt(STACK_TOKEN_NUMBER);
+     end;
+    end;
+
     TOKEN_TONUM: begin
      PopThing;
      if length(strvalue) <> 0 then begin
