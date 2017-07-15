@@ -32,6 +32,32 @@ You can get a reasonably recent Win32 build of the engine and tools from
 [mooncore.eu/ssakura](https://mooncore.eu/ssakura/). But for best results,
 see below on how to compile your own copy.
 
+You MUST have SDL2 installed to run the engine!
+
+
+SDL2
+----
+
+This is a famous video/audio library used by many modern games, so you may
+already have it on your system. If not, it is easy to get.
+
+32-bit Windows: Get the 32-bit runtime binary for Windows from
+[libsdl.org/download-2.0.php](https://libsdl.org/download-2.0.php), and the
+font-rendering 32-bit runtime binary from
+[libsdl.org/projects/SDL_ttf](https://www.libsdl.org/projects/SDL_ttf/).
+Put both in your \Windows\System32 directory (or in the same directory where
+SuperSakura is, if you prefer).
+
+64-bit Windows: You can run the 32-bit version of SuperSakura on 64-bit
+Windowses, so do the same as above, except you may need to put the DLL files
+in your \Windows\SysWOW64 directory. If you have a 64-bit version of
+SuperSakura, get the 64-bit SDL2 and SDL2_ttf runtime binaries and put those
+in your \Windows\System32 directory (or in the same directory where
+SuperSakura is, if you prefer).
+
+Linux: Your distro's main software repository should have SDL2 and SDL2_ttf.
+Install both through your normal package manager.
+
 
 Compiling
 ---------
@@ -46,10 +72,8 @@ After downloading the SuperSakura sources, you need to install FPC. Try to
 make a hello-world program to confirm it works.
 
 Next, get SDL2 and SDL2_ttf. These are dynamically linked libraries that
-must be present on the system for the engine to run. If on Windows, you can
-download the dll's from libsdl.org, and can put them either in your
-\Windows\System32 directory, or in SuperSakura's source directory. On
-Linuxes, your distro's main software repository will have SDL2 and SDL2_ttf.
+must be present on the system for the engine to run. See the SDL2 section
+above for details.
 
 The SDL2 Pascal headers and moonlibs are statically linked units or
 libraries; they are needed to compile the engine and tools, but afterward
@@ -107,6 +131,14 @@ logs are saved under your profile directory.
 
 You can add -h to any executable's commandline to see what other commandline
 options are available.
+
+The console port works best when playing games in English. If your console
+is configured to correctly display Japanese characters, you can also play in
+Japanese. But successfully configuring a console to show UTF-8-encoded
+Japanese, especially in Windows, can be challenging. I was able to get it
+working in all Linuxes and Windows XP, but not in Windows 7. You might
+consider a third-party console replacement, such as
+[ConEmu](https://conemu.github.io/).
 
 
 Converting game data
@@ -183,7 +215,7 @@ If you're on Linux, with translate-shell installed and on the system path:
 
 	translate.sh input.tsv >output.tsv
 
-Of, if you have Python 3, again with translate-shell installed and available
+Or, if you have Python 3, again with translate-shell installed and available
 on the system path:
 
 	python translate.py input.tsv >output.tsv
@@ -231,9 +263,7 @@ example `desc Sanshimai (English mod) (PC98)`, and it should specify the
 language: `language English`.
 
 4. Compile the mod by specifying the parent project name, for example:
-
-
-	recomp 3sis98-en -parent=3sis98
+	`recomp 3sis98-en -parent=3sis98`
 
 You should end up with a new dat file. When you load the new dat in
 SuperSakura, the engine will automatically load the parent dat first. An
