@@ -2181,7 +2181,7 @@ begin
  if AddFontLang('Japanese', 'yumin*') = FALSE then // Yu Mincho
  if AddFontLang('Japanese', 'hana?in*') = FALSE then // Hanazono Mincho
  if AddFontLang('Japanese', 'noto?ansCJKjp-?egular*') = FALSE then // Noto
- if AddFontLang('Japanese', 'noto?ans?????-?egular*') = FALSE then // Noto
+ if AddFontLang('Japanese', 'noto?ans*-?egular*') = FALSE then // Noto
  if AddFontLang('Japanese', 'meiryo*') = FALSE then // MS Meiryo
  AddFontLang('Japanese', 'msgothic*'); // MS Gothic
  {$endif}
