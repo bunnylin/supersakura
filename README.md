@@ -41,22 +41,39 @@ SDL2
 This is a famous video/audio library used by many modern games, so you may
 already have it on your system. If not, it is easy to get.
 
-32-bit Windows: Get the 32-bit runtime binary for Windows from
+**32-bit Windows**: Get the 32-bit runtime binary for Windows from
 [libsdl.org/download-2.0.php](https://libsdl.org/download-2.0.php), and the
 font-rendering 32-bit runtime binary from
 [libsdl.org/projects/SDL_ttf](https://www.libsdl.org/projects/SDL_ttf/).
-Put both in your \Windows\System32 directory (or in the same directory where
-SuperSakura is, if you prefer).
+Put both in your `\Windows\System32` directory (or in the same directory
+where SuperSakura is, if you prefer).
 
-64-bit Windows: You can run the 32-bit version of SuperSakura on 64-bit
+**64-bit Windows**: You can run the 32-bit version of SuperSakura on 64-bit
 Windowses, so do the same as above, except you may need to put the DLL files
-in your \Windows\SysWOW64 directory. If you have a 64-bit version of
+in your `\Windows\SysWOW64` directory. If you have a 64-bit version of
 SuperSakura, get the 64-bit SDL2 and SDL2_ttf runtime binaries and put those
-in your \Windows\System32 directory (or in the same directory where
+in your `\Windows\System32` directory (or in the same directory where
 SuperSakura is, if you prefer).
 
-Linux: Your distro's main software repository should have SDL2 and SDL2_ttf.
-Install both through your normal package manager.
+**Linux**: Your distro's main software repository should have SDL2 and
+SDL2_ttf. On Debian/Ubuntu, the packages may be named libsdl2-2.0-0 and
+libsdl2-ttf-2.0-0. Install both through your normal package manager. You
+should end up with libSDL2*.so files somewhere under your `/usr/lib` or
+`/usr/lib/x86_64-linux-gnu` directory. The two files that must be present
+are libSDL2.so and libSDL2_ttf.so. If you do not have these, it is possible
+your package manager only set up version-numbered files and neglected to
+create generically named links for them. This can be fixed by manually
+creating the symbolic links in the library directory:
+
+	ln -s libSDL2-2.0.so.0 libSDL2.so
+	ln -s libSDL2_ttf-2.0.so.0 libSDL2_ttf.so
+
+Some useful information on setting up SDL2 for Linux is [here](http://www.freepascal-meets-sdl.net/chapter-2-installation-configuration-linux-version/).
+Note, that under some conditions SDL may crash on startup due to an
+unsupported rendering mode. This happens especially if trying to run in
+a Linux inside VirtualBox, which has imperfect graphic acceleration support.
+[Overriding the SDL video driver](https://wiki.libsdl.org/FAQUsingSDL) may
+help in this case.
 
 
 Compiling
@@ -68,8 +85,9 @@ Requirements:
 - [The SDL2 Pascal headers](https://github.com/ev1313/Pascal-SDL-2-Headers)
 - [Various moonlibs](https://github.com/bunnylin/moonlibs)
 
-After downloading the SuperSakura sources, you need to install FPC. Try to
-make a hello-world program to confirm it works.
+After downloading the SuperSakura sources, you need to install FPC.
+Preferably get the latest 3.0.x compiler version. Try to make a hello-world
+program to confirm it works.
 
 Next, get SDL2 and SDL2_ttf. These are dynamically linked libraries that
 must be present on the system for the engine to run. See the SDL2 section
@@ -79,13 +97,19 @@ The SDL2 Pascal headers and moonlibs are statically linked units or
 libraries; they are needed to compile the engine and tools, but afterward
 are not needed to run them. Download the sources for those and save them in
 a directory near FPC's other units. On Windows, this is probably
-\FPC\units\arch\. On Linuxes, it may be under /usr/lib/fpc/version/arch/.
-If you have trouble finding where FPC keeps its units, see the relevant
+`\FPC\units\<arch>\`. On Linuxes, it may be under
+`/usr/lib/fpc/version/<arch>/`. If you have trouble finding where FPC keeps
+its units, see the relevant
 [wiki page](http://wiki.freepascal.org/Unit_not_found_-_How_to_find_units).
 
-Alternatively, just dump everything in the SuperSakura source directory.
+Alternatively, just dump everything in the SuperSakura source directory. You
+can also edit the compiler's
+[configuration file](https://www.freepascal.org/docs-html/user/usersu10.html)
+to tell it where to look for units. The unit directories are specified in
+the format `-FuDirectory/Directory/Directory`.
 
-To compile, you can use the included `comp.bat` or `comp.sh` commands:
+To compile a program or unit, you can use the included `comp.bat` or
+`comp.sh` commands:
 
     comp <file>
 
@@ -93,11 +117,13 @@ Or invoke the compiler directly:
 
     fpc <file>
 
-Although FPC will automatically build any units programs need, you may want
-to start off by compiling the individual `SDL2_xxx.pas` and `mcxxx.pas`
-files one by one, to see potential error messages more clearly.
+Although FPC will automatically build any units needed by programs, you may
+want to start off by compiling the individual `SDL2_xxx.pas` and `mcxxx.pas`
+files one by one, to see potential error messages more clearly. As long as
+the compiler output doesn't say "Fatal:" or "Error:", it probably worked.
+The created unit or executable will be in the same directory as the source.
 
-Finally, build the engine and its tools:
+To build the whole engine and its tools:
 
     comp supersakura
     comp supersakura-con
@@ -136,7 +162,7 @@ The console port works best when playing games in English. If your console
 is configured to correctly display Japanese characters, you can also play in
 Japanese. But successfully configuring a console to show UTF-8-encoded
 Japanese, especially in Windows, can be challenging. I was able to get it
-working in all Linuxes and Windows XP, but not in Windows 7. You might
+working in various Linuxes and Windows XP, but not in Windows 7. You might
 consider a third-party console replacement, such as
 [ConEmu](https://conemu.github.io/).
 
