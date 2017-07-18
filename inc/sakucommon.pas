@@ -2123,6 +2123,7 @@ begin
    if copy(cline, 1, 6) = 'uimag ' then begin
     ivar := abs(valx(copy(cline, 7, length(cline))));
     // Force min/max bounds.
+    if ivar = 0 then ivar := 32768 else
     if ivar < 2048 then ivar := 2048 else
     if ivar > 262144 then ivar := 262144;
     sysvar.uimagnification := ivar;
