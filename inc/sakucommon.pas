@@ -2168,7 +2168,7 @@ begin
  if AddFontLang('English', 'fp9r*') = FALSE then // FPL Neu
  if AddFontLang('English', 'bkant*') = FALSE then // Book Antiqua
  if AddFontLang('English', 'pala*') = FALSE then // Palatino
- if AddFontLang('English', 'deja?u?erif*') = FALSE then // DejaVu Serif
+ if AddFontLang('English', 'deja?u?erif.*') = FALSE then // DejaVu Serif
  // sans
  if AddFontLang('English', 'tahoma*') = FALSE then // Tahoma
  if AddFontLang('English', 'liberation*egular*') = FALSE then // Liberation
