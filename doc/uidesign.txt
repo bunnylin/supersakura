@@ -46,6 +46,22 @@ Normal text input
   first choice beginning with the entered character, and highlight that. Roll
   around the choice showlist as needed.
 
+Delete/backspace
+- If textboxes are hidden, ignore.
+- If any box from 0 upward accepts text input, delete some text in the box.
+- If choicematic is active, and not on top choice level, go up a level.
+
+Home/end
+- If textboxes are hidden, ignore.
+- If any box from 0 upward accepts text input, move the caret.
+- If choicematic is active, move the highlight.
+- If a freely scrollable box exists, scroll the box to top or bottom.
+
+Pageup/pagedown
+- If textboxes are hidden, ignore.
+- If choicematic is active, move the highlight.
+- If a freely scrollable box exists, scroll the box by a pageful.
+
 Cursor keys left/right
 - If box 0 is in showtext state and transcript mode is off, move the caret?
 - If choicematic is active and has more than one column, move the highlight.
@@ -57,12 +73,6 @@ Cursor keys up/down
 - If a freely scrollable box exists, scroll the box up/down.
 - If mouseoverables without -mouseonly exist, find the closest up/down from
   current mousexy and mouseon it, mouseoffing current overable if any.
-
-Home/end/pageup/pagedown
-- If pressed home/end, and box 0 is in showtext state and transcript mode is
-  off, move the caret?
-- If choicematic is active, move the highlight.
-- If a freely scrollable box exists, scroll the box.
 
 Ctrl-A
 - If metastate is normal, enable/disable skip seen text mode.
@@ -181,7 +191,7 @@ Right-click
 - If metastate is normal, enter the metamenu metastate.
 
 Mouse wheel
-- If choicematic is active, move the highlight forward/backward.
+- If a choicebox is active, highlight the next choice in the given direction.
 - If a freely scrollable box exists, scroll the box up/down.
 
 
