@@ -73,7 +73,9 @@ Note, that under some conditions SDL may crash on startup due to an
 unsupported rendering mode. This happens especially if trying to run in
 a Linux inside VirtualBox, which has imperfect graphic acceleration support.
 [Overriding the SDL video driver](https://wiki.libsdl.org/FAQUsingSDL) may
-help in this case.
+help in this case. If you get a division by zero on startup, it's possible
+your SDL version is outdated; building the latest SDL2 source from the
+master branch may get it working.
 
 
 Compiling
@@ -106,7 +108,7 @@ Alternatively, just dump everything in the SuperSakura source directory. You
 can also edit the compiler's
 [configuration file](https://www.freepascal.org/docs-html/user/usersu10.html)
 to tell it where to look for units. The unit directories are specified in
-the format `-FuDirectory/Directory/Directory`.
+the format `-FuDirectory/Subdirectory/Subdirectory`.
 
 To compile a program or unit, you can use the included `comp.bat` or
 `comp.sh` commands:
@@ -120,8 +122,9 @@ Or invoke the compiler directly:
 Although FPC will automatically build any units needed by programs, you may
 want to start off by compiling the individual `SDL2_xxx.pas` and `mcxxx.pas`
 files one by one, to see potential error messages more clearly. As long as
-the compiler output doesn't say "Fatal:" or "Error:", it probably worked.
-The created unit or executable will be in the same directory as the source.
+the compiler output doesn't say "Fatal:" or "Error:" at the end, it probably
+worked. The created unit or executable will be in the same directory as the
+source.
 
 To build the whole engine and its tools:
 
