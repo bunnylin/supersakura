@@ -1014,7 +1014,7 @@ end;
 procedure Invoke_SYS_LOADDAT; inline;
 begin
  if FetchParam(WOPP_NAME) = FALSE then fibererror('sys.loaddat: no dat name')
- else LoadDatCommon(strvalue[0], '');
+ else LoadDatCommon(strvalue[0]);
 end;
 
 procedure Invoke_SYS_LOADDATBANNER; inline;
@@ -1025,8 +1025,8 @@ begin
  then fibererror('loaddatbanner: bad dat index ' + strdec(numvalue))
  else begin
   if FetchParam(WOPP_NAME)
-  then LoadDatCommon(availabledatlist[numvalue].projectname, strvalue[0])
-  else LoadDatCommon(availabledatlist[numvalue].projectname, 'BANNER');
+  then LoadDatBanner(availabledatlist[numvalue].projectname, strvalue[0])
+  else LoadDatBanner(availabledatlist[numvalue].projectname, 'BANNER');
  end;
 end;
 

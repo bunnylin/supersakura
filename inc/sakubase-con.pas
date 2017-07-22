@@ -21,6 +21,7 @@ procedure ScreenModeSwitch;
 // Call this to adjust the game to whatever the console's current size is.
 var ivar, jvar : dword;
 begin
+ ivar := 0; jvar := 0; // silence a compiler warning
  GetConsoleSize(ivar, jvar);
  if ivar <> 0 then sysvar.mv_WinSizeX := ivar;
  if jvar <> 0 then sysvar.mv_WinSizeY := jvar;
@@ -143,7 +144,7 @@ end;
 
 procedure MainLoop;
 var tickcount, tickmark : ptruint;
-    ivar, jvar : dword;
+    ivar : dword;
 begin
  tickmark := GetMsecTime;
  while TRUE do begin
@@ -349,13 +350,13 @@ begin
 
  // Load the frontend dat.
  if lowercase(saku_param.appname) = 'supersakura-con'
- then LoadDatCommon('supersakura', '')
- else LoadDatCommon(saku_param.appname, '');
+ then LoadDatCommon('supersakura')
+ else LoadDatCommon(saku_param.appname);
 
  // Load the other dats given on the commandline.
  if length(saku_param.datnames) <> 0 then begin
   for ivar := 0 to length(saku_param.datnames) - 1 do
-   LoadDatCommon(saku_param.datnames[ivar], '');
+   LoadDatCommon(saku_param.datnames[ivar]);
   // Clean up. The dat names are now in DATlist[].
   setlength(saku_param.datnames, 0);
  end;

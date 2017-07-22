@@ -1916,68 +1916,92 @@ end;
 
 // ------------------------------------------------------------------
 
-procedure LoadDatCommon(const loadname : UTF8string; const bannername : UTF8string);
+procedure LoadDatBanner(const loadname : UTF8string; const bannername : UTF8string);
+// Loads the banner image from the given dat project. Upon loading, the image
+// is renamed to bannername, which can't be empty. If the dat doesn't contain
+// a banner, tries to load one from its parent, if any. If no banners are
+// found, no image is loaded and any previous banner in memory by the same
+// name is dropped.
+// You must call EnumerateDats before calling this.
+var datnum, ivar, jvar : dword;
+begin
+ // Bannername can't be empty.
+ if bannername = '' then begin
+  LogError('LoadDatBanner: empty bannername');
+  exit;
+ end;
+ // Find the named dat.
+ datnum := GetDat(loadname);
+ if datnum >= dword(length(availabledatlist)) then begin
+  LogError('LoadDatBanner: ' + loadname + ' not found');
+  exit;
+ end;
+
+ // Try to load a banner from this dat.
+ if LoadDAT(availabledatlist[datnum].filenamu, bannername) = 0 then exit;
+
+ // Failed to load a banner. Try to load from parent dat, if possible.
+ if availabledatlist[datnum].parentname <> '' then
+  LoadDatBanner(availabledatlist[datnum].parentname, bannername);
+end;
+
+procedure LoadDatCommon(const loadname : UTF8string);
 // Loads the given dat project name. Makes sure the dat's ancestors are
 // loaded first, if they exist. Loadname must be in lowercase. You must call
 // EnumerateDats before calling this.
-// If bannername is empty, loads the entire dat. Otherwise only loads the
-// banner image from the dat and names the image bannername.
 var datnum, ivar, jvar : dword;
 begin
+ // Find the named dat.
  datnum := GetDat(loadname);
- if datnum >= dword(length(availabledatlist))
- then LogError('Dat not found: ' + loadname)
- else begin
-
-  if bannername = '' then begin
-   if availabledatlist[datnum].parentname <> '' then begin
-    ivar := 0;
-    while ivar < dword(length(datlist)) do begin
-     if datlist[ivar].projectname = availabledatlist[datnum].parentname then break;
-     inc(ivar);
-    end;
-    if ivar >= dword(length(datlist)) then begin
-     log('Loading dat dependency ' + availabledatlist[datnum].parentname);
-     LoadDatCommon(availabledatlist[datnum].parentname, '');
-    end;
-   end
-   else if sysvar.activeprojectname <> availabledatlist[datnum].projectname
-   then begin
-    sysvar.activeprojectname := availabledatlist[datnum].projectname;
-    log('Active project now: ' + sysvar.activeprojectname);
-   end;
-  end;
-
-  {$ifdef sakucon}
-  // The console port just needs to load the dat.
-  if LoadDAT(availabledatlist[datnum].filenamu, bannername) <> 0 then
-   LogError(asman_errormsg);
-  {$else}
-  // Remember the current base resolution, and try to load the dat.
-  ivar := asman_baseresx;
-  jvar := asman_baseresy;
-  if LoadDAT(availabledatlist[datnum].filenamu, bannername) <> 0 then
-   LogError(asman_errormsg)
-  // If the base resolution changed because of this dat, and a main window
-  // already exists, then resize the window.
-  else if (mv_MainWinH <> NIL) and (bannername = '') then
-  if (ivar <> dword(asman_baseresx)) or (jvar <> dword(asman_baseresy))
-  then if sysvar.WinSizeAuto
-  then begin
-   GetDefaultWindowSizes(ivar, jvar);
-   if (ivar <> 0) and (saku_param.overridex = 0) then sysvar.WindowSizeX := ivar;
-   if (jvar <> 0) and (saku_param.overridey = 0) then sysvar.WindowSizeY := jvar;
-   ScreenModeSwitch(sysvar.fullscreen);
-  end;
-  {$endif}
+ if datnum >= dword(length(availabledatlist)) then begin
+  LogError('LoadDatCommon: ' + loadname + ' not found');
+  exit;
  end;
 
+ // Load ancestor dat first.
+ if availabledatlist[datnum].parentname <> '' then begin
+  log('Loading dat dependency ' + availabledatlist[datnum].parentname);
+  LoadDatCommon(availabledatlist[datnum].parentname);
+ end else
+ // The topmost ancestor dat sets the active project name.
+ if sysvar.activeprojectname <> availabledatlist[datnum].projectname then begin
+  sysvar.activeprojectname := availabledatlist[datnum].projectname;
+  log('Active project now: ' + sysvar.activeprojectname);
+ end;
+
+ {$ifdef sakucon}
+ // The console port just needs to load the dat.
+ if LoadDAT(availabledatlist[datnum].filenamu, '') <> 0 then
+  LogError(asman_errormsg);
+
+ {$else}
+ // The SDL port may also need to take into account a base resolution change.
+ // Remember the current base resolution, and try to load the dat.
+ ivar := asman_baseresx;
+ jvar := asman_baseresy;
+ if LoadDAT(availabledatlist[datnum].filenamu, '') <> 0 then
+  LogError(asman_errormsg)
+ // If the base resolution changed because of this dat, and a main window
+ // already exists, and is auto-sized, then resize the window.
+ else if (mv_MainWinH <> NIL) then
+ if (ivar <> dword(asman_baseresx)) or (jvar <> dword(asman_baseresy))
+ then if sysvar.WinSizeAuto
+ then begin
+  log('Using parent''s baseres');
+  GetDefaultWindowSizes(ivar, jvar);
+  if (ivar <> 0) and (saku_param.overridex = 0) then sysvar.WindowSizeX := ivar;
+  if (jvar <> 0) and (saku_param.overridey = 0) then sysvar.WindowSizeY := jvar;
+  ScreenModeSwitch(sysvar.fullscreen);
+ end;
+ {$endif}
+
  // Currently running fibers must use updated script indexes.
- if (fibercount <> 0) and (bannername = '') then
-  for ivar := fibercount - 1 downto 0 do begin
-   fiber[ivar].labelindex := GetScr(fiber[ivar].labelname);
-   if fiber[ivar].labelindex = 0 then fiber[ivar].fiberstate := FIBERSTATE_STOPPING;
-  end;
+ ivar := fibercount;
+ while ivar <> 0 do begin
+  dec(ivar);
+  fiber[ivar].labelindex := GetScr(fiber[ivar].labelname);
+  if fiber[ivar].labelindex = 0 then fiber[ivar].fiberstate := FIBERSTATE_STOPPING;
+ end;
 end;
 
 procedure EnumerateDats(dropfrontend : boolean);
@@ -2048,8 +2072,9 @@ begin
    ivar := GetDat(availabledatlist[ivar].parentname);
    dec(jvar);
    if (ivar >= dword(length(availabledatlist))) or (jvar = 0) then begin
-    // Parent is not present, drop the mod being checked.
-    log('No parent for ' + availabledatlist[datnum].filenamu);
+    if jvar = 0 then log('Infinite dat parent loop for ' + availabledatlist[datnum].filenamu)
+    else log('No parent for ' + availabledatlist[datnum].filenamu);
+    // Drop the mod being checked.
     if datnum + 1 < dword(length(availabledatlist)) then
      availabledatlist[datnum] := availabledatlist[length(availabledatlist) - 1];
     setlength(availabledatlist, length(availabledatlist) - 1);
