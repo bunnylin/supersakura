@@ -840,18 +840,21 @@ begin
   inc(ivar);
  end;
 
- // Save BaseRes. All images are saved with their proper resolution as part
- // of their metadata, but saving the official baseres separately allows the
- // game engine to set the game window to a nice integer multiple size.
- txt := 'Saving base res... (' + strdec(asman_baseresx) + 'x' + strdec(asman_baseresy) + ')';
- writeln(txt);
- writeln(stdout, txt);
- ivar := $5F1E0BB0;
- WriteBuffy(@ivar, 4);
- ivar := 8;
- WriteBuffy(@ivar, 4);
- WriteBuffy(@asman_baseresx, 4);
- WriteBuffy(@asman_baseresy, 4);
+ // If this is not a mod, save the BaseRes.
+ if recomp_param.parentname = '' then begin
+  // All images are saved with their proper resolution as part of their
+  // metadata, but saving the official baseres separately allows the game
+  // engine to set the game window to a nice integer multiple size.
+  txt := 'Saving base res... (' + strdec(asman_baseresx) + 'x' + strdec(asman_baseresy) + ')';
+  writeln(txt);
+  writeln(stdout, txt);
+  ivar := $5F1E0BB0;
+  WriteBuffy(@ivar, 4);
+  ivar := 8;
+  WriteBuffy(@ivar, 4);
+  WriteBuffy(@asman_baseresx, 4);
+  WriteBuffy(@asman_baseresy, 4);
+ end;
 end;
 
 procedure DumpTables;
