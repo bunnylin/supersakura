@@ -428,9 +428,9 @@ begin
   SDL_MOUSEBUTTONDOWN: UserInput_Mouse(evd^.button.x, evd^.button.y, evd^.button.button);
   //SDL_MOUSEBUTTONUP: writeln('Musbutt up: ',evd^.button.button);
   SDL_MOUSEWHEEL: UserInput_Wheel(evd^.wheel.y);
-  SDL_CONTROLLERBUTTONDOWN: writeln('Padbutt dn: ',evd^.cbutton.button);
-  SDL_CONTROLLERBUTTONUP: writeln('Padbutt up: ',evd^.cbutton.button);
-  SDL_CONTROLLERAXISMOTION: writeln('Pad axis: ',evd^.caxis.axis,' is ',evd^.caxis.value);
+  SDL_CONTROLLERBUTTONDOWN: UserInput_GamepadButtonDown(evd^.cbutton.button);
+  //SDL_CONTROLLERBUTTONUP: UserInput_GamepadButtonUp(evd^.cbutton.button);
+  //SDL_CONTROLLERAXISMOTION: UserInput_GamepadAxis(evd^.caxis.axis, evd^.caxis.value);
  end;
 end;
 

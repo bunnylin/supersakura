@@ -659,7 +659,7 @@ begin
  MoveToMouseoverable(2);
 end;
 
-procedure UserInput_Left; inline;
+procedure UserInput_Left;
 begin
  // If the dropdown console is active in debug mode, move the caret.
  if (TBox[0].boxstate = BOXSTATE_SHOWTEXT) and (sysvar.transcriptmode = FALSE)
@@ -689,7 +689,7 @@ begin
  MoveToMouseoverable(4);
 end;
 
-procedure UserInput_Right; inline;
+procedure UserInput_Right;
 begin
  // If the dropdown console is active in debug mode, move the caret.
  if (TBox[0].boxstate = BOXSTATE_SHOWTEXT) and (sysvar.transcriptmode = FALSE)
@@ -718,3 +718,108 @@ begin
  // Move to closest mouseoverable.
  MoveToMouseoverable(6);
 end;
+
+// ------------------------------------------------------------------
+
+{$ifndef sakucon}
+procedure UserInput_GamepadCancel;
+begin
+ // If skip seen text mode is enabled, disable it.
+
+ // If textboxes are hidden, make them visible.
+ if sysvar.hideboxes <> 0 then begin
+  HideBoxes(FALSE);
+  exit;
+ end;
+
+ // If box 0 as transcript log is in showtext state, slide out the box.
+ if (TBox[0].boxstate = BOXSTATE_SHOWTEXT) and (sysvar.transcriptmode)
+ then begin
+  UserInput_CtrlT;
+  exit;
+ end;
+
+ // If choicematic has something cancellable, cancel it.
+ if (choicematic.active) and (choicematic.choiceparent <> '') then begin
+  RevertChoice;
+  exit;
+ end;
+
+ // Check boxes for pageble content. Any box that has more to display and is
+ // not freely scrollable but does have autowaitkey enabled, will scroll
+ // ahead by a page, swallowing the keystroke.
+ if CheckPageableBoxes then exit;
+
+ // Resume any fibers in waitkey state.
+ if ClearWaitKey then exit;
+
+ // If a normal interrupt is defined, trigger it.
+ if (event.normalint.triggerlabel <> '') and (event.triggeredint = FALSE) then begin
+  event.triggeredint := TRUE;
+  StartFiber(event.normalint.triggerlabel, '');
+  exit;
+ end;
+
+ // If esc-interrupt is defined, trigger it.
+ if (event.escint.triggerlabel <> '') and (event.triggeredint = FALSE) then begin
+  event.triggeredint := TRUE;
+  StartFiber(event.escint.triggerlabel, '');
+ end;
+end;
+
+procedure UserInput_GamepadMenu;
+begin
+ // If skip seen text mode is enabled, disable it.
+
+ // If textboxes are hidden, make them visible.
+ if sysvar.hideboxes <> 0 then begin
+  HideBoxes(FALSE);
+  exit;
+ end;
+
+ // If box 0 as transcript log is in showtext state, slide out the box.
+ if (TBox[0].boxstate = BOXSTATE_SHOWTEXT) and (sysvar.transcriptmode)
+ then begin
+  UserInput_CtrlT;
+  exit;
+ end;
+
+ // If esc-interrupt is defined, trigger it.
+ if (event.escint.triggerlabel <> '') and (event.triggeredint = FALSE) then begin
+  event.triggeredint := TRUE;
+  StartFiber(event.escint.triggerlabel, '');
+  exit;
+ end;
+
+ // If metastate is normal, enter the metamenu metastate.
+end;
+
+procedure UserInput_GamepadButtonDown(bnum : TSDL_GameControllerButton);
+begin
+ case bnum of
+   SDL_CONTROLLER_BUTTON_DPAD_UP: UserInput_Up;
+   SDL_CONTROLLER_BUTTON_DPAD_DOWN: UserInput_Down;
+   SDL_CONTROLLER_BUTTON_DPAD_LEFT: UserInput_Left;
+   SDL_CONTROLLER_BUTTON_DPAD_RIGHT: UserInput_Right;
+
+   SDL_CONTROLLER_BUTTON_BACK: UserInput_CtrlB;
+
+   // button A: low position
+   SDL_CONTROLLER_BUTTON_A: UserInput_Enter;
+   // button B: right position
+   SDL_CONTROLLER_BUTTON_B: UserInput_GamepadCancel;
+   // button Y: top position
+   SDL_CONTROLLER_BUTTON_Y: UserInput_GamepadMenu;
+   // button X: left position
+   SDL_CONTROLLER_BUTTON_X: UserInput_CtrlT;
+ end;
+end;
+
+{procedure UserInput_GamepadButtonUp(bnum : TSDL_GameControllerButton);
+begin
+end;}
+
+{procedure UserInput_GamepadAxis(anum : TSDL_GameControllerAxis; value : longint);
+begin
+end;}
+{$endif !sakucon}
