@@ -32,11 +32,11 @@ begin
   if SDL_IsGameController(ivar) = SDL_TRUE then begin
    mv_GamepadH := SDL_GameControllerOpen(ivar);
    if mv_GamepadH <> NIL then break;
-   writeln('Failed to open gamepad: ',SDL_GetError);
+   LogError('Failed to open gamepad: ' + SDL_GetError);
   end;
  end;
 
- if mv_GamepadH <> NIL then writeln('Opened gamepad: ',SDL_GameControllerName(mv_GamepadH));
+ if mv_GamepadH <> NIL then log('Opened gamepad: ' + SDL_GameControllerName(mv_GamepadH));
 end;
 
 procedure CreateRendererAndTexture;
@@ -340,7 +340,7 @@ procedure HandleSDLevent(evd : PSDL_event);
     SDLK_END: UserInput_End;
     SDLK_DELETE: UserInput_Delete;
     else
-     writeln('KeyDown: ',sym,' mod $',strhex(modifier));
+     log('Unused keydown: ' + strdec(sym) + ' mod $' + strhex(modifier));
    end;
   end;
 
