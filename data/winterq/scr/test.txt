@@ -911,6 +911,7 @@ goto testsys
   stop
 
   @testdifiber:
+  $v6 := 1
   while 1 do
     $v0 := (sys.getmousex)
     $v1 := (sys.getmousey)
@@ -918,7 +919,6 @@ goto testsys
     $v3 := (sys.getkeyleft)
     $v4 := (sys.getkeyright)
     $v5 := (sys.getkeyup)
-    $v6 := 0
     if $v0 <> $v7 then (inc v6) $v7 := $v0 end
     if $v1 <> $v8 then (inc v6) $v8 := $v1 end
     if $v2 <> $v9 then (inc v6) $v9 := $v2 end
@@ -928,6 +928,7 @@ goto testsys
     if $v6 <> 0 then
       tbox.clear 1
       print "Mouse: \$v0;,\$v1;\nDown: \$v2; Left: \$v3; Right: \$v4; Up: \$v5;"
+      $v6 := 0
     end
     yield
   end
