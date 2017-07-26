@@ -600,6 +600,7 @@ var // Commandline parameters.
       windowSizeX, windowSizeY : dword;
       uimagnification : dword; // text size adjustment, 32k = 100%
       mouseX, mouseY : longint; // straight px coord within program window
+      ctrldeadzone : longint; // minimal recognised value for gamepad sticks
 
       keyrepeataftermsecs : dword;
       keysdown : byte; // combination of KEYVAL_*
@@ -2173,6 +2174,13 @@ begin
     continue;
    end;
 
+   // Gamepad analog stick dead zone.
+   if copy(cline, 1, 9) = 'analogdz ' then begin
+    sysvar.ctrldeadzone := abs(valx(copy(cline, 10, length(cline))));
+    if (sysvar.ctrldeadzone = 0) or (sysvar.ctrldeadzone > 32000) then
+     sysvar.ctrldeadzone := 2560;
+   end;
+
    // Game window size.
    if copy(cline, 1, 8) = 'winsize ' then begin
     ivar := 9;
@@ -2265,6 +2273,13 @@ begin
   {$endif}
   // audio settings
   // other settings
+  {$ifndef sakucon}
+  writeln(cfile, '');
+  writeln(cfile, '# Gamepad analog stick deadzone. Sticks may often get stuck at a slightly');
+  writeln(cfile, '# off-center position, where 0 is center and 32768 is as far as it goes.');
+  writeln(cfile, '# Any value smaller than the deadzone is treated as a 0. Default: 2560.');
+  writeln(cfile, 'analogdz ', sysvar.ctrldeadzone);
+  {$endif}
 
   close(cfile);
  end;
