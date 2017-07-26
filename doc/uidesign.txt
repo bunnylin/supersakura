@@ -9,11 +9,18 @@ In general:
 - Skip animations etc by triggering minor or major interrupt events.
 - Meta-interaction through modal pop-up menu, and summonable special menus.
 
+While the game is paused, all user input is ignored, except:
+- Pause/Ctrl-P or single-step pause
+- Ctrl-Q or other attempt to quit
+- Alt-Enter to toggle fullscreen
+
 Below, input reactions are tested from the highest downward. As soon as any
 reaction is triggered, the remaining items are skipped.
 
+
 Keyboard
 --------
+
 Enter
 - If skip seen text mode is enabled, disable it.
 - If textboxes are hidden, make them visible.
@@ -74,6 +81,9 @@ Cursor keys up/down
 - If mouseoverables without -mouseonly exist, find the closest up/down from
   current mousexy and mouseon it, mouseoffing current overable if any.
 
+Alt-Enter
+- Toggle fullscreen mode.
+
 Ctrl-A
 - If metastate is normal, enable/disable skip seen text mode.
 
@@ -96,7 +106,10 @@ Shift-Pause, Ctrl-Shift-P, Ctrl-Alt-P
 - Enter single-step mode.
 
 Ctrl-Q
+- If metastate is already quit confirm, ignore.
 - If metastate is normal, enter quit confirm metastate.
+- Otherwise switch current metastate to quit confirm anyway; cancelling the
+  quit at this point will cancel all metastates and return to the game.
 
 Ctrl-R [console port only]
 - Redraw the screen.
@@ -105,7 +118,9 @@ Ctrl-S
 - If metastate is normal, enter saveload metastate, with save highlighted.
 
 Ctrl-T
-- If not in normal metastate or boxes hidden, ignore.
+- If not in normal metastate, ignore.
+- If skip seen text mode is enabled, disable it.
+- If boxes hidden, show boxes, and don't stop at this step.
 - If box 0 is in showtext state and transcript mode is on, disable transcript
   mode and pop out the box.
 - Otherwise enable transcript mode and pop in the box.
@@ -116,8 +131,14 @@ Ctrl-W [console port only]
 Ctrl-XYZZY
 - Typing this enables debug mode.
 
+
 Gamepad
 -------
+
+(These are used through SDL, so the console port can't use gamepads. The pad
+buttons are mapped through SDL pretty well, and there's an environment
+variable for overriding the mapping, so no need to provide a graphical
+button configuration dialog in-engine.)
 
 Confirm button (low position)
 - Same as enter key.
@@ -142,24 +163,26 @@ Menu button (high position)
 - If metastate is normal, enter the metamenu metastate.
 
 Log button (left position)
-- If not in normal metastate, ignore.
-- If skip seen text mode is enabled, disable it.
-- If textboxes are hidden, make them visible.
-- If box 0 is in showtext state and transcript mode is on, disable transcript
-  mode and pop out the box.
-- Otherwise enable transcript mode and pop in the box.
+- Same as Ctrl-T.
 
 Start button
-- Pause/unpause the game.
+- Pause/unpause the game. This needs to be handled early by the input
+  handler, same as keyboard Pause/Ctrl-P.
 
-Option/select button
+Option/select/back button
 - If metastate is normal and boxes are hidable, hide/display textboxes.
 
 Left/Right/Up/Down
 - Same as cursor keys.
 
 Left stick
-- Probably same as cursor keys? Need to check how SDL returns this input.
+- No immediate action; however, if a script polls the cursor key state for
+  purposes of continuous movement, the left stick's position is used.
+  (Actual cursor keys are checked first, then pad direction buttons, only
+  then the stick. The poll command returns an axis value to the script,
+  -32k to +32k, where cursor keys and direction buttons are always at digital
+  extremes; the script can decide how to interpret the value for itself.)
+
 
 Mouse
 -----
@@ -191,6 +214,7 @@ Right-click
 - If metastate is normal, enter the metamenu metastate.
 
 Mouse wheel
+- If textboxes are hidden, ignore.
 - If a choicebox is active, highlight the next choice in the given direction.
 - If a freely scrollable box exists, scroll the box up/down.
 
