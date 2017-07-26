@@ -394,7 +394,13 @@ begin
    ScreenModeSwitch(not sysvar.fullscreen);
    exit;
   end;
- end;
+ end
+
+ // A gamepad pause command must be handled early likewise...
+ else if evd^.type_ = SDL_CONTROLLERBUTTONDOWN then
+  if evd^.cbutton.button = SDL_CONTROLLER_BUTTON_START then
+   if pausestate = PAUSESTATE_PAUSED then SetPauseState(PAUSESTATE_NORMAL)
+   else SetPauseState(PAUSESTATE_PAUSED);
 
  // These events must be handled no matter what
  case evd^.type_ of
@@ -421,6 +427,9 @@ begin
   SDL_RENDER_DEVICE_RESET: log('RENDER DEVICE RESET - DO SOMETHING!?');
  end;
 
+ // If we're paused, anything else must be ignored.
+ if pausestate = PAUSESTATE_PAUSED then exit;
+
  case evd^.type_ of
   SDL_KEYDOWN: HandleKeyPress(evd^.key.keysym.sym, evd^.key.keysym._mod);
   SDL_TEXTINPUT: HandleTextInput(@evd^.text.text[0]);
@@ -429,8 +438,34 @@ begin
   //SDL_MOUSEBUTTONUP: writeln('Musbutt up: ',evd^.button.button);
   SDL_MOUSEWHEEL: UserInput_Wheel(evd^.wheel.y);
   SDL_CONTROLLERBUTTONDOWN: UserInput_GamepadButtonDown(evd^.cbutton.button);
-  //SDL_CONTROLLERBUTTONUP: UserInput_GamepadButtonUp(evd^.cbutton.button);
+  SDL_CONTROLLERBUTTONUP: UserInput_GamepadButtonUp(evd^.cbutton.button);
   //SDL_CONTROLLERAXISMOTION: UserInput_GamepadAxis(evd^.caxis.axis, evd^.caxis.value);
+ end;
+end;
+
+procedure HandleKeyRepeat(tickcount : ptruint); inline;
+// This handles gamepad button repeat.
+begin
+ if tickcount < sysvar.keyrepeataftermsecs then
+  dec(sysvar.keyrepeataftermsecs, tickcount)
+ else begin
+  // Is any button still held down?
+  if sysvar.keysdown = 0 then begin
+   // No, stop repeating.
+   sysvar.keyrepeataftermsecs := 0;
+  end
+  else begin
+   // Yes, retrigger all held down buttons and reset delay.
+   if sysvar.keysdown and KEYVAL_UP <> 0 then
+    UserInput_GamepadButtonDown(SDL_CONTROLLER_BUTTON_DPAD_UP);
+   if sysvar.keysdown and KEYVAL_DOWN <> 0 then
+    UserInput_GamepadButtonDown(SDL_CONTROLLER_BUTTON_DPAD_DOWN);
+   if sysvar.keysdown and KEYVAL_LEFT <> 0 then
+    UserInput_GamepadButtonDown(SDL_CONTROLLER_BUTTON_DPAD_LEFT);
+   if sysvar.keysdown and KEYVAL_RIGHT <> 0 then
+    UserInput_GamepadButtonDown(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
+   sysvar.keyrepeataftermsecs := 160;
+  end;
  end;
 end;
 
@@ -471,6 +506,9 @@ begin
     tickcount := sysvar.resttime;
     // should also forward a single piece of user input from all devices...?
    end;
+
+   // Repeating gamepad direction buttons.
+   if sysvar.keyrepeataftermsecs <> 0 then HandleKeyRepeat(tickcount);
 
    // Script logic.
    if pausestate <> PAUSESTATE_PAUSED then RunFibers;

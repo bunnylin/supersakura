@@ -90,6 +90,12 @@ TRANSITION_CROSSFADE = 4;
 BLENDMODE_NORMAL = 0;
 BLENDMODE_HARDLIGHT = 1;
 
+// Combinable values for sysvar.keysdown:
+KEYVAL_DOWN = 1;
+KEYVAL_LEFT = 2;
+KEYVAL_RIGHT = 4;
+KEYVAL_UP = 8;
+
 const
 FIBER_STACK_SIZE = 2047; // this many + 1 dwords, must be ^2 minus 1
 CALLSTACK_SIZE = 15;
@@ -594,7 +600,10 @@ var // Commandline parameters.
       windowSizeX, windowSizeY : dword;
       uimagnification : dword; // text size adjustment, 32k = 100%
       mouseX, mouseY : longint; // straight px coord within program window
-      keysdown : byte; // bitmask: 1 = down, 2 = left, 4 = right, 8 = up
+
+      keyrepeataftermsecs : dword;
+      keysdown : byte; // combination of KEYVAL_*
+
       numlang : byte; // number of languages
       hideboxes : byte; // 1 = hidden, 0 = visible
       fullscreen : boolean;

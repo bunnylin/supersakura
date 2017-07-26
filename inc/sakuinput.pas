@@ -635,7 +635,7 @@ procedure UserInput_Up;
 var ivar : dword;
 begin
  {$ifdef sakucon}
- sysvar.keysdown := sysvar.keysdown or 8;
+ sysvar.keysdown := sysvar.keysdown or KEYVAL_UP;
  {$endif}
  if choicematic.active then begin MoveChoiceHighlightUp; exit; end;
  // Scroll freescrollable boxes.
@@ -654,7 +654,7 @@ procedure UserInput_Down;
 var ivar : dword;
 begin
  {$ifdef sakucon}
- sysvar.keysdown := sysvar.keysdown or 1;
+ sysvar.keysdown := sysvar.keysdown or KEYVAL_DOWN;
  {$endif}
  if choicematic.active then begin MoveChoiceHighlightDown; exit; end;
  // Scroll freescrollable boxes.
@@ -688,7 +688,7 @@ begin
  end;
 
  {$ifdef sakucon}
- sysvar.keysdown := sysvar.keysdown or 2;
+ sysvar.keysdown := sysvar.keysdown or KEYVAL_LEFT;
  {$endif}
  if (choicematic.active) and (choicematic.numcolumns > 1) then begin
   MoveChoiceHighlightLeft;
@@ -718,7 +718,7 @@ begin
  end;
 
  {$ifdef sakucon}
- sysvar.keysdown := sysvar.keysdown or 4;
+ sysvar.keysdown := sysvar.keysdown or KEYVAL_RIGHT;
  {$endif}
  if (choicematic.active) and (choicematic.numcolumns > 1) then begin
   MoveChoiceHighlightRight;
@@ -806,10 +806,29 @@ end;
 procedure UserInput_GamepadButtonDown(bnum : TSDL_GameControllerButton);
 begin
  case bnum of
-   SDL_CONTROLLER_BUTTON_DPAD_UP: UserInput_Up;
-   SDL_CONTROLLER_BUTTON_DPAD_DOWN: UserInput_Down;
-   SDL_CONTROLLER_BUTTON_DPAD_LEFT: UserInput_Left;
-   SDL_CONTROLLER_BUTTON_DPAD_RIGHT: UserInput_Right;
+   SDL_CONTROLLER_BUTTON_DPAD_UP: begin
+    sysvar.keyrepeataftermsecs := 480;
+    sysvar.keysdown := sysvar.keysdown or KEYVAL_UP;
+    UserInput_Up;
+   end;
+
+   SDL_CONTROLLER_BUTTON_DPAD_DOWN: begin
+    sysvar.keyrepeataftermsecs := 480;
+    sysvar.keysdown := sysvar.keysdown or KEYVAL_DOWN;
+    UserInput_Down;
+   end;
+
+   SDL_CONTROLLER_BUTTON_DPAD_LEFT: begin
+    sysvar.keyrepeataftermsecs := 480;
+    sysvar.keysdown := sysvar.keysdown or KEYVAL_LEFT;
+    UserInput_Left;
+   end;
+
+   SDL_CONTROLLER_BUTTON_DPAD_RIGHT: begin
+    sysvar.keyrepeataftermsecs := 480;
+    sysvar.keysdown := sysvar.keysdown or KEYVAL_RIGHT;
+    UserInput_Right;
+   end;
 
    SDL_CONTROLLER_BUTTON_BACK: UserInput_CtrlB;
 
@@ -824,9 +843,15 @@ begin
  end;
 end;
 
-{procedure UserInput_GamepadButtonUp(bnum : TSDL_GameControllerButton);
+procedure UserInput_GamepadButtonUp(bnum : TSDL_GameControllerButton);
 begin
-end;}
+ case bnum of
+   SDL_CONTROLLER_BUTTON_DPAD_UP: sysvar.keysdown := sysvar.keysdown and (KEYVAL_UP xor $FF);
+   SDL_CONTROLLER_BUTTON_DPAD_DOWN: sysvar.keysdown := sysvar.keysdown and (KEYVAL_DOWN xor $FF);
+   SDL_CONTROLLER_BUTTON_DPAD_LEFT: sysvar.keysdown := sysvar.keysdown and (KEYVAL_LEFT xor $FF);
+   SDL_CONTROLLER_BUTTON_DPAD_RIGHT: sysvar.keysdown := sysvar.keysdown and (KEYVAL_RIGHT xor $FF);
+ end;
+end;
 
 {procedure UserInput_GamepadAxis(anum : TSDL_GameControllerAxis; value : longint);
 begin

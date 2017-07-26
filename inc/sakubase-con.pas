@@ -76,13 +76,9 @@ procedure HandleConEvent(com : UTF8string);
 var ivar : dword;
 begin
  if com = '' then exit;
+
+ // A few keyboard commands must be handled early regardless of gamemode...
  if com[1] = chr(0) then begin
-  // Ctrl-B
-  if com = chr(0) + chr(4) + chr(2) then UserInput_CtrlB;
-
-  // Ctrl-D
-  if com = chr(0) + chr(4) + chr(4) then UserInput_CtrlD;
-
   // Ctrl-P
   if com = chr(0) + chr(4) + chr($10) then
    if pausestate = PAUSESTATE_NORMAL then SetPauseState(PAUSESTATE_PAUSED)
@@ -91,14 +87,11 @@ begin
   if (com = chr(0) + chr(2) + chr($10))
   or (com = chr(0) + chr(5) + chr($10)) then SetPauseState(PAUSESTATE_SINGLE);
 
-  // Ctrl-Q
-  if com = chr(0) + chr(4) + chr($11) then sysvar.quit := TRUE;
-
   // Ctrl-R
   if com = chr(0) + chr(4) + chr($12) then ScreenModeSwitch;
 
-  // Ctrl-T
-  if com = chr(0) + chr(4) + chr($14) then UserInput_CtrlT;
+  // Ctrl-Q
+  if com = chr(0) + chr(4) + chr($11) then sysvar.quit := TRUE;
 
   // Ctrl-W
   if com = chr(0) + chr(4) + chr($17) then begin
@@ -108,6 +101,20 @@ begin
    for ivar := high(TBox) downto 0 do
     if TBox[ivar].style.hidable and 1 = 0 then TBox[ivar].needsredraw := TRUE;
   end;
+ end;
+
+ // If we're paused, anything else must be ignored.
+ if pausestate = PAUSESTATE_PAUSED then exit;
+
+ if com[1] = chr(0) then begin
+  // Ctrl-B
+  if com = chr(0) + chr(4) + chr(2) then UserInput_CtrlB;
+
+  // Ctrl-D
+  if com = chr(0) + chr(4) + chr(4) then UserInput_CtrlD;
+
+  // Ctrl-T
+  if com = chr(0) + chr(4) + chr($14) then UserInput_CtrlT;
 
   // Debug mode activation.
   if com = chr(0) + chr(4) + chr($18) then

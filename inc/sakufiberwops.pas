@@ -942,7 +942,7 @@ begin
  PushInt(byte((mv_PKeystate + SDL_SCANCODE_DOWN)^));
  {$note Add gamepad poll here, SDL_GameControllerGetButton}
  {$else}
- PushInt(sysvar.keysdown and 1);
+ PushInt(sysvar.keysdown and KEYVAL_DOWN);
  {$endif}
  PushInt(STACK_TOKEN_NUMBER);
 end;
@@ -952,7 +952,7 @@ begin
  {$ifndef sakucon}
  PushInt(byte((mv_PKeystate + SDL_SCANCODE_LEFT)^));
  {$else}
- PushInt(sysvar.keysdown and 2);
+ PushInt(sysvar.keysdown and KEYVAL_LEFT);
  {$endif}
  PushInt(STACK_TOKEN_NUMBER);
 end;
@@ -962,7 +962,7 @@ begin
  {$ifndef sakucon}
  PushInt(byte((mv_PKeystate + SDL_SCANCODE_RIGHT)^));
  {$else}
- PushInt(sysvar.keysdown and 4);
+ PushInt(sysvar.keysdown and KEYVAL_RIGHT);
  {$endif}
  PushInt(STACK_TOKEN_NUMBER);
 end;
@@ -972,7 +972,7 @@ begin
  {$ifndef sakucon}
  PushInt(byte((mv_PKeystate + SDL_SCANCODE_UP)^));
  {$else}
- PushInt(sysvar.keysdown and 8);
+ PushInt(sysvar.keysdown and KEYVAL_UP);
  {$endif}
  PushInt(STACK_TOKEN_NUMBER);
 end;
