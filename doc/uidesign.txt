@@ -13,6 +13,7 @@ While the game is paused, all user input is ignored, except:
 - Pause/Ctrl-P or single-step pause
 - Ctrl-Q or other attempt to quit
 - Alt-Enter to toggle fullscreen
+- Ctrl-R and Ctrl-W in console port
 
 Below, input reactions are tested from the highest downward. As soon as any
 reaction is triggered, the remaining items are skipped.
@@ -173,11 +174,13 @@ Option/select/back button
 - If metastate is normal and boxes are hidable, hide/display textboxes.
 
 Left/Right/Up/Down
-- Same as cursor keys.
+- Same as cursor keys. Needs special handling for repeating the button press
+  while the button is held down. 480ms delay after first, then 160ms.
 
 Left stick
-- No immediate action; however, if a script polls the cursor key state for
-  purposes of continuous movement, the left stick's position is used.
+- If a freely scrollable box exists, scroll the box up/down.
+- No other immediate action; however, if a script polls the cursor key state
+  for purposes of continuous movement, the left stick's position is used.
   (Actual cursor keys are checked first, then pad direction buttons, only
   then the stick. The poll command returns an axis value to the script,
   -32k to +32k, where cursor keys and direction buttons are always at digital
