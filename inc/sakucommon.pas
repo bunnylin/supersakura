@@ -770,6 +770,8 @@ procedure StashRender; forward;
 procedure StartFiber(labelnamu, fibernamu : UTF8string); forward;
 // The box renderer etc may need to set the highlighted choice.
 procedure HighlightChoice(style : byte); forward;
+// User input key poller, invoked from sakufiberwops.
+function PollKey(keyval : byte) : longint; forward;
 
 
 // Uncomment this when compiling with HeapTrace. Call this whenever to test

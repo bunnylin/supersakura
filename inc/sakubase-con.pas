@@ -330,12 +330,11 @@ begin
 
  // Basic variable init. Sysvars carry over even when returning to a game's
  // main script. Some of these get saved in a configuration file.
+ fillbyte(sysvar, sizeof(sysvar), 0);
  with sysvar do begin
-  activeprojectname := '';
   resttime := 1000 div 16; // consoles don't need too many FPS
   mv_WinSizeX := 80; mv_WinSizeY := 25;
   uimagnification := 32768;
-  mouseX := 0; mouseY := 0;
   hideboxes := 0;
   numlang := 1;
   skipseentext := FALSE;

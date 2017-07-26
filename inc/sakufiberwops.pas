@@ -938,42 +938,25 @@ end;
 
 procedure Invoke_SYS_GETKEYDOWN; inline;
 begin
- {$ifndef sakucon}
- PushInt(byte((mv_PKeystate + SDL_SCANCODE_DOWN)^));
- {$note Add gamepad poll here, SDL_GameControllerGetButton}
- {$else}
- PushInt(sysvar.keysdown and KEYVAL_DOWN);
- {$endif}
+ PushInt(PollKey(KEYVAL_DOWN));
  PushInt(STACK_TOKEN_NUMBER);
 end;
 
 procedure Invoke_SYS_GETKEYLEFT; inline;
 begin
- {$ifndef sakucon}
- PushInt(byte((mv_PKeystate + SDL_SCANCODE_LEFT)^));
- {$else}
- PushInt(sysvar.keysdown and KEYVAL_LEFT);
- {$endif}
+ PushInt(PollKey(KEYVAL_LEFT));
  PushInt(STACK_TOKEN_NUMBER);
 end;
 
 procedure Invoke_SYS_GETKEYRIGHT; inline;
 begin
- {$ifndef sakucon}
- PushInt(byte((mv_PKeystate + SDL_SCANCODE_RIGHT)^));
- {$else}
- PushInt(sysvar.keysdown and KEYVAL_RIGHT);
- {$endif}
+ PushInt(PollKey(KEYVAL_RIGHT));
  PushInt(STACK_TOKEN_NUMBER);
 end;
 
 procedure Invoke_SYS_GETKEYUP; inline;
 begin
- {$ifndef sakucon}
- PushInt(byte((mv_PKeystate + SDL_SCANCODE_UP)^));
- {$else}
- PushInt(sysvar.keysdown and KEYVAL_UP);
- {$endif}
+ PushInt(PollKey(KEYVAL_UP));
  PushInt(STACK_TOKEN_NUMBER);
 end;
 

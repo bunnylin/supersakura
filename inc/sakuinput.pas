@@ -17,6 +17,68 @@
 { along with SuperSakura.  If not, see <https://www.gnu.org/licenses/>.     }
 {                                                                           }
 
+function PollKey(keyval : byte) : longint;
+// Returns non-zero if the given key is held down, or 0 if it is not.
+// Checks cursor keys first, then gamepad direction buttons, then gamepad
+// left stick. On the console port, only checks the cursor keys.
+// The non-zero return value will be 32767 for digital buttons, and in the
+// range 1..32768 for the analog left stick.
+begin
+ PollKey := 0;
+
+ {$ifdef sakucon}
+ if sysvar.keysdown and keyval <> 0 then PollKey := 32767;
+ {$else}
+
+ case keyval of
+   KEYVAL_DOWN: begin
+    if (byte((mv_PKeystate + SDL_SCANCODE_DOWN)^) <> 0)
+    or (mv_GamepadH <> NIL)
+    and (SDL_GameControllerGetButton(mv_GamepadH, SDL_CONTROLLER_BUTTON_DPAD_DOWN) <> 0)
+    then PollKey := 32767
+    else begin
+     PollKey := SDL_GameControllerGetAxis(mv_GamepadH, SDL_CONTROLLER_AXIS_LEFTY);
+     if PollKey < sysvar.ctrldeadzone then PollKey := 0;
+    end;
+   end;
+
+   KEYVAL_UP: begin
+    if (byte((mv_PKeystate + SDL_SCANCODE_UP)^) <> 0)
+    or (mv_GamepadH <> NIL)
+    and (SDL_GameControllerGetButton(mv_GamepadH, SDL_CONTROLLER_BUTTON_DPAD_UP) <> 0)
+    then PollKey := 32767
+    else begin
+     PollKey := -SDL_GameControllerGetAxis(mv_GamepadH, SDL_CONTROLLER_AXIS_LEFTY);
+     if PollKey < sysvar.ctrldeadzone then PollKey := 0;
+    end;
+   end;
+
+   KEYVAL_LEFT: begin
+    if (byte((mv_PKeystate + SDL_SCANCODE_LEFT)^) <> 0)
+    or (mv_GamepadH <> NIL)
+    and (SDL_GameControllerGetButton(mv_GamepadH, SDL_CONTROLLER_BUTTON_DPAD_LEFT) <> 0)
+    then PollKey := 32767
+    else begin
+     PollKey := -SDL_GameControllerGetAxis(mv_GamepadH, SDL_CONTROLLER_AXIS_LEFTX);
+     if PollKey < sysvar.ctrldeadzone then PollKey := 0;
+    end;
+   end;
+
+   KEYVAL_RIGHT: begin
+    if (byte((mv_PKeystate + SDL_SCANCODE_RIGHT)^) <> 0)
+    or (mv_GamepadH <> NIL)
+    and (SDL_GameControllerGetButton(mv_GamepadH, SDL_CONTROLLER_BUTTON_DPAD_RIGHT) <> 0)
+    then PollKey := 32767
+    else begin
+     PollKey := SDL_GameControllerGetAxis(mv_GamepadH, SDL_CONTROLLER_AXIS_LEFTX);
+     if PollKey < sysvar.ctrldeadzone then PollKey := 0;
+    end;
+   end;
+ end;
+
+ {$endif}
+end;
+
 // SuperSakura user input
 
 procedure UserInput_CtrlB; inline;
