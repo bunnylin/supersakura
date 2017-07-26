@@ -19,13 +19,20 @@
 
 // SuperSakura user input
 
+procedure UserInput_CtrlB; inline;
+begin
+ HideBoxes(sysvar.hideboxes = 0);
+end;
+
 procedure UserInput_CtrlD;
 // Toggles the dropdown console in debug mode.
 begin
  // User must type Ctrl-XYZZY to allow debug mode.
  if sysvar.debugallowed < 5 then exit;
- // If boxes hidden, show them.
+
+ // If boxes hidden, show them, and don't stop at this step.
  if sysvar.hideboxes <> 0 then HideBoxes(FALSE);
+
  // If box 0 already displayed and not in transcript mode, remove the box.
  if (TBox[0].boxstate = BOXSTATE_SHOWTEXT)
  and (sysvar.transcriptmode = FALSE)
@@ -37,8 +44,10 @@ begin
   Box0SlideUp;
   exit;
  end;
+
  // If transcript mode is on, delete the user input portion in the box.
  if sysvar.transcriptmode then TBox[0].userinputlen := 0;
+
  // Turn off transcript mode and slide in the box.
  sysvar.transcriptmode := FALSE;
  TBox[0].caretpos := TBox[0].userinputlen;
@@ -53,16 +62,22 @@ end;
 procedure UserInput_CtrlT;
 // Toggles the dropdown console in transcript mode.
 begin
- // If not in normal metastate or boxes are hidden, ignore it.
- if (metastate <> METASTATE_NORMAL)
- or (sysvar.hideboxes <> 0) then exit;
+ // If not in normal metastate, ignore it.
+ if metastate <> METASTATE_NORMAL then exit;
+
+ // If skip seen text mode is enabled, disable it.
+
+ // If boxes hidden, show them, and don't stop at this step.
+ if sysvar.hideboxes <> 0 then HideBoxes(FALSE);
+
  // If box 0 already displayed and in transcript mode, remove the box.
  if (TBox[0].boxstate = BOXSTATE_SHOWTEXT) and (sysvar.transcriptmode)
  then begin
   Box0SlideUp;
   exit;
  end;
- // If transcript mode is off, we're leaving debug mode.
+
+ // If transcript mode is off, we're leaving debug mode...
  if sysvar.transcriptmode = FALSE then begin
   TBox[0].caretpos := -1;
   TBox[0].userinputlen := 0;
@@ -71,16 +86,14 @@ begin
   if gamevar.activetextinput = 0 then SDL_StopTextInput;
   {$endif}
  end;
- // Otherwise turn on transcript mode and slide in the box.
+
+ // Enable transcript mode and slide in the box.
  sysvar.transcriptmode := TRUE;
  Box0SlideDown;
  PrintTranscriptBuffer;
 end;
 
-procedure UserInput_CtrlB; inline;
-begin
- HideBoxes(sysvar.hideboxes = 0);
-end;
+// ------------------------------------------------------------------
 
 procedure UserInput_Mouse(musx, musy : longint; button : byte);
 // The coordinates are a pixel value from the game window's top left.
@@ -90,9 +103,6 @@ var ivar, jvar : dword;
     x, y : longint;
     overnewarea, overnewgob : boolean;
 begin
- // If we're paused, mouse clicks are ignored and mouseovers don't trigger.
- if pausestate = PAUSESTATE_PAUSED then exit;
-
  sysvar.mousex := musx;
  sysvar.mousey := musy;
 
@@ -298,7 +308,7 @@ begin
    StartFiber(event.escint.triggerlabel, '');
   end;
 
-  // Summon the metamenu.
+  // If metastate is normal, enter the metamenu metastate.
  end;
 end;
 
@@ -307,6 +317,9 @@ procedure UserInput_Wheel(y : longint);
 var ivar, jvar : dword;
     newpos : longint;
 begin
+ // If textboxes are hidden, ignore.
+ if sysvar.hideboxes <> 0 then exit;
+
  // If choicematic is active, move the highlight forward/backward directly.
  if choicematic.active then with choicematic do begin
   newpos := highlightindex - y;
@@ -342,6 +355,55 @@ begin
   end;
 end;
 
+// ------------------------------------------------------------------
+
+procedure MoveToMouseoverable(direction : byte);
+// Attempts to find the closest mouseoverable area or gob center point in the
+// indicated direction (8=up, 2=down, 4=left, 6=right), relative to the
+// current mouse cursor position. If one was found, teleports the cursor onto
+// that center point.
+var ivar, dist, bestdist : dword;
+    x, y, bestx, besty : longint;
+
+  procedure trynewbest; inline;
+  begin
+   if (direction = 2) and (y > 0) and (y >= abs(x))
+   or (direction = 8) and (y < 0) and (-y >= abs(x))
+   or (direction = 4) and (x < 0) and (-x >= abs(y))
+   or (direction = 6) and (x > 0) and (x >= abs(y))
+   then begin
+    dist := x * x + y * y;
+    if dist < bestdist then begin
+     bestx := x; besty := y;
+     bestdist := dist;
+    end;
+   end;
+  end;
+
+begin
+ bestx := 0; besty := 0; bestdist := $FFFFFFFF;
+ ivar := length(event.area);
+ while ivar <> 0 do begin
+  dec(ivar);
+  with event.area[ivar] do if mouseonly = FALSE then begin
+   x := (x1p + x2p) div 2 - sysvar.mousex;
+   y := (y1p + y2p) div 2 - sysvar.mousey;
+   trynewbest;
+  end;
+ end;
+ ivar := length(event.gob);
+ while ivar <> 0 do begin
+  dec(ivar);
+  with event.gob[ivar] do if mouseonly = FALSE then begin
+   x := gob[gobnum].locxp + longint(gob[gobnum].sizexp shr 1) - sysvar.mousex;
+   y := gob[gobnum].locyp + longint(gob[gobnum].sizeyp shr 1) - sysvar.mousey;
+   trynewbest;
+  end;
+ end;
+ if bestdist <> $FFFFFFFF then
+  UserInput_Mouse(sysvar.mousex + bestx, sysvar.mousey + besty, 0);
+end;
+
 procedure UserInput_Enter;
 var ivar, jvar : dword;
 begin
@@ -359,9 +421,6 @@ begin
   RunDebugCommand;
   exit;
  end;
-
- // If the game is paused, any further actions are forbidden.
- if pausestate <> PAUSESTATE_NORMAL then exit;
 
  // Check boxes for pageble content. Any box that has more to display and is
  // not freely scrollable but does have autowaitkey enabled, will scroll
@@ -412,7 +471,7 @@ procedure UserInput_Esc;
 begin
  // If skip seen text mode is enabled, disable it.
 
- // If textboxes are hidden, ignore it.
+ // If textboxes are hidden, ignore.
  if sysvar.hideboxes <> 0 then exit;
 
  // If box 0 as transcript log is in showtext state, slide out the box.
@@ -421,9 +480,6 @@ begin
   UserInput_CtrlT;
   exit;
  end;
-
- // If the game is paused, any further actions are forbidden.
- if pausestate <> PAUSESTATE_NORMAL then exit;
 
  // If choicematic has something cancellable, cancel it.
  if (choicematic.active) and (choicematic.choiceparent <> '') then begin
@@ -438,54 +494,7 @@ begin
   exit;
  end;
 
- // If metastate is normal, summon the metamenu.
-end;
-
-procedure MoveToMouseoverable(direction : byte);
-// Attempts to find the closest mouseoverable area or gob center point in the
-// indicated direction (8=up, 2=down, 4=left, 6=right), relative to the
-// current mouse cursor position. If one was found, teleports the cursor onto
-// that center point.
-var ivar, dist, bestdist : dword;
-    x, y, bestx, besty : longint;
-
-  procedure trynewbest; inline;
-  begin
-   if (direction = 2) and (y > 0) and (y >= abs(x))
-   or (direction = 8) and (y < 0) and (-y >= abs(x))
-   or (direction = 4) and (x < 0) and (-x >= abs(y))
-   or (direction = 6) and (x > 0) and (x >= abs(y))
-   then begin
-    dist := x * x + y * y;
-    if dist < bestdist then begin
-     bestx := x; besty := y;
-     bestdist := dist;
-    end;
-   end;
-  end;
-
-begin
- bestx := 0; besty := 0; bestdist := $FFFFFFFF;
- ivar := length(event.area);
- while ivar <> 0 do begin
-  dec(ivar);
-  with event.area[ivar] do if mouseonly = FALSE then begin
-   x := (x1p + x2p) div 2 - sysvar.mousex;
-   y := (y1p + y2p) div 2 - sysvar.mousey;
-   trynewbest;
-  end;
- end;
- ivar := length(event.gob);
- while ivar <> 0 do begin
-  dec(ivar);
-  with event.gob[ivar] do if mouseonly = FALSE then begin
-   x := gob[gobnum].locxp + longint(gob[gobnum].sizexp shr 1) - sysvar.mousex;
-   y := gob[gobnum].locyp + longint(gob[gobnum].sizeyp shr 1) - sysvar.mousey;
-   trynewbest;
-  end;
- end;
- if bestdist <> $FFFFFFFF then
-  UserInput_Mouse(sysvar.mousex + bestx, sysvar.mousey + besty, 0);
+ // If metastate is normal, enter the metamenu metastate.
 end;
 
 procedure UserInput_TextInput(const instr : UTF8string);
