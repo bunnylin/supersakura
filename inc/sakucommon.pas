@@ -1932,7 +1932,7 @@ procedure LoadDatBanner(const loadname : UTF8string; const bannername : UTF8stri
 // found, no image is loaded and any previous banner in memory by the same
 // name is dropped.
 // You must call EnumerateDats before calling this.
-var datnum, ivar, jvar : dword;
+var datnum : dword;
 begin
  // Bannername can't be empty.
  if bannername = '' then begin

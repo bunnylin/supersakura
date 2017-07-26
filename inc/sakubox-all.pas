@@ -167,7 +167,6 @@ end;
 procedure PrintDebugBuffer;
 // Prints the debug buffer in the dropdown console TBox[0].
 var ivar : dword;
-    txt : string[3];
     comstash : pointer;
 begin
  with TBox[0] do begin
