@@ -47,6 +47,9 @@ procedure HideBoxes(dohide : boolean);
 var ivar : dword;
     hideval : byte;
 begin
+ // If metastate is not normal, boxes cannot be hidden at this time.
+ if (dohide) and (metastate <> METASTATE_NORMAL) then exit;
+
  hideval := 0;
  if dohide then hideval := 1;
  log('HideBoxes ' + strdec(hideval));
