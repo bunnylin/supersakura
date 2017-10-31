@@ -21,7 +21,7 @@ program Beautify;
 { along with SuperSakura.  If not, see <https://www.gnu.org/licenses/>.     }
 { ------------------------------------------------------------------------- }
 {                                                                           }
-{ Targets FPC 3.0.2 for Win32.                                              }
+{ Targets FPC 3.0.4 for Win32.                                              }
 {                                                                           }
 { Compilation dependencies:                                                 }
 { - Various moonlibs                                                        }

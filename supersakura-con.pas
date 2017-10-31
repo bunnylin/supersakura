@@ -20,7 +20,7 @@ program SuperSakuraCon;
 { along with this program.  If not, see <https://www.gnu.org/licenses/>.    }
 { ------------------------------------------------------------------------- }
 {                                                                           }
-{ Targets FPC 3.0.2 for Linux/Win, 32/64-bit.                               }
+{ Targets FPC 3.0.4 for Linux/Win, 32/64-bit.                               }
 {                                                                           }
 { Compilation dependencies:                                                 }
 { - Various moonlibs                                                        }

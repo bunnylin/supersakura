@@ -19,16 +19,16 @@ program SuperSakura;
 { along with this program.  If not, see <https://www.gnu.org/licenses/>.    }
 { ------------------------------------------------------------------------- }
 {                                                                           }
-{ Targets FPC 3.0.2 for Linux/Win, 32/64-bit.                               }
+{ Targets FPC 3.0.4 for Linux/Win, 32/64-bit.                               }
 {                                                                           }
 { Compilation dependencies:                                                 }
-{ - Pascal translation of SDL2 headers (27-Mar-2017)                        }
+{ - Pascal translation of SDL2 headers (11-Oct-2017)                        }
 {   https://github.com/ev1313/Pascal-SDL-2-Headers                          }
 { - Various moonlibs                                                        }
 {   https://github.com/bunnylin/moonlibs                                    }
 {                                                                           }
 { Runtime dependencies:                                                     }
-{ - Simple DirectMedia Library SDL2 and SDL2_ttf (2.0.5)                    }
+{ - Simple DirectMedia Library SDL2 and SDL2_ttf (2.0.7)                    }
 {   https://libsdl.org                                                      }
 {                                                                           }
 

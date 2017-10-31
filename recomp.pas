@@ -21,7 +21,7 @@ program Recompiler;
 { along with SuperSakura.  If not, see <https://www.gnu.org/licenses/>.     }
 { ------------------------------------------------------------------------- }
 {                                                                           }
-{ Targets FPC 3.0.2 for Linux/Win 32/64-bit.                                }
+{ Targets FPC 3.0.4 for Linux/Win 32/64-bit.                                }
 {                                                                           }
 { Compilation dependencies:                                                 }
 { - Various moonlibs                                                        }
