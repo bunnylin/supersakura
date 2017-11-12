@@ -773,9 +773,9 @@ begin // ExecuteFiber
      PopThing;
      if length(strvalue) <> 0 then fibererror('Can''t RND a string: ' + strvalue[GetBestString($FFFF)])
      else begin
-      // FPC's random for negative number -n returns range [-n+1 .. -1]
-      if numvalue < 0 then PushInt(random(numvalue - 1) + 1)
-      else PushInt(random(numvalue));
+      // Getting random negative numbers is dodgy, so special handling.
+      if numvalue >= 0 then PushInt(random(numvalue))
+      else PushInt(-random(-numvalue));
       PushInt(STACK_TOKEN_NUMBER);
      end;
     end;
