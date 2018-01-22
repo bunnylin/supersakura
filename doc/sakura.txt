@@ -1651,6 +1651,8 @@ Japanese systems, with OPN-family sound chips, whereas the oscillator
 configuration of OPL-based sound cards has a different number of voices and
 so is not understood by the player.
 
+There's a useful primer for PMD MML written in 2017 at the Delmunsoft site.
+
 
 PMD .M files
 ============

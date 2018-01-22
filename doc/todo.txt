@@ -26,6 +26,9 @@ FUTURE
    + Add a rain effect
    + Add a horizontal blur effect, doubled vision (use in sakura CS704)
 - Develop a proper Bunnyscaler, or use an existing pixel scaler
+   + A variant of the Kopf-Lischinski method might work, finish prototype
+- Find a way to shell out to translate-shell, add a button in-engine for
+  auto-translating a game; needs a progress bar with eta
 - Add graphic scaling at run-time in scriptcode? Scalesizex/y? A rescale
   cache used solely by the Renderer routine, so when a gob of unusual size
   is requested, it's rescaled and cached? Smooth size slides done this way
@@ -160,7 +163,7 @@ REQUIRED FOR 1.0
    + Should have a separate save state command for each engine component and
      a main command that invokes the others
 - Re-implement quick RGB tweak? And by extension the flash effect
-- Re-add gamepad support
+- Gamepad left stick should scroll boxes
 - Scrollable boxes should have fading text to signal more content
 - By default, binaries should be in a write-protected executable
   directory; writable subdirectories for "data" and "save" will be

@@ -91,9 +91,10 @@ After downloading the SuperSakura sources, you need to install FPC.
 Preferably get the latest 3.0.x compiler version. Try to make a hello-world
 program to confirm it works.
 
-Next, get SDL2 and SDL2_ttf. These are dynamically linked libraries that
-must be present on the system for the engine to run. See the SDL2 section
-above for details.
+Next, get the SDL2 and SDL2_ttf runtime binaries. (You won't need the
+development libraries for this.) The binaries are dynamically linked
+libraries that must be present on the system for the engine to run. See the
+SDL2 section above for details.
 
 The SDL2 Pascal headers and moonlibs are statically linked units or
 libraries; they are needed to compile the engine and tools, but afterward
