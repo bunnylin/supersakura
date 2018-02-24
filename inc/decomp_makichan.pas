@@ -25,7 +25,7 @@ var flagbsize, ofsa, ofsb, pxofs, extflag : dword;
     tempimage : bitmaptype;
     flagmap : array[0..31999] of byte;
     outofs : dword;
-    ivar, x, y : dword;
+    i, x, y : dword;
 begin
  inc(lofs, 4); // computer model, skip
  inc(lofs, 20); // user name etc, skip
@@ -44,7 +44,7 @@ begin
 
  // Read GRB palette
  setlength(PNGlist[PNGindex].pal, 16);
- for ivar := 0 to 15 do with PNGlist[PNGindex].pal[ivar] do begin
+ for i := 0 to 15 do with PNGlist[PNGindex].pal[i] do begin
   g := byte((loader + lofs)^) and $F0; inc(lofs);
   r := byte((loader + lofs)^) and $F0; inc(lofs);
   b := byte((loader + lofs)^) and $F0; inc(lofs);
@@ -62,7 +62,7 @@ begin
  ofsb := lofs + 1000;
  pxofs := ofsb + flagbsize;
  l_bitptr := 7;
- ivar := 0;
+ i := 0;
  for y := 99 downto 0 do begin
   for x := 79 downto 0 do begin
    if l_getbit then begin
@@ -80,8 +80,8 @@ begin
     flagmap[ofsa + 160] := 0;
     flagmap[ofsa + 240] := 0;
    end;
-   if ivar = 1 then inc(ofsa, 3) else dec(ofsa);
-   ivar := ivar xor 1;
+   if i = 1 then inc(ofsa, 3) else dec(ofsa);
+   i := i xor 1;
   end;
   inc(ofsa, 240); // jump to the next 4x4 row's start
  end;
@@ -110,7 +110,7 @@ begin
 
  // Fill in the pixel colors...
  pxofs := ofsb;
- outofs := 0; ivar := 0; ofsb := 1;
+ outofs := 0; i := 0; ofsb := 1;
  x := 0;
  for ofsa := 127999 downto 0 do begin
 
@@ -127,9 +127,9 @@ begin
 
   // Move to the next flag A buffer bit.
   flagmap[ofsb] := flagmap[ofsb] shl 1;
-  inc(ivar);
-  if ivar = 4 then begin
-   ivar := 0;
+  inc(i);
+  if i = 4 then begin
+   i := 0;
    if x = 1 then inc(ofsb, 3) else dec(ofsb);
    x := x xor 1;
   end;
@@ -157,7 +157,7 @@ procedure UnpackMAG2Graphic(PNGindex : word);
 // Also works on MAX images, which are MSX-flavored MAG v2.
 var flagaofs, flagbofs, pxofs, leftofs, rightofs : dword;
     ofsa, ofsb, ofsc, hstart, outofs, bytewidth : dword;
-    ivar, jvar : dword;
+    i, j : dword;
     tempimage : bitmaptype;
     actionbuffy : array of byte;
     modelcode, modelflags, screenmode : byte;
@@ -279,10 +279,12 @@ begin
  end;
 
  // Read GRB palette, usually 16, sometimes 256 entries.
- if screenmode and $80 = 0 then setlength(PNGlist[PNGindex].pal, 16) else setlength(PNGlist[PNGindex].pal, 256);
- ivar := 0;
+ if screenmode and $80 = 0
+ then setlength(PNGlist[PNGindex].pal, 16)
+ else setlength(PNGlist[PNGindex].pal, 256);
+ i := 0;
  while lofs < flagaofs do begin
-  with PNGlist[PNGindex].pal[ivar] do begin
+  with PNGlist[PNGindex].pal[i] do begin
    g := byte((loader + lofs)^) and $F0; inc(lofs);
    r := byte((loader + lofs)^) and $F0; inc(lofs);
    b := byte((loader + lofs)^) and $F0; inc(lofs);
@@ -292,7 +294,7 @@ begin
    if r <> 0 then r := r or $F;
    if b <> 0 then b := b or $F;
   end;
-  inc(ivar);
+  inc(i);
  end;
 
  // While decompressing, image width must be a multiple of 8 pixels.
@@ -317,18 +319,19 @@ begin
 
  // Unpack image into this, as a 4bpp indexed thing.
  getmem(tempimage.image, (bytewidth * dword(PNGlist[PNGindex].origsizeyp + 1)));
- tempimage.sizex := PNGlist[PNGindex].origsizexp; tempimage.sizey := PNGlist[PNGindex].origsizeyp;
+ tempimage.sizex := PNGlist[PNGindex].origsizexp;
+ tempimage.sizey := PNGlist[PNGindex].origsizeyp;
  tempimage.memformat := 4;
 
  fillbyte(actionbuffy[0], length(actionbuffy), 0);
  outofs := 0; l_bitptr := 7; lofs := flagaofs;
- ofsa := 0; jvar := 0;
+ ofsa := 0; j := 0;
 
  // For each pixel in the image...
- ivar := (PNGlist[PNGindex].origsizexp * PNGlist[PNGindex].origsizeyp * tempimage.bitdepth) shr 3;
- while outofs < ivar do begin
+ i := (PNGlist[PNGindex].origsizexp * PNGlist[PNGindex].origsizeyp * tempimage.bitdepth) shr 3;
+ while outofs < i do begin
 
-  if jvar = 0 then begin
+  if j = 0 then begin
    // a new top action nibble is needed, fetch new flag A bit.
    if lofs >= flagbofs then begin
     PrintError('Tried to read flag A out of bounds'); exit;
@@ -354,46 +357,50 @@ begin
    if ofsa >= dword(length(actionbuffy)) then ofsa := 0;
   end;
 
-  jvar := jvar xor 1;
+  j := j xor 1;
  end;
 
  // Expand 4bpp indexed --> 8bpp indexed.
- ivar := 3;
+ i := 3;
  if tempimage.bitdepth < 8 then begin
   mcg_ExpandBitdepth(@tempimage);
-  ivar := 7;
+  i := 7;
  end;
 
- // Before cropping, protect against zero-height images...
+ // Protect against zero-height images...
  if (PNGlist[PNGindex].origsizeyp = 0) then begin
   PNGlist[PNGindex].bitmap := tempimage.image;
+  tempimage.image := NIL;
  end
- // Crop the sides, assuming they were padded earlier.
+ // Check if the image sides need cropping...
  else begin
-  ofsa := leftofs and ivar; // this amount must be cropped from left
+  ofsa := leftofs and i; // this amount must be cropped from left
   ofsb := 0;
-  ofsb := ivar - rightofs and ivar; // this must be cropped from right
+  ofsb := i - rightofs and i; // this must be cropped from right
   // this is the result width.
   ofsc := PNGlist[PNGindex].origsizexp - ofsa - ofsb;
-  // Make a buffer for the cropped image.
-  getmem(PNGlist[PNGindex].bitmap, ofsc * PNGlist[PNGindex].origsizeyp);
-  // Copy the image to the new buffer, less cropped sides.
-  outofs := 0; jvar := ofsa;
-  for ivar := PNGlist[PNGindex].origsizeyp - 1 downto 0 do begin
-   move((tempimage.image + jvar)^, (PNGlist[PNGindex].bitmap + outofs)^, ofsc);
-   inc(outofs, ofsc);
-   inc(jvar, PNGlist[PNGindex].origsizexp);
+
+  if ofsc <> PNGlist[PNGindex].origsizexp then begin
+   // Yes, the image was padded and needs cropping.
+   // Make a buffer for the cropped image.
+   getmem(PNGlist[PNGindex].bitmap, ofsc * PNGlist[PNGindex].origsizeyp);
+   // Copy the image to the new buffer, less cropped sides.
+   outofs := 0; j := ofsa;
+   for i := PNGlist[PNGindex].origsizeyp - 1 downto 0 do begin
+    move((tempimage.image + j)^, (PNGlist[PNGindex].bitmap + outofs)^, ofsc);
+    inc(outofs, ofsc);
+    inc(j, PNGlist[PNGindex].origsizexp);
+   end;
+   freemem(tempimage.image); tempimage.image := NIL;
+   // Note the image's cropped width.
+   PNGlist[PNGindex].origsizexp := ofsc;
   end;
-  freemem(tempimage.image);
-  // Note the image's cropped width.
-  PNGlist[PNGindex].origsizexp := ofsc;
  end;
- tempimage.image := NIL;
 
  // If this is an MSX+ screen, we may need to decode the YJK colors.
  // Pixels are stored four in a row, all sharing a J and K value, and having
  // individual Y values.
- if (modelcode = 3) and (modelflags in [$24,$34,$44]) then begin
+ if (modelcode = 3) and (modelflags in [$24, $34, $44]) then begin
   getmem(tempimage.image, (PNGlist[PNGindex].origsizexp * PNGlist[PNGindex].origsizeyp) * 3);
   ConvertYJK(modelflags <> $44);
 
@@ -409,13 +416,13 @@ begin
  // Apply double-height pixel ratio, if necessary.
  if (screenmode and 1 <> 0) then begin
   getmem(tempimage.image, PNGlist[PNGindex].origsizexp * PNGlist[PNGindex].origsizeyp * 2);
-  outofs := 0; jvar := 0;
-  for ivar := PNGlist[PNGindex].origsizeyp - 1 downto 0 do begin
-   move((PNGlist[PNGindex].bitmap + jvar)^, (tempimage.image + outofs)^, PNGlist[PNGindex].origsizexp);
+  outofs := 0; j := 0;
+  for i := PNGlist[PNGindex].origsizeyp - 1 downto 0 do begin
+   move((PNGlist[PNGindex].bitmap + j)^, (tempimage.image + outofs)^, PNGlist[PNGindex].origsizexp);
    inc(outofs, PNGlist[PNGindex].origsizexp);
-   move((PNGlist[PNGindex].bitmap + jvar)^, (tempimage.image + outofs)^, PNGlist[PNGindex].origsizexp);
+   move((PNGlist[PNGindex].bitmap + j)^, (tempimage.image + outofs)^, PNGlist[PNGindex].origsizexp);
    inc(outofs, PNGlist[PNGindex].origsizexp);
-   inc(jvar, PNGlist[PNGindex].origsizexp);
+   inc(j, PNGlist[PNGindex].origsizexp);
   end;
 
   freemem(PNGlist[PNGindex].bitmap);
@@ -431,7 +438,7 @@ function Decomp_Makichan(const srcfile, outputfile : UTF8string) : UTF8string;
 // a normal PNG.
 // Returns an empty string if successful, otherwise returns an error message.
 var imunamu : UTF8string;
-    ivar, jvar : dword;
+    i, j : dword;
     PNGindex : dword;
     tempbmp : bitmaptype;
 begin
@@ -453,14 +460,14 @@ begin
  end;
 
  // Call the right decompressor.
- ivar := dword((loader + 4)^); // 01A, 01B, or 02
+ i := dword((loader + 4)^); // 01A, 01B, or 02
  lofs := 8;
- case ivar of
+ case i of
   $20413130: UnpackMakiGraphic(PNGindex, 1); // 01A
   $20423130: UnpackMakiGraphic(PNGindex, 2); // 01B
   $20203230: UnpackMAG2Graphic(PNGindex); // 02
   else begin
-   Decomp_Makichan := 'unknown MAKI subtype $' + strhex(ivar);
+   Decomp_Makichan := 'unknown MAKI subtype $' + strhex(i);
    exit;
   end;
  end;
@@ -479,11 +486,11 @@ begin
  setlength(tempbmp.palette, length(PNGlist[PNGindex].pal));
 
  if length(PNGlist[PNGindex].pal) <> 0 then begin
-  for ivar := high(PNGlist[PNGindex].pal) downto 0 do begin
-   tempbmp.palette[ivar].a := $FF;
-   tempbmp.palette[ivar].b := PNGlist[PNGindex].pal[ivar].b;
-   tempbmp.palette[ivar].g := PNGlist[PNGindex].pal[ivar].g;
-   tempbmp.palette[ivar].r := PNGlist[PNGindex].pal[ivar].r;
+  for i := high(PNGlist[PNGindex].pal) downto 0 do begin
+   tempbmp.palette[i].a := $FF;
+   tempbmp.palette[i].b := PNGlist[PNGindex].pal[i].b;
+   tempbmp.palette[i].g := PNGlist[PNGindex].pal[i].g;
+   tempbmp.palette[i].r := PNGlist[PNGindex].pal[i].r;
   end;
  end
  else begin
@@ -492,11 +499,11 @@ begin
  end;
 
  // Convert bitmaptype(pic^) into a compressed PNG, saved in bitmap^.
- // The PNG byte size goes into jvar.
- ivar := mcg_MemoryToPng(@tempbmp, @PNGlist[PNGindex].bitmap, @jvar);
+ // The PNG byte size goes into j.
+ i := mcg_MemoryToPng(@tempbmp, @PNGlist[PNGindex].bitmap, @j);
  mcg_ForgetImage(@tempbmp);
 
- if ivar <> 0 then begin
+ if i <> 0 then begin
   Decomp_Makichan := mcg_errortxt;
   if PNGlist[PNGindex].bitmap <> NIL then begin
    freemem(PNGlist[PNGindex].bitmap); PNGlist[PNGindex].bitmap := NIL;
@@ -504,6 +511,6 @@ begin
   exit;
  end;
 
- Decomp_Makichan := SaveFile(outputfile, PNGlist[PNGindex].bitmap, jvar);
+ Decomp_Makichan := SaveFile(outputfile, PNGlist[PNGindex].bitmap, j);
  freemem(PNGlist[PNGindex].bitmap); PNGlist[PNGindex].bitmap := NIL;
 end;
