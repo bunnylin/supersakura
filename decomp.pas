@@ -1119,8 +1119,8 @@ begin
   end;
  end
  else begin
-  if decompresult <> 'skip' then writeln(srcfile, ': ', decompresult);
-  writeln(stdout, decompresult);
+  if decompresult <> 'skip' then write(srcfile, ': ');
+  PrintError(decompresult);
  end;
  if decompresult <> 'skip' then DispatchFile := 1;
 end;
