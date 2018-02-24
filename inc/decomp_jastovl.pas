@@ -1110,7 +1110,8 @@ begin
   ptrpix := word((loader + 4)^);
   ptrnil := word((loader + 6)^);
   if ptrresults in [0,6,8] = FALSE then begin
-   PrintError('Script header starts with $' + strhex(ptrresults) + '??'); exit;
+   Decomp_JastOvl := 'Script header starts with $' + strhex(ptrresults) + '??';
+   exit;
   end;
   if ptrresults = 6 then begin // alternative tiny header skips first array
    ptrnil := ptrpix; ptrpix := ptrscript; ptrscript := ptrresults;
@@ -1152,7 +1153,7 @@ begin
    inc(ptrnil);
    while (ptrnil < word((loader + ptrresults + 2)^)) do begin
     ivar := byte((loader + ptrnil)^); // jump addresses
-    if ivar = 0 then begin PrintError('0!!!'); exit; end;
+    if ivar = 0 then begin Decomp_JastOvl := '0!!!'; exit; end;
     dec(ivar); // make it 0-based
     txt := strhex(word((loader + ptrscript + ivar * 2)^));
     while length(txt) < 4 do txt := '0' + txt;
@@ -1215,7 +1216,10 @@ begin
   then begin
    // Read the choice combination records
    repeat
-    if combos > high(choicecombo) then begin PrintError('Choicecombo overflow @ $' + strhex(lofs)); exit; end;
+    if combos > high(choicecombo) then begin
+     Decomp_JastOvl := 'Choicecombo overflow @ $' + strhex(lofs);
+     exit;
+    end;
     // verb pointer
     ivar := word((loader + lofs)^); inc(lofs, 2);
     if (ivar <= ptrnil) or (ivar >= ptrscript) then break; // validity check
@@ -1232,7 +1236,10 @@ begin
     repeat
      ivar := word((loader + lofs)^);
      if (ivar < ptrscript) or (lofs >= ptrscript) then break;
-     if lvar >= high(choicecombo[1].jumpresult) then begin PrintError('Choicecombo jumpresult overflow @ $' + strhex(lofs)); exit; end;
+     if lvar >= high(choicecombo[1].jumpresult) then begin
+      Decomp_JastOvl := 'Choicecombo jumpresult overflow @ $' + strhex(lofs);
+      exit;
+     end;
      choicecombo[combos].jumpresult[lvar] := ivar;
      inc(lvar); inc(lofs, 2);
     until (lofs >= ptrscript);
@@ -1252,7 +1259,10 @@ begin
     ivar := word((loader + lofs)^); inc(lofs, 2);
     if (ivar <= ptrnil) or (ivar >= ptrscript) then continue; // in data section?
     inc(options);
-    if options > high(optionlist) then begin PrintError('Optionlist overflow @ $' + strhex(lofs)); exit; end;
+    if options > high(optionlist) then begin
+     Decomp_JastOvl := 'Optionlist overflow @ $' + strhex(lofs);
+     exit;
+    end;
     optionlist[options].address := ivar;
    end;
 
@@ -1279,7 +1289,10 @@ begin
   then begin
    lofs := ptrpix;
    while lofs < ptrnil do begin
-    if pictures > high(gfxlist) then begin PrintError('Picture list overflow @ $' + strhex(lofs)); exit; end;
+    if pictures > high(gfxlist) then begin
+     Decomp_JastOvl := 'Picture list overflow @ $' + strhex(lofs);
+     exit;
+    end;
     jvar := word((loader + lofs)^);
     writebuf('// Gfx ' + strdec(pictures) + ': style $' + strhex(byte((loader + jvar)^)));
     case byte((loader + jvar)^) of // translate swipe styles to uniform values
@@ -1306,8 +1319,10 @@ begin
     inc(jvar);
     gfxlist[pictures].gfxname := upcase(GetLoaderString(jvar));
     writebufln(' ' + gfxlist[pictures].gfxname);
-    if gfxlist[pictures].data2 in [$03,$38,$42,$4E,$50] = FALSE then
-     PrintError('Unknown image type $' + strhex(gfxlist[pictures].data2) + ': ' + gfxlist[pictures].gfxname);
+    if gfxlist[pictures].data2 in [$03,$38,$42,$4E,$50] = FALSE then begin
+     Decomp_JastOvl := 'Unknown image type $' + strhex(gfxlist[pictures].data2) + ': ' + gfxlist[pictures].gfxname;
+     exit;
+    end;
     inc(pictures); inc(lofs, 2);
    end;
    writebufln('');
@@ -1640,7 +1655,10 @@ begin
         writebufln('// dungeon romp! map ' + strdec(jvar and $FF) + ' coords ' + strdec((jvar shr 8) and $FF) + ',' + strdec((jvar shr 16) and $FF));
         if byte((loader + lofs)^) <> 0 then writebufln('');
        end;
-       else begin PrintError('Unknown code $02 @ $' + strhex(lofs)); exit; end;
+       else begin
+        Decomp_JastOvl := 'Unknown code $02 @ $' + strhex(lofs);
+        exit;
+       end;
       end;
 
    // 03 - Return to wherever last jumped from
@@ -1711,7 +1729,10 @@ begin
         jvar := byte((loader + lofs)^); inc(lofs);
         writebufln('//dummy $05 ' + strhex(jvar));
        end;
-       else begin PrintError('Unknown code $05 @ $' + strhex(lofs)); exit; end;
+       else begin
+        Decomp_JastOvl := 'Unknown code $05 @ $' + strhex(lofs);
+        exit;
+       end;
       end;
 
    // 06 - [Sakura] play song xx / [3sis] show graphic xx (no persistence)
@@ -1722,7 +1743,10 @@ begin
         if implicitwaitkey = 0 then inc(implicitwaitkey);
         jvar := byte((loader + lofs)^);
         inc(lofs);
-        if jvar >= length(gfxlist) then begin PrintError('Graphic draw request out of bounds @ $' + strhex(lofs)); exit; end;
+        if jvar >= length(gfxlist) then begin
+         Decomp_JastOvl := 'Graphic draw request out of bounds @ $' + strhex(lofs);
+         exit;
+        end;
         if persistence = FALSE then begin
          writebufln('gfx.clearkids');
          if (gfxlist[jvar].data2 = $50) and (gfxlist[jvar].data1 <> 0)
@@ -1760,7 +1784,10 @@ begin
        begin
         if implicitwaitkey = 0 then inc(implicitwaitkey);
         jvar := byte((loader + lofs)^); inc(lofs);
-        if jvar >= length(gfxlist) then begin PrintError('Graphic draw request out of bounds @ $' + strhex(lofs)); exit; end;
+        if jvar >= length(gfxlist) then begin
+         Decomp_JastOvl := 'Graphic draw request out of bounds @ $' + strhex(lofs);
+         exit;
+        end;
         if gfxlist[jvar].data2 <> $38 then begin
          writebufln('gfx.clearkids');
          if (gfxlist[jvar].data2 = $50) and (gfxlist[jvar].data1 <> 0)
@@ -1797,8 +1824,8 @@ begin
         jvar := byte((loader + lofs)^); inc(lofs);
         if jvar in [0,$FF] then writebufln('mus.stop')
         else if jvar > dword(length(songlist)) then begin
-         PrintError('Song outside list @ $' + strhex(lofs));
-         writebufln('');
+         Decomp_JastOvl := 'Song outside list @ $' + strhex(lofs);
+         exit;
         end else
          writebufln('mus.play ' + songlist[jvar - 1]);
        end;
@@ -1808,7 +1835,10 @@ begin
         lvar := byte((loader + lofs)^); inc(lofs);
         writebufln('//dummy 06 // $' + strhex(jvar) + ' $' + strhex(lvar));
        end;
-       else begin PrintError('Unknown code $06 @ $' + strhex(lofs)); exit; end;
+       else begin
+        Decomp_JastOvl := 'Unknown code $06 @ $' + strhex(lofs);
+        exit;
+       end;
       end;
 
    // 07 - 3sis/Runaway play song xx
@@ -1823,8 +1853,8 @@ begin
       begin
        if jvar in [0,$FF] then writebufln('mus.stop')
        else if jvar > dword(length(songlist)) then begin
-        PrintError('Song outside list @ $' + strhex(lofs));
-        writebufln('');
+        Decomp_JastOvl := 'Song outside list @ $' + strhex(lofs);
+        exit;
        end else
         writebufln('mus.play ' + songlist[jvar - 1]);
       end;
@@ -1841,7 +1871,10 @@ begin
        writebufln('print \$v' + strdec(jvar));
       end;
 
-      else begin PrintError('Unknown code $07 @ $' + strhex(lofs)); exit; end;
+      else begin
+       Decomp_JastOvl := 'Unknown code $07 @ $' + strhex(lofs);
+       exit;
+      end;
     end;
    end;
 
@@ -1868,7 +1901,10 @@ begin
         implicitwaitkey := 0;
        end;
 
-       else begin PrintError('Unknown code $08 @ $' + strhex(lofs)); exit; end;
+       else begin
+        Decomp_JastOvl := 'Unknown code $08 @ $' + strhex(lofs);
+        exit;
+       end;
       end;
    // 09 - Wait for keypress, don't clear message area afterward (or sleep)
    9: case game of
@@ -1897,7 +1933,10 @@ begin
                         while length(txt) < 3 do txt := '0' + txt;
                         writebufln('call TEN_S' + txt + '.');
                        end;
-       else begin PrintError('Unknown code $09 @ $' + strhex(lofs)); exit; end;
+       else begin
+        Decomp_JastOvl := 'Unknown code $09 @ $' + strhex(lofs);
+        exit;
+       end;
       end;
    // 0A - Linebreak, handled with other text output
    // 0B - Local variable functions
@@ -2200,7 +2239,10 @@ begin
                 writebufln('choice.go');
                //end;
               end;
-         else begin PrintError('Unknown $B subcode $' + strhex(byte((loader + lofs - 1)^)) + ' @ $' + strhex(lofs - 2)); exit; end;
+         else begin
+          Decomp_JastOvl := 'Unknown $B subcode $' + strhex(byte((loader + lofs - 1)^)) + ' @ $' + strhex(lofs - 2);
+          exit;
+         end;
         end;
        end;
 
@@ -2219,7 +2261,10 @@ begin
              writebuf('$v' + strdec(byte((loader + lofs + 1)^) + 256) + ' := ' + strdec(byte((loader + lofs + 2)^)));
              inc(lofs, 3);
             end;
-         else begin PrintError('Unknown $C subcode $' + strhex(byte((loader + lofs)^)) + ' @ $' + strhex(lofs)); exit; end;
+         else begin
+          Decomp_JastOvl := 'Unknown $C subcode $' + strhex(byte((loader + lofs)^)) + ' @ $' + strhex(lofs);
+          exit;
+         end;
         end;
         writebufln('');
        end;
@@ -2270,10 +2315,16 @@ begin
                  writebufln('');
                 end;
            $0B: writebufln('//dummy 0D-0B // gfx.clearkids?');
-           else begin PrintError('Unknown $D subcode $' + strhex(byte((loader + lofs - 1)^)) + ' @ $' + strhex(lofs - 2)); exit; end;
+           else begin
+            Decomp_JastOvl := 'Unknown $D subcode $' + strhex(byte((loader + lofs - 1)^)) + ' @ $' + strhex(lofs - 2);
+            exit;
+           end;
           end;
          end;
-         else begin PrintError('Unknown code $0D @ $' + strhex(lofs - 1)); exit; end;
+         else begin
+          Decomp_JastOvl := 'Unknown code $0D @ $' + strhex(lofs - 1);
+          exit;
+         end;
         end;
    $0E: case game of // graphic panning
 
@@ -2302,7 +2353,10 @@ begin
           writebufln('//dummy $0E ' + strhex(jvar) + ' // transition? pan?');
          end;
 
-         else begin PrintError('Unknown code $0E @ $' + strhex(lofs)); exit; end;
+         else begin
+          Decomp_JastOvl := 'Unknown code $0E @ $' + strhex(lofs);
+          exit;
+         end;
         end;
    // 0F xx - happy ending!
    $0F: case game of
@@ -2351,7 +2405,10 @@ begin
           until lofs >= loadersize;
          end;
 
-         else begin PrintError('Unknown code $0F @ $' + strhex(lofs)); exit; end;
+         else begin
+          Decomp_JastOvl := 'Unknown code $0F @ $' + strhex(lofs);
+          exit;
+         end;
         end;
 
    // 10 - unhappy ending!
@@ -2408,7 +2465,10 @@ begin
                  lvar := byte((loader + lofs)^); inc(lofs);
                  writebufln('// battle? #' + strdec(lvar));
                 end;
-                else begin PrintError('Unknown code $11-02 @ $' + strhex(lofs)); exit; end;
+                else begin
+                 Decomp_JastOvl := 'Unknown code $11-02 @ $' + strhex(lofs);
+                 exit;
+                end;
                end;
           $03: case game of
                 gid_VANISH: begin
@@ -2416,7 +2476,10 @@ begin
                  inc(lofs);
                  writebufln('');
                 end;
-                else begin PrintError('Unknown code $11-03 @ $' + strhex(lofs)); exit; end;
+                else begin
+                 Decomp_JastOvl := 'Unknown code $11-03 @ $' + strhex(lofs);
+                 exit;
+                end;
                end;
           $04: case game of
                 gid_TASOGARE: begin
@@ -2427,7 +2490,10 @@ begin
                  inc(lofs, 2);
                  writebufln('');
                 end;
-                else begin PrintError('Unknown code $11-04 @ $' + strhex(lofs)); exit; end;
+                else begin
+                 Decomp_JastOvl := 'Unknown code $11-04 @ $' + strhex(lofs);
+                 exit;
+                end;
                end;
           // Name entry
           $05: case game of
@@ -2437,7 +2503,10 @@ begin
                 gid_VANISH: begin
                  writebufln('sys.quit');
                 end;
-                else begin PrintError('Unknown code $11-05 @ $' + strhex(lofs)); exit; end;
+                else begin
+                 Decomp_JastOvl := 'Unknown code $11-05 @ $' + strhex(lofs);
+                 exit;
+                end;
                end;
           $06: case game of
                 gid_EDEN: begin
@@ -2450,7 +2519,10 @@ begin
                  inc(lofs);
                  writebufln('');
                 end;
-                else begin PrintError('Unknown code $11-06 @ $' + strhex(lofs)); exit; end;
+                else begin
+                 Decomp_JastOvl := 'Unknown code $11-06 @ $' + strhex(lofs);
+                 exit;
+                end;
                end;
 
           $07: case game of
@@ -2459,7 +2531,10 @@ begin
                  inc(lofs, 2);
                  writebufln('');
                 end;
-                else begin PrintError('Unknown code $11-07 @ $' + strhex(lofs)); exit; end;
+                else begin
+                 Decomp_JastOvl := 'Unknown code $11-07 @ $' + strhex(lofs);
+                 exit;
+                end;
                end;
 
           $08: case game of
@@ -2467,7 +2542,10 @@ begin
                  lvar := byte((loader + lofs)^); inc(lofs);
                  writebufln('// fade to black and back over ' + strdec(lvar) + ' desisecs');
                 end;
-                else begin PrintError('Unknown code $11-08 @ $' + strhex(lofs)); exit; end;
+                else begin
+                 Decomp_JastOvl := 'Unknown code $11-08 @ $' + strhex(lofs);
+                 exit;
+                end;
                end;
 
           $09: case game of // clickable map!
@@ -2540,21 +2618,30 @@ begin
                  end;
                  writebufln('"');
                 end;
-                else begin PrintError('Unknown code $11-09 @ $' + strhex(lofs)); exit; end;
+                else begin
+                 Decomp_JastOvl := 'Unknown code $11-09 @ $' + strhex(lofs);
+                 exit;
+                end;
                end;
 
           $0B: case game of
                 gid_TASOGARE: begin
                  writebufln('gfx.clearkids // 11-0B');
                 end;
-                else begin PrintError('Unknown code $11-0B @ $' + strhex(lofs)); exit; end;
+                else begin
+                 Decomp_JastOvl := 'Unknown code $11-0B @ $' + strhex(lofs);
+                 exit;
+                end;
                end;
 
           $0C: case game of
                 gid_TASOGARE: begin
                  writebufln('//dummy $11-0C // push player one square backward');
                 end;
-                else begin PrintError('Unknown code $11-0C @ $' + strhex(lofs)); exit; end;
+                else begin
+                 Decomp_JastOvl := 'Unknown code $11-0C @ $' + strhex(lofs);
+                 exit;
+                end;
                end;
 
           $0E: case game of
@@ -2563,7 +2650,10 @@ begin
                  inc(lofs);
                  writebufln('');
                 end;
-                else begin PrintError('Unknown code $11-0E @ $' + strhex(lofs)); exit; end;
+                else begin
+                 Decomp_JastOvl := 'Unknown code $11-0E @ $' + strhex(lofs);
+                 exit;
+                end;
                end;
 
           $10: case game of
@@ -2572,7 +2662,10 @@ begin
                  inc(lofs, 3);
                  writebufln('');
                 end;
-                else begin PrintError('Unknown code $11-10 @ $' + strhex(lofs)); exit; end;
+                else begin
+                 Decomp_JastOvl := 'Unknown code $11-10 @ $' + strhex(lofs);
+                 exit;
+                end;
                end;
 
           $11,$12: case game of
@@ -2589,9 +2682,15 @@ begin
                  end;
                  writebufln('gfx.show type sprite ' + txt);
                 end;
-                else begin PrintError('Unknown code $11-' + strhex(jvar) + ' @ $' + strhex(lofs)); exit; end;
+                else begin
+                 Decomp_JastOvl := 'Unknown code $11-' + strhex(jvar) + ' @ $' + strhex(lofs);
+                 exit;
+                end;
                end;
-          else begin PrintError('Unknown code $11-' + strhex(jvar) + ' @ $' + strhex(lofs)); exit; end;
+          else begin
+           Decomp_JastOvl := 'Unknown code $11-' + strhex(jvar) + ' @ $' + strhex(lofs);
+           exit;
+          end;
          end;
 
         end;
@@ -2601,11 +2700,13 @@ begin
          jvar := byte((loader + lofs + 1)^);
          lvar := byte((loader + lofs + 2)^);
          if jvar > dword(high(optionlist)) then begin
-          PrintError('$12 requested text outside optionlist! @ $' + strhex(lofs)); exit;
+          Decomp_JastOvl := '$12 requested text outside optionlist! @ $' + strhex(lofs);
+          exit;
          end;
          if optionlist[jvar].verbtext = '' then begin
           writebuf('// no such choice: $' + strhex(jvar) + ' // ');
-          PrintError('Choice verb not defined @ $' + strhex(lofs));
+          Decomp_JastOvl := 'Choice verb not defined @ $' + strhex(lofs);
+          exit;
          end;
          case byte((loader + lofs)^) of
           1: begin
@@ -2624,7 +2725,10 @@ begin
               inc(lofs, 3);
               writebufln('choice.on "' + optionlist[jvar].verbtext + ':' + optionlist[jvar].subjecttext[lvar] + '"');
              end;
-          else begin PrintError('Unknown code $12 ' + strhex(byte((loader + lofs)^)) + ' @ $' + strhex(lofs)); exit; end;
+          else begin
+           Decomp_JastOvl := 'Unknown code $12 ' + strhex(byte((loader + lofs)^)) + ' @ $' + strhex(lofs);
+           exit;
+          end;
          end;
         end;
 
@@ -2660,7 +2764,10 @@ begin
                   inc(lofs);
                   if nextgra.transition >= $32 then dec(nextgra.transition, $32)
                   else if nextgra.transition = 0 then nextgra.transition := 10
-                  else PrintError('Encountered transition $' + strhex(nextgra.transition) + ' @ $' + strhex(lofs));
+                  else begin
+                   Decomp_JastOvl := 'Encountered transition $' + strhex(nextgra.transition) + ' @ $' + strhex(lofs);
+                   exit;
+                  end;
                  end;
             $0F: begin
                   if stashactive then writebuf('gfx.clearkids TB_008')
@@ -2678,7 +2785,8 @@ begin
                   txt[byte(txt[0])] := chr(jvar);
                  end;
             else begin
-                  PrintError('Unknown code $13 ' + strhex(jvar) + ' @ $' + strhex(lofs)); exit;
+                  Decomp_JastOvl := 'Unknown code $13 ' + strhex(jvar) + ' @ $' + strhex(lofs);
+                  exit;
                  end;
            end;
           until jvar in [$00, $0F, $10];
@@ -2715,7 +2823,10 @@ begin
            if nextgra.style and 2 <> 0 then writebuf(' name ' + txt + '..') else
            if nextgra.style and 8 <> 0 then writebuf(' sprite') else
            if nextgra.style and 16 <> 0 then writebuf(' bkg') else
-           begin PrintError('Draw graphic without style @ $' + strhex(lofs)); exit; end;
+           begin
+            Decomp_JastOvl := 'Draw graphic without style @ $' + strhex(lofs);
+            exit;
+           end;
            if nextgra.ofsx <> 0 then begin
             jvar := BaseResX;
             gutan := seekpng(txt, FALSE);
@@ -2802,7 +2913,10 @@ begin
           end;
          end;
 
-         else begin PrintError('Unknown code $13 ' + strhex(byte((loader + lofs + 1)^)) + ' @ $' + strhex(lofs)); exit; end;
+         else begin
+          Decomp_JastOvl := 'Unknown code $13 ' + strhex(byte((loader + lofs + 1)^)) + ' @ $' + strhex(lofs);
+          exit;
+         end;
         end;
 
    // 14 - Variable reset; or, kill the overlay, restore the background
@@ -2830,13 +2944,19 @@ begin
                 $39: jvar := 1;
                 $3D: jvar := 2;
                 $36,$37,$38,$3A,$3C: jvar := 3;
-                else PrintError('Encountered transition $' + strhex(jvar) + ' @ $' + strhex(lofs));
+                else begin
+                 Decomp_JastOvl := 'Encountered transition $' + strhex(jvar) + ' @ $' + strhex(lofs);
+                 exit;
+                end;
                end;
                writebufln('gfx.transition ' + strdec(jvar));
                writebufln('sleep');
                blackedout := TRUE; nextgra.unswiped := 0;
               end;
-           else begin PrintError('Unknown code $14 ' + strhex(byte((loader + lofs)^)) + ' @ $' + strhex(lofs)); exit; end;
+           else begin
+            Decomp_JastOvl := 'Unknown code $14 ' + strhex(byte((loader + lofs)^)) + ' @ $' + strhex(lofs);
+            exit;
+           end;
           end;
          end;
 
@@ -2846,7 +2966,10 @@ begin
           writebufln('sleep ' + strdec(jvar * 100));
          end;
 
-         else begin PrintError('Unknown code $14 @ $' + strhex(lofs)); exit; end;
+         else begin
+          Decomp_JastOvl := 'Unknown code $14 @ $' + strhex(lofs);
+          exit;
+         end;
         end;
 
    // 15 xx - Handle animations
@@ -2903,8 +3026,8 @@ begin
                lvar := byte((loader + lofs)^) mod length(animslot);
                inc(lofs);
                if animslot[lvar].namu = '' then begin
-                PrintError('Animslot ' + strdec(lvar) + ' used while undefined @ $' + strhex(lofs - 3));
-                writebuf('// ');
+                Decomp_JastOvl := 'Animslot ' + strdec(lvar) + ' used while undefined @ $' + strhex(lofs - 3);
+                exit;
                end;
                writebuf('gfx.show ' + animslot[lvar].namu + ' anim');
                if animslot[lvar].ofsx <> 0 then begin
@@ -2921,11 +3044,17 @@ begin
                  writebufln('gfx.removeanims // code 15 0' + strdec(jvar));
                  for lvar := 0 to high(animslot) do animslot[lvar].displayed := FALSE;
                 end;
-           else begin PrintError('Unknown code $15 ' + strhex(byte((loader + lofs + 1)^)) + ' @ $' + strhex(lofs)); exit; end;
+           else begin
+            Decomp_JastOvl := 'Unknown code $15 ' + strhex(byte((loader + lofs + 1)^)) + ' @ $' + strhex(lofs);
+            exit;
+           end;
           end;
          end;
 
-         else begin PrintError('Unknown code $15 @ $' + strhex(lofs)); exit; end;
+         else begin
+          Decomp_JastOvl := 'Unknown code $15 @ $' + strhex(lofs);
+          exit;
+         end;
         end;
 
    // 16 xx - Screen flashes xx times
@@ -2950,7 +3079,10 @@ begin
 
          gid_PARFAIT: begin // some kinda graphics command?
           jvar := byte((loader + lofs)^); inc(lofs);
-          if jvar <> $A then begin PrintError('Unknown $16 subcode @ $' + strhex(lofs)); exit; end;
+          if jvar <> $A then begin
+           Decomp_JastOvl := 'Unknown $16 subcode @ $' + strhex(lofs);
+           exit;
+          end;
           writebuf('//dummy $16 0A //');
           for lvar := 3 downto 0 do begin
            txt := strhex(word((loader + lofs)^));
@@ -2967,7 +3099,10 @@ begin
           writebufln('');
          end;
 
-         else begin PrintError('Unknown code $16 @ $' + strhex(lofs)); exit; end;
+         else begin
+          Decomp_JastOvl := 'Unknown code $16 @ $' + strhex(lofs);
+          exit;
+         end;
         end;
 
    // 17 xx - Pause for xx desisecs (or until an impatient key pressed)
@@ -2978,7 +3113,10 @@ begin
           jvar := byte((loader + lofs)^); inc(lofs);
           writebufln('sleep ' + strdec(jvar * 100));
          end;
-         else begin PrintError('Unknown code $17 @ $' + strhex(lofs)); exit; end;
+         else begin
+          Decomp_JastOvl := 'Unknown code $17 @ $' + strhex(lofs);
+          exit;
+         end;
         end;
 
    // 18 xx - Screen shakes vertically xx times
@@ -2993,7 +3131,10 @@ begin
           or (scriptname = 'CS507_D')
           then WriteBash(1) else WriteThwomp(lvar);
          end;
-         else begin PrintError('Unknown code $18 @ $' + strhex(lofs)); exit; end;
+         else begin
+          Decomp_JastOvl := 'Unknown code $18 @ $' + strhex(lofs);
+          exit;
+         end;
         end;
 
    // 19 - Clear textbox immediately
@@ -3009,7 +3150,10 @@ begin
           writebufln('//dummy $19');
          end;
 
-         else begin PrintError('Unknown code $19 @ $' + strhex(lofs)); exit; end;
+         else begin
+          Decomp_JastOvl := 'Unknown code $19 @ $' + strhex(lofs);
+          exit;
+         end;
         end;
 
    // 1E xx - unknown
@@ -3018,7 +3162,10 @@ begin
           jvar := byte((loader + lofs)^); inc(lofs);
           writebufln('//dummy $1E v' + strdec(jvar));
          end;
-         else begin PrintError('Unknown code $1E @ $' + strhex(lofs)); exit; end;
+         else begin
+          Decomp_JastOvl := 'Unknown code $1E @ $' + strhex(lofs);
+          exit;
+         end;
         end;
 
    // F3 xx - unknown
@@ -3027,7 +3174,10 @@ begin
           jvar := byte((loader + lofs)^); inc(lofs);
           writebufln('//dummy $F3-$' + strhex(jvar));
          end;
-         else begin PrintError('Unknown code $F3 @ $' + strhex(lofs)); exit; end;
+         else begin
+          Decomp_JastOvl := 'Unknown code $F3 @ $' + strhex(lofs);
+          exit;
+         end;
         end;
 
    // ASCII/Shift-JIS text output
@@ -3035,7 +3185,7 @@ begin
 
    // exceptions
    else begin
-    PrintError('Unknown code $' + strhex(ivar) + ' @ $' + strhex(lofs - 1));
+    Decomp_JastOvl := 'Unknown code $' + strhex(ivar) + ' @ $' + strhex(lofs - 1);
     exit;
    end;
   end;
