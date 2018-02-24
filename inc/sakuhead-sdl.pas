@@ -1,5 +1,5 @@
 {                                                                           }
-{ Copyright 2009-2017 :: Kirinn Bunnylin / Mooncore                         }
+{ Copyright 2009 :: Kirinn Bunnylin / Mooncore                              }
 {                                                                           }
 { This file is part of SuperSakura.                                         }
 {                                                                           }

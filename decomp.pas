@@ -1,7 +1,7 @@
 program SuperSakura_Decompiler;
 {                                                                           }
 { SuperSakura Decompiler tool                                               }
-{ Copyright 2009-2017 :: Kirinn Bunnylin / Mooncore                         }
+{ Copyright 2009-2018 :: Kirinn Bunnylin / Mooncore                         }
 { https://mooncore.eu/ssakura                                               }
 { https://github.com/bunnylin/supersakura                                   }
 {                                                                           }
