@@ -1140,8 +1140,11 @@ begin
    inc(newgfxcount);
   end;
  end
+ else if decompresult = 'skip' then begin
+  writeln(stdout, 'skip');
+ end
  else begin
-  if decompresult <> 'skip' then write(srcfile, ': ');
+  write(srcfile, ': ');
   PrintError(decompresult);
  end;
  if decompresult <> 'skip' then DispatchFile := 1;
