@@ -298,8 +298,14 @@ function SaveFile(const namu : UTF8string; buf : pointer; bufsize : dword) : UTF
 // is overwritten without warning.
 // Returns an empty string if successful, otherwise returns an error message.
 var f : file;
-    ivar : dword;
+    targetdir : UTF8string;
+    i, j : dword;
 begin
+ if namu = '' then begin
+  SaveFile := 'no file name specified';
+  exit;
+ end;
+
  SaveFile := '';
  while IOresult <> 0 do; // flush
  {$ifdef caseshenanigans}
@@ -313,16 +319,32 @@ begin
   SaveFile := '';
  end;
  {$endif}
+
+ // Make sure the target directory exists.
+ for i := 2 to length(namu) do
+  if namu[i] = DirectorySeparator then begin
+   targetdir := copy(namu, 1, i);
+   if DirectoryExists(targetdir) = FALSE then begin
+    mkdir(targetdir);
+    j := IOresult;
+    if j <> 0 then begin
+     SaveFile := errortxt(j) + ' creating directory ' + targetdir;
+     exit;
+    end;
+   end;
+  end;
+
+ // Try to write the file.
  assign(f, namu);
  filemode := 1; rewrite(f, 1); // write-only
- ivar := IOresult;
- if ivar <> 0 then begin
-  SaveFile := errortxt(ivar) + ' creating ' + namu;
+ i := IOresult;
+ if i <> 0 then begin
+  SaveFile := errortxt(i) + ' creating ' + namu;
   exit;
  end;
  blockwrite(f, buf^, bufsize);
- ivar := IOresult;
- if ivar <> 0 then SaveFile := errortxt(ivar) + ' writing ' + namu;
+ i := IOresult;
+ if i <> 0 then SaveFile := errortxt(i) + ' writing ' + namu;
  close(f);
  while IOresult <> 0 do; // flush
 end;
@@ -1324,7 +1346,7 @@ begin
  DoParams := TRUE;
  with decomp_param do begin
   sourcedir := '';
-  outputdir := '';
+  outputdir := 'data' + DirectorySeparator + 'unknown' + DirectorySeparator;
   outputoverride := FALSE;
   gidoverride := FALSE;
   dobeautify := FALSE;
