@@ -358,13 +358,21 @@ begin
  end;
 
  // Expand 4bpp indexed --> 8bpp indexed.
- if tempimage.bitdepth < 8 then mcg_ExpandBitdepth(@tempimage);
+ ivar := 3;
+ if tempimage.bitdepth < 8 then begin
+  mcg_ExpandBitdepth(@tempimage);
+  ivar := 7;
+ end;
 
- // Crop the sides if they were padded earlier.
- if (PNGlist[PNGindex].origsizeyp > 1) then begin
-  ofsa := leftofs and 7; // this amount must be cropped from left
+ // Before cropping, protect against zero-height images...
+ if (PNGlist[PNGindex].origsizeyp = 0) then begin
+  PNGlist[PNGindex].bitmap := tempimage.image;
+ end
+ // Crop the sides, assuming they were padded earlier.
+ else begin
+  ofsa := leftofs and ivar; // this amount must be cropped from left
   ofsb := 0;
-  ofsb := 7 - rightofs and 7; // this must be cropped from right
+  ofsb := ivar - rightofs and ivar; // this must be cropped from right
   // this is the result width.
   ofsc := PNGlist[PNGindex].origsizexp - ofsa - ofsb;
   // Make a buffer for the cropped image.
@@ -379,9 +387,6 @@ begin
   freemem(tempimage.image);
   // Note the image's cropped width.
   PNGlist[PNGindex].origsizexp := ofsc;
- end
- else begin
-  PNGlist[PNGindex].bitmap := tempimage.image;
  end;
  tempimage.image := NIL;
 
