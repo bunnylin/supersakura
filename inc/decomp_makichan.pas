@@ -261,9 +261,11 @@ begin
  modelcode := byte((loader + lofs)^); inc(lofs);
  modelflags := byte((loader + lofs)^); inc(lofs);
  screenmode := byte((loader + lofs)^); inc(lofs);
+
  leftofs := word((loader + lofs)^); inc(lofs, 2);
  PNGlist[PNGindex].origofsxp := leftofs;
  PNGlist[PNGindex].origofsyp := word((loader + lofs)^); inc(lofs, 2);
+
  rightofs := word((loader + lofs)^); inc(lofs, 2);
  PNGlist[PNGindex].origsizeyp := word((loader + lofs)^); inc(lofs, 2);
 
@@ -303,19 +305,21 @@ begin
   // 16-color mode...
   // calculate the image size from edge to edge
   // and both horizontal edges must be pushed out to a multiple of 8
-  PNGlist[PNGindex].origsizexp := (rightofs + 8) and $FFF8 - (leftofs and $FFF8);
+  // and the right edge gets +1 to change from inclusive -> exclusive
+  PNGlist[PNGindex].origsizexp := (rightofs + 7 + 1) and $FFF8 - (leftofs and $FFF8);
   tempimage.bitdepth := 4;
   setlength(actionbuffy, PNGlist[PNGindex].origsizexp div 8);
  end else begin
-  // 256-color mode has some differences...
-  // calculate the image size from edge to edge
-  // and both horizontal edges must be pushed out to a multiple of 4
-  PNGlist[PNGindex].origsizexp := (rightofs + 4) and $FFFC - (leftofs and $FFFC);
+  // 256-color mode...
+  // horizontal edges are pushed out to a multiple of 4 instead.
+  PNGlist[PNGindex].origsizexp := (rightofs + 3 + 1) and $FFFC - (leftofs and $FFFC);
   tempimage.bitdepth := 8;
   setlength(actionbuffy, PNGlist[PNGindex].origsizexp div 4);
  end;
- PNGlist[PNGindex].origsizeyp := PNGlist[PNGindex].origsizeyp - PNGlist[PNGindex].origofsyp + 1;
  bytewidth := (PNGlist[PNGindex].origsizexp * tempimage.bitdepth) shr 3;
+
+ // Calculate the true image pixel height.
+ PNGlist[PNGindex].origsizeyp := PNGlist[PNGindex].origsizeyp - PNGlist[PNGindex].origofsyp + 1;
 
  // Unpack image into this, as a 4bpp indexed thing.
  getmem(tempimage.image, (bytewidth * dword(PNGlist[PNGindex].origsizeyp + 1)));
@@ -367,34 +371,34 @@ begin
   i := 7;
  end;
 
- // Protect against zero-height images...
- if (PNGlist[PNGindex].origsizeyp = 0) then begin
+ // Check if the image sides need cropping...
+ ofsa := leftofs and i; // this amount must be cropped from left
+ ofsb := 0;
+ ofsb := i - rightofs and i; // this must be cropped from right
+ // this is the result width.
+ ofsc := PNGlist[PNGindex].origsizexp - ofsa - ofsb;
+
+ if (PNGlist[PNGindex].origsizeyp = 0)
+ or (ofsc = PNGlist[PNGindex].origsizexp)
+ then begin
+  // No, the image doesn't need cropping, or is uncroppable.
   PNGlist[PNGindex].bitmap := tempimage.image;
   tempimage.image := NIL;
  end
- // Check if the image sides need cropping...
  else begin
-  ofsa := leftofs and i; // this amount must be cropped from left
-  ofsb := 0;
-  ofsb := i - rightofs and i; // this must be cropped from right
-  // this is the result width.
-  ofsc := PNGlist[PNGindex].origsizexp - ofsa - ofsb;
-
-  if ofsc <> PNGlist[PNGindex].origsizexp then begin
-   // Yes, the image was padded and needs cropping.
-   // Make a buffer for the cropped image.
-   getmem(PNGlist[PNGindex].bitmap, ofsc * PNGlist[PNGindex].origsizeyp);
-   // Copy the image to the new buffer, less cropped sides.
-   outofs := 0; j := ofsa;
-   for i := PNGlist[PNGindex].origsizeyp - 1 downto 0 do begin
-    move((tempimage.image + j)^, (PNGlist[PNGindex].bitmap + outofs)^, ofsc);
-    inc(outofs, ofsc);
-    inc(j, PNGlist[PNGindex].origsizexp);
-   end;
-   freemem(tempimage.image); tempimage.image := NIL;
-   // Note the image's cropped width.
-   PNGlist[PNGindex].origsizexp := ofsc;
+  // Yes, the image was padded and needs cropping.
+  // Make a buffer for the cropped image.
+  getmem(PNGlist[PNGindex].bitmap, ofsc * PNGlist[PNGindex].origsizeyp);
+  // Copy the image to the new buffer, less cropped sides.
+  outofs := 0; j := ofsa;
+  for i := PNGlist[PNGindex].origsizeyp - 1 downto 0 do begin
+   move((tempimage.image + j)^, (PNGlist[PNGindex].bitmap + outofs)^, ofsc);
+   inc(outofs, ofsc);
+   inc(j, PNGlist[PNGindex].origsizexp);
   end;
+  freemem(tempimage.image); tempimage.image := NIL;
+  // Note the image's cropped width.
+  PNGlist[PNGindex].origsizexp := ofsc;
  end;
 
  // If this is an MSX+ screen, we may need to decode the YJK colors.
