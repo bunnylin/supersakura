@@ -415,10 +415,12 @@ begin
   // it's no longer an indexed-color image, release the palette...
   setlength(PNGlist[PNGindex].pal, 0);
   PNGlist[PNGindex].origsizexp := 256;
- end else
+ end;
 
  // Apply double-height pixel ratio, if necessary.
- if (screenmode and 1 <> 0) then begin
+ if (modelcode <> 3) and (screenmode and $81 = 1)
+ or (modelcode = 3) and (modelflags = $04)
+ then begin
   getmem(tempimage.image, PNGlist[PNGindex].origsizexp * PNGlist[PNGindex].origsizeyp * 2);
   outofs := 0; j := 0;
   for i := PNGlist[PNGindex].origsizeyp - 1 downto 0 do begin
