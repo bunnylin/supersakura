@@ -77,13 +77,10 @@ begin truename := 'ssakura'; end;
 
 {$include inc/version.inc}
 
-type rgbtriplet = record
-                   b, g, r : byte;
-                  end;
 type PNGtype = record
        // image data, only for processing purposes
        bitmap : pointer;
-       pal : array of rgbtriplet;
+       pal : array of rgbquad;
        // metadata from image header
        namu : string[31];
        origsizexp, origsizeyp : word;

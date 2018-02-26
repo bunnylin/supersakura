@@ -155,94 +155,224 @@ procedure UnpackMAG2Graphic(PNGindex : word);
 // Attempts to decompress a MAG v2 image from (loader + lofs)^ and puts the
 // result in PNGlist[PNGindex].
 // Also works on MAX images, which are MSX-flavored MAG v2.
-var flagaofs, flagbofs, pxofs, leftofs, rightofs : dword;
-    ofsa, ofsb, ofsc, hstart, outofs, bytewidth : dword;
-    i, j : dword;
-    tempimage : bitmaptype;
+var tempimage : bitmaptype;
     actionbuffy : array of byte;
-    modelcode, modelflags, screenmode : byte;
+    header : record
+      modelcode, modelflags, screenmode : byte;
+      left, top, right, bottom : dword;
+      flagaofs, flagbofs, colorofs : dword;
+    end;
+    paddedleft, paddedright : dword;
+    cropleft, cropright : dword;
+    i, bytewidth : dword;
 
 const delx : array[0..15] of byte = (0,1,2,4,0,1,0,1,2,0,1,2,0,1,2,0);
       dely : array[0..15] of byte = (0,0,0,0,1,1,2,2,2,4,4,4,8,8,8,16);
 
-  procedure ConvertYJK(hasrgb : boolean);
-  var readofs, writeofs, loopvar, chibiloopvar, readval : dword;
-      jval, kval, yval, outval : longint;
-  begin
-   readofs := 0; writeofs := 0;
-   for loopvar := (PNGlist[PNGindex].origsizexp * PNGlist[PNGindex].origsizeyp) div 8 - 1 downto 0 do begin
-    // turn our expanded 8bpp pixels back into a 4bpp dword...
-    readval := 0;
-    for chibiloopvar := 3 downto 0 do begin
-     readval := readval shr 8;
-     readval := readval or (dword(byte((PNGlist[PNGindex].bitmap + readofs)^) and $F) shl 28);
-     inc(readofs);
-     readval := readval or (dword(byte((PNGlist[PNGindex].bitmap + readofs)^) and $F) shl 24);
-     inc(readofs);
+  // ----------------------------------------------------------------
+  procedure DoDecompress();
+  // The is the straightforward main MAG v2 decompressing loop.
+  var outp, endp : pointer;
+      actionindex, flagbindex, colorindex : dword;
+
+    procedure GrabWord(action : byte);
+    // Decompression helper, saves a word of output.
+    var wvar : word;
+    begin
+     if action = 0 then begin
+      // Fetch a new word from the color index stream.
+      if colorindex + 1 >= loadersize then begin
+       PrintError('Tried to read color array out of bounds: outofs=' + strdec(outp - tempimage.image) + '/' + strdec(bytewidth * tempimage.sizey) + ' colorindex=' + strdec(colorindex));
+       wvar := 0;
+      end
+      else begin
+       wvar := word((loader + colorindex)^);
+       inc(colorindex, 2);
+      end;
+     end
+     else begin
+      // Copy a previously output word.
+      wvar := word((outp - (dely[action] * bytewidth) - delx[action] * 2)^);
+     end;
+     // Output the word.
+     word(outp^) := wvar;
+     inc(outp, 2);
     end;
 
-    // grab K value from low 3 bits of pixels 0 and 1
-    kval := (readval and 7) or (((readval shr 8) and 7) shl 3);
-    if kval > 31 then dec(kval, 64); // 6-bit signed int
-    // grab J value from low 3 bits of pixels 2 and 3
-    jval := ((readval shr 16) and 7) or (((readval shr 24) and 7) shl 3);
-    if jval > 31 then dec(jval, 64); // 6-bit signed int
+  begin
+   lofs := header.flagaofs;
+   l_bitptr := 7;
+   actionindex := 0;
+   flagbindex := header.flagbofs;
+   colorindex := header.colorofs;
+   outp := tempimage.image;
+   endp := outp + bytewidth * tempimage.sizey - 1;
 
-    // process the pixels
+   // Decompress until the output buffer is full...
+   repeat
+
+    // Read the next flag A bit.
+    if lofs >= header.flagbofs then begin
+     PrintError('Tried to read flag A out of bounds'); exit;
+    end;
+    if l_getbit then begin
+     // If the flag A bit is set, read the next flag B byte, and xor the
+     // current action byte with it.
+     if flagbindex >= header.colorofs then begin
+      PrintError('Tried to read flag B out of bounds'); exit;
+     end;
+     actionbuffy[actionindex] :=
+       actionbuffy[actionindex] xor byte((loader + flagbindex)^);
+     inc(flagbindex);
+    end;
+
+    // Act on the top action nibble.
+    GrabWord(actionbuffy[actionindex] shr 4);
+    if outp >= endp then break;
+
+    // Act on the bottom action nibble.
+    GrabWord(actionbuffy[actionindex] and $F);
+    if outp >= endp then break;
+
+    // Advance the action buffer pointer, looping around the action buffer.
+    actionindex := (actionindex + 1) mod dword(length(actionbuffy));
+
+   until FALSE;
+  end;
+
+  // ----------------------------------------------------------------
+  procedure CropTempImage();
+  // Crops the left and right edges back to the exact values given in the
+  // image header. The cropping is done in-place.
+  // At this point, tempimage must be either 8bpp indexed, or 24-bit RGB.
+  var srcp, destp : pointer;
+      sourcewidth, targetwidth, y : dword;
+  begin
+   // Calculate the widths.
+   sourcewidth := tempimage.sizex;
+   targetwidth := tempimage.sizex - cropleft - cropright;
+   // Does the image need cropping?
+   if (tempimage.sizey <> 0) and (sourcewidth <> targetwidth)
+   then begin
+    // Yes, the image was padded and needs cropping.
+    dec(tempimage.sizex, cropleft + cropright);
+    // If the image is 24-bit RGB, adjust the widths.
+    if tempimage.memformat = 0 then begin
+     sourcewidth := sourcewidth * 3;
+     targetwidth := targetwidth * 3;
+     cropleft := cropleft * 3;
+    end;
+
+    srcp := tempimage.image + cropleft;
+    destp := tempimage.image;
+    for y := tempimage.sizey - 1 downto 0 do begin
+     memcopy(srcp, destp, targetwidth);
+     inc(srcp, sourcewidth);
+     inc(destp, targetwidth);
+    end;
+   end;
+  end;
+
+  // ----------------------------------------------------------------
+  procedure ConvertYJK(hasrgb : boolean);
+  // Converts tempimage^ from YJK-encoding to 24-bit RGB.
+  var workimage : pointer;
+      readp, writep : pointer;
+      loopvar, chibiloopvar, readval : dword;
+      Y, J, K, outval : longint;
+  begin
+   getmem(workimage, tempimage.sizex * tempimage.sizey * 3);
+
+   readp := tempimage.image;
+   writep := workimage;
+
+   // For all bytes in the image...
+   for loopvar := (tempimage.sizex * tempimage.sizey) div 4 - 1 downto 0 do begin
+    readval := dword(readp^); inc(readp, 4);
+
+    // Grab J from low 3 bits of pixels 2 and 3.
+    J := ((readval shr 16) and 7) or (((readval shr 24) and 7) shl 3);
+    // Grab K from low 3 bits of pixels 0 and 1.
+    K := (readval and 7) or (((readval shr 8) and 7) shl 3);
+
+    // These are 6-bit signed ints, so apply the sign.
+    if J > 31 then dec(J, 64);
+    if K > 31 then dec(K, 64);
+
+    // For all 4 pixels in this quartet...
     for chibiloopvar := 3 downto 0 do begin
-     // get the Y value for this pixel
-     yval := (readval shr 3) and $1F;
+     // Grab Y for this pixel.
+     Y := (readval shr 3) and $1F;
      readval := readval shr 8;
 
-     if (hasrgb) and (yval and 1 <> 0) then begin
-      // actually this pixel's a straight RGB...
-      yval := yval shr 1;
-      byte((tempimage.image + writeofs)^) := PNGlist[PNGindex].pal[yval].b;
-      inc(writeofs);
-      byte((tempimage.image + writeofs)^) := PNGlist[PNGindex].pal[yval].g;
-      inc(writeofs);
-      byte((tempimage.image + writeofs)^) := PNGlist[PNGindex].pal[yval].r;
-      inc(writeofs);
+     if (hasrgb) and (Y and 1 <> 0) then begin
+      // Straight RGB!
+      Y := Y shr 1;
+      byte(writep^) := tempimage.palette[Y].b; inc(writep);
+      byte(writep^) := tempimage.palette[Y].g; inc(writep);
+      byte(writep^) := tempimage.palette[Y].r; inc(writep);
      end
      else begin
       // BLUE = 1.25 * Y - J / 2 - K / 4
       //outval := round(1.25 * yval - jval / 2 - kval / 4);
-      outval := 5 * yval div 4 - jval div 2 - kval div 4;
+      outval := 5 * Y div 4 - J div 2 - K div 4;
       if outval < 0 then outval := 0 else if outval > 31 then outval := 31;
-      byte((tempimage.image + writeofs)^) := (outval * 255 + 15) div 31;
-      inc(writeofs);
+      byte(writep^) := (outval * 255 + 15) div 31;
+      inc(writep);
       // GREEN = Y + K
-      outval := yval + kval;
+      outval := Y + K;
       if outval < 0 then outval := 0 else if outval > 31 then outval := 31;
-      byte((tempimage.image + writeofs)^) := (outval * 255 + 15) div 31;
-      inc(writeofs);
+      byte(writep^) := (outval * 255 + 15) div 31;
+      inc(writep);
       // RED = Y + J
-      outval := yval + jval;
+      outval := Y + J;
       if outval < 0 then outval := 0 else if outval > 31 then outval := 31;
-      byte((tempimage.image + writeofs)^) := (outval * 255 + 15) div 31;
-      inc(writeofs);
+      byte(writep^) := (outval * 255 + 15) div 31;
+      inc(writep);
      end;
     end;
    end;
+
+   freemem(tempimage.image); tempimage.image := workimage; workimage := NIL;
+
+   // It's no longer an indexed-color image, release the palette.
+   setlength(tempimage.palette, 0);
+   tempimage.memformat := 0;
+   tempimage.bitdepth := 8;
+
+   // If the image used to be 4bpp, the conversion halved its pixel width.
+   if (header.screenmode and $80 = 0) then
+    tempimage.sizex := tempimage.sizex shr 1;
   end;
 
-  procedure GrabWord(action : byte);
-  // Outputs a word into the output buffer, either from the color stream or
-  // copying from earlier in the output buffer.
-  var wvar : word;
+  // ----------------------------------------------------------------
+  procedure ApplyDoubleHeight();
+  // Replaces tempimage with a double-height version of itself.
+  var workimage, srcp, destp : pointer;
+      imagebytewidth, y : dword;
   begin
-   if action = 0 then begin // new color word
-    if ofsc + 1 >= loadersize then begin
-     PrintError('Tried to read color array out of bounds: outofs=' + strdec(outofs) + '/' + strdec(bytewidth * PNGlist[PNGindex].origsizeyp));
-     ofsc := pxofs;
-    end;
-    wvar := word((loader + ofsc)^); inc(ofsc, 2);
-   end else begin // copy word from before
-    wvar := word((tempimage.image + outofs - (dely[action] * bytewidth) - delx[action] shl 1)^);
+   imagebytewidth := tempimage.sizex;
+   if tempimage.memformat = 0 then imagebytewidth := tempimage.sizex * 3;
+   getmem(workimage, imagebytewidth * tempimage.sizey * 2);
+
+   srcp := tempimage.image;
+   destp := workimage;
+
+   for y := tempimage.sizey - 1 downto 0 do begin
+    move(srcp^, destp^, imagebytewidth);
+    inc(destp, imagebytewidth);
+    move(srcp^, destp^, imagebytewidth);
+    inc(srcp, imagebytewidth);
+    inc(destp, imagebytewidth);
    end;
-   // output the word
-   word((tempimage.image + outofs)^) := wvar; inc(outofs, 2);
+
+   freemem(tempimage.image);
+   tempimage.image := workimage;
+   workimage := NIL;
+
+   tempimage.sizey := tempimage.sizey * 2;
   end;
+  // ----------------------------------------------------------------
 
 begin
  // Computer model, username etc, $1A, skip.
@@ -254,189 +384,104 @@ begin
   exit;
  end;
 
- // Mark the beginning of the header for laters.
- hstart := lofs; inc(lofs);
+ // Remember the beginning of the header for use below.
+ i := lofs; inc(lofs);
 
  // Read the header.
- modelcode := byte((loader + lofs)^); inc(lofs);
- modelflags := byte((loader + lofs)^); inc(lofs);
- screenmode := byte((loader + lofs)^); inc(lofs);
+ header.modelcode := byte((loader + lofs)^); inc(lofs);
+ header.modelflags := byte((loader + lofs)^); inc(lofs);
+ header.screenmode := byte((loader + lofs)^); inc(lofs);
 
- leftofs := word((loader + lofs)^); inc(lofs, 2);
- PNGlist[PNGindex].origofsxp := leftofs;
- PNGlist[PNGindex].origofsyp := word((loader + lofs)^); inc(lofs, 2);
+ header.left := word((loader + lofs)^); inc(lofs, 2);
+ header.top := word((loader + lofs)^); inc(lofs, 2);
+ header.right := word((loader + lofs)^); inc(lofs, 2);
+ header.bottom := word((loader + lofs)^); inc(lofs, 2);
 
- rightofs := word((loader + lofs)^); inc(lofs, 2);
- PNGlist[PNGindex].origsizeyp := word((loader + lofs)^); inc(lofs, 2);
+ header.flagaofs := i + dword((loader + lofs)^); inc(lofs, 4);
+ header.flagbofs := i + dword((loader + lofs)^); inc(lofs, 4);
+ inc(lofs, 4); // skip flag B stream size, unnecessary
+ header.colorofs := i + dword((loader + lofs)^); inc(lofs, 4);
+ inc(lofs, 4); // skip color index stream size, unnecessary
 
- ofsa := dword((loader + lofs)^) + hstart; inc(lofs, 4); // flag A stream
- ofsb := dword((loader + lofs)^) + hstart; inc(lofs, 8); // flag B stream
- ofsc := dword((loader + lofs)^) + hstart; inc(lofs, 8); // color stream
- flagaofs := ofsa;
- flagbofs := ofsb;
- pxofs := ofsc;
- if (ofsa >= loadersize) or (ofsb >= loadersize) or (ofsc >= loadersize)
- then begin
+ if (header.flagaofs >= loadersize)
+ or (header.flagbofs >= loadersize)
+ or (header.colorofs >= loadersize) then begin
   PrintError('Section offset out of bounds!'); exit;
  end;
 
- // Read GRB palette, usually 16, sometimes 256 entries.
- if screenmode and $80 = 0
- then setlength(PNGlist[PNGindex].pal, 16)
- else setlength(PNGlist[PNGindex].pal, 256);
- i := 0;
- while lofs < flagaofs do begin
-  with PNGlist[PNGindex].pal[i] do begin
-   g := byte((loader + lofs)^) and $F0; inc(lofs);
-   r := byte((loader + lofs)^) and $F0; inc(lofs);
-   b := byte((loader + lofs)^) and $F0; inc(lofs);
-   // only the top nibble is significant; the bottom nibble is 0 if the top
-   // is 0, else it is $F
-   if g <> 0 then g := g or $F;
-   if r <> 0 then r := r or $F;
-   if b <> 0 then b := b or $F;
-  end;
-  inc(i);
- end;
+ // Read GRB palette, usually 16, sometimes up to 256 entries.
+ // Let's read from current position up to the start of the flag A stream.
+ setlength(tempimage.palette, (header.flagaofs - lofs) div 3);
+ if length(tempimage.palette) <> 0 then
+  for i := 0 to length(tempimage.palette) - 1 do
+   with tempimage.palette[i] do begin
+    g := byte((loader + lofs)^) and $F0; inc(lofs);
+    r := byte((loader + lofs)^) and $F0; inc(lofs);
+    b := byte((loader + lofs)^) and $F0; inc(lofs);
+    // only the top nibble is significant; the bottom nibble is 0 if the top
+    // is 0, else it is $F
+    if g <> 0 then g := g or $F;
+    if r <> 0 then r := r or $F;
+    if b <> 0 then b := b or $F;
+   end;
 
- // While decompressing, image width must be a multiple of 8 pixels.
- // (we can crop it later)
- if (screenmode and $80 = 0) then begin
-  // 16-color mode...
-  // calculate the image size from edge to edge
-  // and both horizontal edges must be pushed out to a multiple of 8
-  // and the right edge gets +1 to change from inclusive -> exclusive
-  PNGlist[PNGindex].origsizexp := (rightofs + 7 + 1) and $FFF8 - (leftofs and $FFF8);
-  tempimage.bitdepth := 4;
-  setlength(actionbuffy, PNGlist[PNGindex].origsizexp div 8);
- end else begin
-  // 256-color mode...
-  // horizontal edges are pushed out to a multiple of 4 instead.
-  PNGlist[PNGindex].origsizexp := (rightofs + 3 + 1) and $FFFC - (leftofs and $FFFC);
-  tempimage.bitdepth := 8;
-  setlength(actionbuffy, PNGlist[PNGindex].origsizexp div 4);
- end;
- bytewidth := (PNGlist[PNGindex].origsizexp * tempimage.bitdepth) shr 3;
+ if (header.screenmode and $80 = 0)
+ then tempimage.bitdepth := 4
+ else tempimage.bitdepth := 8;
 
- // Calculate the true image pixel height.
- PNGlist[PNGindex].origsizeyp := PNGlist[PNGindex].origsizeyp - PNGlist[PNGindex].origofsyp + 1;
+ // Calculate the byte location of the left and right edges.
+ // (at 8bpp, 1 byte = 1 pixel; at 4bpp, 1 byte = 2 pixels)
+ paddedleft := (header.left div byte(8 div tempimage.bitdepth));
+ paddedright := (header.right div byte(8 div tempimage.bitdepth));
 
- // Unpack image into this, as a 4bpp indexed thing.
- getmem(tempimage.image, (bytewidth * dword(PNGlist[PNGindex].origsizeyp + 1)));
- tempimage.sizex := PNGlist[PNGindex].origsizexp;
- tempimage.sizey := PNGlist[PNGindex].origsizeyp;
+ // Pad the edges to a multiple of 4 bytes.
+ paddedleft := paddedleft and $FFFC;
+ paddedright := (paddedright + 3 + 1) and $FFFC;
+ bytewidth := paddedright - paddedleft;
+
+ // Set up tempimage as an indexed-color image, although we'll treat it as
+ // a byte array at first, to simplify decompression.
  tempimage.memformat := 4;
+ tempimage.sizex := bytewidth * byte(8 div tempimage.bitdepth);
+ tempimage.sizey := header.bottom - header.top + 1;
+ getmem(tempimage.image, bytewidth * tempimage.sizey);
 
+ // Calculate how many pixels of padding are being added.
+ // This will be used later to delete the padding.
+ cropleft := header.left - paddedleft * 8 div tempimage.bitdepth;
+ cropright := tempimage.sizex - (header.right - header.left + 1) - cropleft;
+
+ // Set up actionbuffy for one row of flag B bytes.
+ setlength(actionbuffy, bytewidth div 4);
  fillbyte(actionbuffy[0], length(actionbuffy), 0);
- outofs := 0; l_bitptr := 7; lofs := flagaofs;
- ofsa := 0; j := 0;
 
- // For each pixel in the image...
- i := (PNGlist[PNGindex].origsizexp * PNGlist[PNGindex].origsizeyp * tempimage.bitdepth) shr 3;
- while outofs < i do begin
+ // Unpack the image into the output buffy.
+ DoDecompress;
 
-  if j = 0 then begin
-   // a new top action nibble is needed, fetch new flag A bit.
-   if lofs >= flagbofs then begin
-    PrintError('Tried to read flag A out of bounds'); exit;
-   end;
-   // if the new flag A bit is TRUE, xor previous row's action byte with
-   // a new flag B value.
-   if l_getbit then begin
-    if ofsb >= pxofs then begin
-     PrintError('Tried to read flag B out of bounds'); exit;
-    end;
-    actionbuffy[ofsa] := actionbuffy[ofsa] xor byte((loader + ofsb)^);
-    inc(ofsb);
-   end;
-   // act on the top action nibble.
-   GrabWord(actionbuffy[ofsa] shr 4);
-  end
-  else begin
-   // act on the bottom action nibble.
-   GrabWord(actionbuffy[ofsa] and $F);
-   // advance the action buffer pointer.
-   inc(ofsa);
-   // loop back to start of action buffer if needed.
-   if ofsa >= dword(length(actionbuffy)) then ofsa := 0;
-  end;
+ // If this is an MSX2+ screen, we may need to decode the YJK colors.
+ // This sets tempimage to be 24-bit RGB, no longer indexed.
+ if (header.modelcode = 3) and (header.modelflags in [$24, $34, $44]) then
+  ConvertYJK(header.modelflags <> $44);
 
-  j := j xor 1;
- end;
+ // If still using a 4bpp indexed palette, expand to 8bpp.
+ if tempimage.bitdepth < 8 then mcg_ExpandBitdepth(@tempimage);
 
- // Expand 4bpp indexed --> 8bpp indexed.
- i := 3;
- if tempimage.bitdepth < 8 then begin
-  mcg_ExpandBitdepth(@tempimage);
-  i := 7;
- end;
-
- // Check if the image sides need cropping...
- ofsa := leftofs and i; // this amount must be cropped from left
- ofsb := 0;
- ofsb := i - rightofs and i; // this must be cropped from right
- // this is the result width.
- ofsc := PNGlist[PNGindex].origsizexp - ofsa - ofsb;
-
- if (PNGlist[PNGindex].origsizeyp = 0)
- or (ofsc = PNGlist[PNGindex].origsizexp)
- then begin
-  // No, the image doesn't need cropping, or is uncroppable.
-  PNGlist[PNGindex].bitmap := tempimage.image;
-  tempimage.image := NIL;
- end
- else begin
-  // Yes, the image was padded and needs cropping.
-  // Make a buffer for the cropped image.
-  getmem(PNGlist[PNGindex].bitmap, ofsc * PNGlist[PNGindex].origsizeyp);
-  // Copy the image to the new buffer, less cropped sides.
-  outofs := 0; j := ofsa;
-  for i := PNGlist[PNGindex].origsizeyp - 1 downto 0 do begin
-   move((tempimage.image + j)^, (PNGlist[PNGindex].bitmap + outofs)^, ofsc);
-   inc(outofs, ofsc);
-   inc(j, PNGlist[PNGindex].origsizexp);
-  end;
-  freemem(tempimage.image); tempimage.image := NIL;
-  // Note the image's cropped width.
-  PNGlist[PNGindex].origsizexp := ofsc;
- end;
-
- // If this is an MSX+ screen, we may need to decode the YJK colors.
- // Pixels are stored four in a row, all sharing a J and K value, and having
- // individual Y values.
- if (modelcode = 3) and (modelflags in [$24, $34, $44]) then begin
-  getmem(tempimage.image, (PNGlist[PNGindex].origsizexp * PNGlist[PNGindex].origsizeyp) * 3);
-  ConvertYJK(modelflags <> $44);
-
-  freemem(PNGlist[PNGindex].bitmap);
-  PNGlist[PNGindex].bitmap := tempimage.image;
-  tempimage.image := NIL;
-
-  // it's no longer an indexed-color image, release the palette...
-  setlength(PNGlist[PNGindex].pal, 0);
-  PNGlist[PNGindex].origsizexp := 256;
- end;
+ // Remove the left/right padding, if any.
+ CropTempImage;
 
  // Apply double-height pixel ratio, if necessary.
- if (modelcode <> 3) and (screenmode and $81 = 1)
- or (modelcode = 3) and (modelflags = $04)
- then begin
-  getmem(tempimage.image, PNGlist[PNGindex].origsizexp * PNGlist[PNGindex].origsizeyp * 2);
-  outofs := 0; j := 0;
-  for i := PNGlist[PNGindex].origsizeyp - 1 downto 0 do begin
-   move((PNGlist[PNGindex].bitmap + j)^, (tempimage.image + outofs)^, PNGlist[PNGindex].origsizexp);
-   inc(outofs, PNGlist[PNGindex].origsizexp);
-   move((PNGlist[PNGindex].bitmap + j)^, (tempimage.image + outofs)^, PNGlist[PNGindex].origsizexp);
-   inc(outofs, PNGlist[PNGindex].origsizexp);
-   inc(j, PNGlist[PNGindex].origsizexp);
-  end;
+ if (header.modelcode <> 3) and (header.screenmode and $81 = 1)
+ or (header.modelcode = 3) and (header.modelflags = $04)
+ then ApplyDoubleHeight;
 
-  freemem(PNGlist[PNGindex].bitmap);
-  PNGlist[PNGindex].bitmap := tempimage.image;
-  tempimage.image := NIL;
-
-  PNGlist[PNGindex].origsizeyp := PNGlist[PNGindex].origsizeyp * 2;
- end;
+ // Store the result.
+ PNGlist[PNGindex].bitmap := tempimage.image; tempimage.image := NIL;
+ PNGlist[PNGindex].origsizexp := tempimage.sizex;
+ PNGlist[PNGindex].origsizeyp := tempimage.sizey;
+ i := length(tempimage.palette);
+ setlength(PNGlist[PNGindex].pal, i);
+ if i <> 0 then
+  move(tempimage.palette[0], PNGlist[PNGindex].pal[0], i * sizeof(tempimage.palette[0]));
 end;
 
 function Decomp_Makichan(const srcfile, outputfile : UTF8string) : UTF8string;
