@@ -21,16 +21,16 @@ procedure UnpackMakiGraphic(PNGindex : word; subtype : byte);
 // Attempts to decompress a Maki v1 image from (loader + lofs)^ and puts the
 // result in PNGlist[PNGindex].
 // Subtype must be 1 for MAKI01A, or 2 for MAKI01B.
-var flagbsize, ofsa, ofsb, pxofs, extflag : dword;
-    tempimage : bitmaptype;
-    flagmap : array[0..31999] of byte;
-    outofs : dword;
-    i, x, y : dword;
+var tempimage : bitmaptype;
+    flagAmask : array[0..31999] of byte;
+    outp, colorp : pointer;
+    ofsa, ofsb, extflag : dword;
+    x, y : dword;
 begin
  inc(lofs, 4); // computer model, skip
  inc(lofs, 20); // user name etc, skip
 
- flagbsize := byte((loader + lofs + 0)^) shl 8 or byte((loader + lofs + 1)^);
+ //flagbsize := byte((loader + lofs + 0)^) shl 8 or byte((loader + lofs + 1)^);
  //pxasize := byte((loader + lofs + 2)^) shl 8 or byte((loader + lofs + 3)^);
  //pxbsize := byte((loader + lofs + 4)^) shl 8 or byte((loader + lofs + 5)^);
  extflag := byte((loader + lofs + 6)^) shl 8 or byte((loader + lofs + 7)^);
@@ -40,11 +40,16 @@ begin
  PNGlist[PNGindex].origsizeyp := byte((loader + lofs + 14)^) shl 8 or byte((loader + lofs + 15)^);
  inc(lofs, 16);
 
+ // Validate...
  if extflag <> 0 then PrintError('EXTFLAG <> 0!?');
+ if PNGlist[PNGindex].origofsxp <> 0 then PrintError('OfsX <> 0!?');
+ if PNGlist[PNGindex].origofsyp <> 0 then PrintError('OfsY <> 0!?');
+ if PNGlist[PNGindex].origsizexp <> 640 then PrintError('SizeX <> 640!?');
+ if PNGlist[PNGindex].origsizeyp <> 400 then PrintError('SizeY <> 400!?');
 
- // Read GRB palette
+ // Read GRB palette.
  setlength(PNGlist[PNGindex].pal, 16);
- for i := 0 to 15 do with PNGlist[PNGindex].pal[i] do begin
+ for x := 0 to 15 do with PNGlist[PNGindex].pal[x] do begin
   g := byte((loader + lofs)^) and $F0; inc(lofs);
   r := byte((loader + lofs)^) and $F0; inc(lofs);
   b := byte((loader + lofs)^) and $F0; inc(lofs);
@@ -58,30 +63,28 @@ begin
  // First construct the flag A alpha mask (320x400).
  // We'll use the low nibbles of each byte to put 4 bits in each byte.
  // Each flag A bit sets 4x4 mask bits.
- ofsa := 1;
+ ofsa := 0;
  ofsb := lofs + 1000;
- pxofs := ofsb + flagbsize;
  l_bitptr := 7;
- i := 0;
+
  for y := 99 downto 0 do begin
   for x := 79 downto 0 do begin
    if l_getbit then begin
     // flag A is true, set 4x4 block using the next flag B word
-    flagmap[ofsa + 000] := byte((loader + ofsb)^) shr 4;
-    flagmap[ofsa + 080] := byte((loader + ofsb)^) and $F;
+    flagAmask[ofsa + 000] := byte((loader + ofsb)^) shr 4;
+    flagAmask[ofsa + 080] := byte((loader + ofsb)^) and $F;
     inc(ofsb);
-    flagmap[ofsa + 160] := byte((loader + ofsb)^) shr 4;
-    flagmap[ofsa + 240] := byte((loader + ofsb)^) and $F;
+    flagAmask[ofsa + 160] := byte((loader + ofsb)^) shr 4;
+    flagAmask[ofsa + 240] := byte((loader + ofsb)^) and $F;
     inc(ofsb);
    end else begin
     // flag A is false, clear 4x4 block
-    flagmap[ofsa] := 0;
-    flagmap[ofsa + 80] := 0;
-    flagmap[ofsa + 160] := 0;
-    flagmap[ofsa + 240] := 0;
+    flagAmask[ofsa + 000] := 0;
+    flagAmask[ofsa + 080] := 0;
+    flagAmask[ofsa + 160] := 0;
+    flagAmask[ofsa + 240] := 0;
    end;
-   if i = 1 then inc(ofsa, 3) else dec(ofsa);
-   i := i xor 1;
+   inc(ofsa);
   end;
   inc(ofsa, 240); // jump to the next 4x4 row's start
  end;
@@ -96,7 +99,7 @@ begin
  tempimage.sizex := 320; tempimage.sizey := 400;
  tempimage.bitdepth := 1;
  for x := 0 to 15999 do
-  byte((tempimage.image + x)^) := flagmap[x * 2] or (flagmap[x * 2 + 1] shl 4);
+  byte((tempimage.image + x)^) := (flagAmask[x * 2] shl 4) or flagAmask[x * 2 + 1];
  with PNGlist[PNGindex] do begin
   pal[0].r := 0; pal[0].g := 0; pal[0].b := 0;
   pal[1].r := $DD; pal[1].g := $44; pal[1].b := $66;
@@ -109,30 +112,42 @@ begin
  {$endif}
 
  // Fill in the pixel colors...
- pxofs := ofsb;
- outofs := 0; i := 0; ofsb := 1;
- x := 0;
- for ofsa := 127999 downto 0 do begin
+ colorp := loader + ofsb;
+ outp := tempimage.image;
+
+ for ofsa := 0 to 31999 do begin
 
   // For each bit in the flag A buffer...
-  if flagmap[ofsb] and 8 = 0 then
-   // if the bit is 0, set two pixels to 0
-   byte((tempimage.image + outofs)^) := 0
+  // if the bit is 0, output a 0 byte;
+  // if the bit is 1, output a byte from the pixel color stream.
+  if flagAmask[ofsa] and 8 = 0 then
+   byte(outp^) := 0
   else begin
-   // if the bit is 1, set two pixels from the color buffer
-   byte((tempimage.image + outofs)^) := byte((loader + pxofs)^);
-   inc(pxofs);
+   byte(outp^) := byte(colorp^); inc(colorp);
   end;
-  inc(outofs);
+  inc(outp);
 
-  // Move to the next flag A buffer bit.
-  flagmap[ofsb] := flagmap[ofsb] shl 1;
-  inc(i);
-  if i = 4 then begin
-   i := 0;
-   if x = 1 then inc(ofsb, 3) else dec(ofsb);
-   x := x xor 1;
+  if flagAmask[ofsa] and 4 = 0 then
+   byte(outp^) := 0
+  else begin
+   byte(outp^) := byte(colorp^); inc(colorp);
   end;
+  inc(outp);
+
+  if flagAmask[ofsa] and 2 = 0 then
+   byte(outp^) := 0
+  else begin
+   byte(outp^) := byte(colorp^); inc(colorp);
+  end;
+  inc(outp);
+
+  if flagAmask[ofsa] and 1 = 0 then
+   byte(outp^) := 0
+  else begin
+   byte(outp^) := byte(colorp^); inc(colorp);
+  end;
+  inc(outp);
+
  end;
 
  // Apply the vertical XOR filter.
@@ -140,10 +155,11 @@ begin
  // MAKI01A xors from two rows above;
  // MAKI01B xors from four rows above.
  if subtype = 2 then ofsa := 320 * 4 else ofsa := 320 * 2;
- outofs := ofsa;
+ outp := tempimage.image + ofsa;
+
  for ofsb := (128000 - ofsa) div 4 - 1 downto 0 do begin
-  dword((tempimage.image + outofs)^) := dword((tempimage.image + outofs)^) xor dword((tempimage.image + outofs - ofsa)^);
-  inc(outofs, 4);
+  dword(outp^) := dword(outp^) xor dword((outp - ofsa)^);
+  inc(outp, 4);
  end;
 
  // Expand 4bpp indexed --> 8bpp indexed.
