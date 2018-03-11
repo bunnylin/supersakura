@@ -12,4 +12,5 @@ fp___.*
 *.dat
 *.ini
 *.or
+*.tsv
 data.txt
