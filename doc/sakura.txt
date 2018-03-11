@@ -1270,11 +1270,8 @@ $v257..$v266. The first, left response is value 0; the right is value 1.
 .GRA files
 ==========
 
-These often carry signatures suggesting they are related to the popular
-Maki-chan format, and the header is certainly similar, but in truth most of
-these use a wholly different compression algorithm with run-length encoding
-and adaptive Huffman encoding. The image is also packed into a single stream
-rather than Maki-chan's cumbersome three-stream split.
+Some of these are in Maki-chan format, but most use the more powerful Pi
+format.
 
 Japanese specification for Maki version 1 A and B:
 http://www.jisyo.com/viewer/faq/maki_tech.htm
@@ -1282,10 +1279,8 @@ Japanese specification for MAG version 2:
 http://www.jisyo.com/viewer/faq/mag_tech.htm
 
 In Tenshitachi no Gogo collection 1, there are actually three different
-versions of .GRA files. Most use the enhanced format, some use the proper
-MAG v2 specification, and the remaining few are sad, uncompressed bitmaps.
-The two latter types are actually directly viewable in Irfanview, and
-presumably other advanced image viewer programs.
+versions of .GRA files. Most are Pi, some are MAG v2, and the remaining few
+are sad, uncompressed bitmaps.
 
 The MAG v2 files in question are T2_59 to T2_85, T3_67 to T3_74, and A17 to
 A40. The images are all either identical copies or lower quality versions
@@ -1376,7 +1371,7 @@ first 00 that follows, which is the first byte of the header.
 Header specifications and decompression instructions for standard Maki-chan
 Graphics are in a separate file, makichan.htm, hopefully available online.
 
-The enhanced GRA or MAGv3 format uses the following header:
+The Pi format uses a header like this:
 
 Offset Size  Description
 ------ ----  -----------
@@ -1394,8 +1389,8 @@ Offset Size  Description
 
 11     word  Image width, in reversed byte order (MSB first), [01 E0] = 480
 13     word  Image height, in reversed byte order, [01 28] = 296
-15     48    Palette: 16 byte triplets, RGB. Curiously the original engines
-             seem to always display the colors with an AND $F0.
+15     48    Palette: 16 byte triplets, RGB. The original engines seem to
+             always display the colors with an AND $F0, against spec.
 63           Compressed image data starts here
 ------ ----  -----------
 
@@ -1449,8 +1444,8 @@ In that case, the data will have to be reconstructed with brute force...
 
 -----------------------------------------------------------------------------
 
-How to decompress the advanced .GRA files
-=========================================
+How to decompress .PI files
+===========================
 
 The image data is stored as a bitstream using run-length encoding as well as
 a kind of adaptive variable bit-length encoding.

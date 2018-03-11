@@ -35,9 +35,9 @@ program SuperSakura_Decompiler;
 // .OVL JAST/Tiare bytecode
 // --> .TXT plain-text SuperSakura script
 //
-// .GRA JAST/Tiare variant of MAGv3
+// .GRA JAST/Tiare Pi graphics files
 // .MAG/.MAX/.MKI various Maki-chan graphics files
-// .G Excellents variant of MAGv3
+// .G Excellents variant of Pi
 // --> .PNG images
 //
 // .M PMD music files
@@ -431,7 +431,7 @@ end;
 {$include inc/decomp_jastovl.pas}
 {$include inc/decomp_excellents.pas}
 {$include inc/decomp_makichan.pas}
-{$include inc/decomp_magv3.pas}
+{$include inc/decomp_pi.pas}
 {$include inc/decomp_excellentg.pas}
 {$include inc/decomp_music.pas}
 
@@ -948,7 +948,7 @@ begin
      gid_HOHOEMI, gid_VANISH, gid_RUNAWAY, gid_RUNAWAY98, gid_SAKURA,
      gid_SAKURA98, gid_MAJOKKO, gid_TASOGARE:
      begin
-      decompresult := Decomp_Magv3(srcfile, decomp_param.outputdir + 'gfx' + DirectorySeparator + basename + '.png');
+      decompresult := Decomp_Pi(srcfile, decomp_param.outputdir + 'gfx' + DirectorySeparator + basename + '.png');
       isagraphic := TRUE;
      end;
    end;

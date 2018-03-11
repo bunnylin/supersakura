@@ -133,7 +133,7 @@ begin
  end;
 end;
 
-procedure UnpackMAG3Graphic(PNGindex : dword);
+procedure UnpackPiGraphic(PNGindex : dword);
 var iofs : dword;
     lcolors : array[0..15] of array[1..16] of byte;
     lpp, lnp : dword;
@@ -141,7 +141,8 @@ var iofs : dword;
     pair1, pair2, pairx : word;
     l_firstrep, l_mode : byte;
 begin
- getmem(PNGlist[PNGindex].bitmap, PNGlist[PNGindex].origsizexp * PNGlist[PNGindex].origsizeyp + 32768); // best have some room for overflow
+ // best have some room for overflow
+ getmem(PNGlist[PNGindex].bitmap, PNGlist[PNGindex].origsizexp * PNGlist[PNGindex].origsizeyp + 32768);
 
  l_firstrep := 1; l_mode := 1; l_bitptr := 7; lpp := 0; iofs := 0;
  for llv := 0 to 15 do for ltv := 1 to 16 do lcolors[llv][ltv] := ltv;
@@ -310,8 +311,8 @@ begin
  end;
 end;
 
-function Decomp_Magv3(const srcfile, outputfile : UTF8string) : UTF8string;
-// Reads the indicated MAG v3 graphics file, and saves it in outputfile as
+function Decomp_Pi(const srcfile, outputfile : UTF8string) : UTF8string;
+// Reads the indicated Pi graphics file, and saves it in outputfile as
 // a normal PNG.
 // Returns an empty string if successful, otherwise returns an error message.
 var imunamu : UTF8string;
@@ -320,8 +321,8 @@ var imunamu : UTF8string;
     tempbmp : bitmaptype;
 begin
  // Load the input file into loader^.
- Decomp_Magv3 := LoadFile(srcfile);
- if Decomp_Magv3 <> '' then exit;
+ Decomp_Pi := LoadFile(srcfile);
+ if Decomp_Pi <> '' then exit;
 
  tempbmp.image := NIL;
 
@@ -331,7 +332,7 @@ begin
  PNGindex := seekpng(imunamu, TRUE);
 
  if (game = gid_DEEP) and (imunamu = 'DB_05_08') then begin
-  Decomp_Magv3 := 'This is probably badly corrupted and would crash Decomp.';
+  Decomp_Pi := 'This is probably badly corrupted and would crash Decomp.';
   exit;
  end;
 
@@ -374,19 +375,18 @@ begin
    $20423130: UnpackMakiGraphic(PNGindex, 2); // 01B
    $20203230: UnpackMAG2Graphic(PNGindex); // 02
    else begin
-    Decomp_Magv3 := 'unknown MAKI subtype $' + strhex(ivar);
+    Decomp_Pi := 'unknown MAKI subtype $' + strhex(ivar);
     exit;
    end;
   end;
  end
 
  else begin
-  // Modified Maki-chan format, let's call it MAG v3.
   // The file starts with a metadata string. Find the terminating 1A marker!
   while byte((loader + lofs)^) <> $1A do begin
    inc(lofs);
    if (lofs + 16 >= loadersize) then begin
-    Decomp_Magv3 := 'Initial block not found! Maybe not a GRA file.';
+    Decomp_Pi := 'Initial block not found! Maybe not a PI file.';
     exit;
    end;
   end;
@@ -410,7 +410,7 @@ begin
   while byte((loader + lofs)^) <> $00 do begin
    inc(lofs);
    if (lofs + 4 >= loadersize) then begin
-    Decomp_MAGv3 := 'No 00 in initial block??';
+    Decomp_Pi := 'No 00 in initial block??';
     exit;
    end;
   end;
@@ -432,7 +432,7 @@ begin
 
   if (PNGlist[PNGindex].origsizexp > 640) or (PNGlist[PNGindex].origsizeyp > 800)
   or (PNGlist[PNGindex].origsizexp < 2) or (PNGlist[PNGindex].origsizeyp < 2) then begin
-   Decomp_MAGv3 := 'Suspicious size ' + strdec(PNGlist[PNGindex].origsizexp) + 'x' + strdec(PNGlist[PNGindex].origsizeyp) + ' is causing dragons of loading to refuse.';
+   Decomp_Pi := 'Suspicious size ' + strdec(PNGlist[PNGindex].origsizexp) + 'x' + strdec(PNGlist[PNGindex].origsizeyp) + ' is causing dragons of loading to refuse.';
    exit;
   end;
 
@@ -444,12 +444,12 @@ begin
    b := byte((loader + lofs)^) and $F0; inc(lofs);
   end;
 
-  UnpackMAG3Graphic(PNGindex);
+  UnpackPiGraphic(PNGindex);
  end;
 
  // Did we get the image?
  if PNGlist[PNGindex].bitmap = NIL then begin
-  Decomp_Magv3 := 'failed to load image';
+  Decomp_Pi := 'failed to load image';
   exit;
  end;
 
@@ -852,13 +852,13 @@ begin
  mcg_ForgetImage(@tempbmp);
 
  if ivar <> 0 then begin
-  Decomp_Magv3 := mcg_errortxt;
+  Decomp_Pi := mcg_errortxt;
   if PNGlist[PNGindex].bitmap <> NIL then begin
    freemem(PNGlist[PNGindex].bitmap); PNGlist[PNGindex].bitmap := NIL;
   end;
   exit;
  end;
 
- Decomp_Magv3 := SaveFile(outputfile, PNGlist[PNGindex].bitmap, jvar);
+ Decomp_Pi := SaveFile(outputfile, PNGlist[PNGindex].bitmap, jvar);
  freemem(PNGlist[PNGindex].bitmap); PNGlist[PNGindex].bitmap := NIL;
 end;

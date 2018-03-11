@@ -74,7 +74,7 @@ begin
   b := byte((loader + lofs)^) and $F0; inc(lofs);
  end;
 
- UnpackMAG3Graphic(PNGindex);
+ UnpackPiGraphic(PNGindex);
 
  // Did we get the image?
  if PNGlist[PNGindex].bitmap = NIL then begin
