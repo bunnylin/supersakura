@@ -17,9 +17,9 @@
 { along with SuperSakura.  If not, see <https://www.gnu.org/licenses/>.     }
 {                                                                           }
 
-procedure UnpackMakiGraphic(PNGindex : word; subtype : byte);
-// Attempts to decompress a Maki v1 image from (loader + lofs)^ and puts the
-// result in PNGlist[PNGindex].
+procedure UnpackMakiGraphic(const loader : TFileLoader; PNGindex : word; subtype : byte);
+// Attempts to decompress a Maki v1 image from loader, and puts the result
+// in PNGlist[PNGindex].
 // Subtype must be 1 for MAKI01A, or 2 for MAKI01B.
 var tempimage : bitmaptype;
     flagAmask : array[0..31999] of byte;
@@ -27,18 +27,18 @@ var tempimage : bitmaptype;
     ofsa, ofsb, extflag : dword;
     x, y : dword;
 begin
- inc(lofs, 4); // computer model, skip
- inc(lofs, 20); // user name etc, skip
+ inc(loader.readp, 4); // computer model, skip
+ inc(loader.readp, 20); // user name etc, skip
 
- //flagbsize := byte((loader + lofs + 0)^) shl 8 or byte((loader + lofs + 1)^);
- //pxasize := byte((loader + lofs + 2)^) shl 8 or byte((loader + lofs + 3)^);
- //pxbsize := byte((loader + lofs + 4)^) shl 8 or byte((loader + lofs + 5)^);
- extflag := byte((loader + lofs + 6)^) shl 8 or byte((loader + lofs + 7)^);
- PNGlist[PNGindex].origofsxp := byte((loader + lofs + 8)^) shl 8 or byte((loader + lofs + 9)^);
- PNGlist[PNGindex].origofsyp := byte((loader + lofs + 10)^) shl 8 or byte((loader + lofs + 11)^);
- PNGlist[PNGindex].origsizexp := byte((loader + lofs + 12)^) shl 8 or byte((loader + lofs + 13)^);
- PNGlist[PNGindex].origsizeyp := byte((loader + lofs + 14)^) shl 8 or byte((loader + lofs + 15)^);
- inc(lofs, 16);
+ //flagbsize := (loader.ReadByte shl 8) or loader.ReadByte;
+ //pxasize := (loader.ReadByte shl 8) or loader.ReadByte;
+ //pxbsize := (loader.ReadByte shl 8) or loader.ReadByte;
+ inc(loader.readp, 6);
+ extflag := (loader.ReadByte shl 8) or loader.ReadByte;
+ PNGlist[PNGindex].origofsxp := (loader.ReadByte shl 8) or loader.ReadByte;
+ PNGlist[PNGindex].origofsyp := (loader.ReadByte shl 8) or loader.ReadByte;
+ PNGlist[PNGindex].origsizexp := (loader.ReadByte shl 8) or loader.ReadByte;
+ PNGlist[PNGindex].origsizeyp := (loader.ReadByte shl 8) or loader.ReadByte;
 
  // Validate...
  if extflag <> 0 then PrintError('EXTFLAG <> 0!?');
@@ -50,9 +50,9 @@ begin
  // Read GRB palette.
  setlength(PNGlist[PNGindex].pal, 16);
  for x := 0 to 15 do with PNGlist[PNGindex].pal[x] do begin
-  g := byte((loader + lofs)^) and $F0; inc(lofs);
-  r := byte((loader + lofs)^) and $F0; inc(lofs);
-  b := byte((loader + lofs)^) and $F0; inc(lofs);
+  g := loader.ReadByte and $F0;
+  r := loader.ReadByte and $F0;
+  b := loader.ReadByte and $F0;
   // only the top nibble is significant; the bottom nibble is 0 if the top
   // is 0, else it is $F
   if g <> 0 then g := g or $F;
@@ -64,18 +64,18 @@ begin
  // We'll use the low nibbles of each byte to put 4 bits in each byte.
  // Each flag A bit sets 4x4 mask bits.
  ofsa := 0;
- ofsb := lofs + 1000;
- l_bitptr := 7;
+ ofsb := loader.ofs + 1000;
+ loader.bitindex := 7;
 
  for y := 99 downto 0 do begin
   for x := 79 downto 0 do begin
-   if l_getbit then begin
+   if loader.ReadBit then begin
     // flag A is true, set 4x4 block using the next flag B word
-    flagAmask[ofsa + 000] := byte((loader + ofsb)^) shr 4;
-    flagAmask[ofsa + 080] := byte((loader + ofsb)^) and $F;
+    flagAmask[ofsa + 000] := loader.ReadByteFrom(ofsb) shr 4;
+    flagAmask[ofsa + 080] := loader.ReadByteFrom(ofsb) and $F;
     inc(ofsb);
-    flagAmask[ofsa + 160] := byte((loader + ofsb)^) shr 4;
-    flagAmask[ofsa + 240] := byte((loader + ofsb)^) and $F;
+    flagAmask[ofsa + 160] := loader.ReadByteFrom(ofsb) shr 4;
+    flagAmask[ofsa + 240] := loader.ReadByteFrom(ofsb) and $F;
     inc(ofsb);
    end else begin
     // flag A is false, clear 4x4 block
@@ -112,7 +112,7 @@ begin
  {$endif}
 
  // Fill in the pixel colors...
- colorp := loader + ofsb;
+ colorp := loader.PtrAt(ofsb);
  outp := tempimage.image;
 
  for ofsa := 0 to 31999 do begin
@@ -167,9 +167,9 @@ begin
  PNGlist[PNGindex].bitmap := tempimage.image; tempimage.image := NIL;
 end;
 
-procedure UnpackMAG2Graphic(PNGindex : word);
-// Attempts to decompress a MAG v2 image from (loader + lofs)^ and puts the
-// result in PNGlist[PNGindex].
+procedure UnpackMAG2Graphic(const loader : TFileLoader; PNGindex : word);
+// Attempts to decompress a MAG v2 image from loader, and puts the result in
+// PNGlist[PNGindex].
 // Also works on MAX images, which are MSX-flavored MAG v2.
 var tempimage : bitmaptype;
     actionbuffy : array of byte;
@@ -197,12 +197,12 @@ const delx : array[0..15] of byte = (0,1,2,4,0,1,0,1,2,0,1,2,0,1,2,0);
     begin
      if action = 0 then begin
       // Fetch a new word from the color index stream.
-      if colorindex + 1 >= loadersize then begin
+      if colorindex + 1 >= loader.size then begin
        PrintError('Tried to read color array out of bounds: outofs=' + strdec(outp - tempimage.image) + '/' + strdec(bytewidth * tempimage.sizey) + ' colorindex=' + strdec(colorindex));
        wvar := 0;
       end
       else begin
-       wvar := word((loader + colorindex)^);
+       wvar := loader.ReadWordFrom(colorindex);
        inc(colorindex, 2);
       end;
      end
@@ -216,8 +216,8 @@ const delx : array[0..15] of byte = (0,1,2,4,0,1,0,1,2,0,1,2,0,1,2,0);
     end;
 
   begin
-   lofs := header.flagaofs;
-   l_bitptr := 7;
+   loader.ofs := header.flagaofs;
+   loader.bitindex := 7;
    actionindex := 0;
    flagbindex := header.flagbofs;
    colorindex := header.colorofs;
@@ -228,17 +228,17 @@ const delx : array[0..15] of byte = (0,1,2,4,0,1,0,1,2,0,1,2,0,1,2,0);
    repeat
 
     // Read the next flag A bit.
-    if lofs >= header.flagbofs then begin
+    if loader.ofs >= header.flagbofs then begin
      PrintError('Tried to read flag A out of bounds'); exit;
     end;
-    if l_getbit then begin
+    if loader.ReadBit then begin
      // If the flag A bit is set, read the next flag B byte, and xor the
      // current action byte with it.
      if flagbindex >= header.colorofs then begin
       PrintError('Tried to read flag B out of bounds'); exit;
      end;
      actionbuffy[actionindex] :=
-       actionbuffy[actionindex] xor byte((loader + flagbindex)^);
+       actionbuffy[actionindex] xor loader.ReadByteFrom(flagbindex);
      inc(flagbindex);
     end;
 
@@ -392,48 +392,45 @@ const delx : array[0..15] of byte = (0,1,2,4,0,1,0,1,2,0,1,2,0,1,2,0);
 
 begin
  // Computer model, username etc, $1A, skip.
- while (lofs + 32 < loadersize) and (byte((loader + lofs)^) <> $1A) do inc(lofs);
+ while (loader.readp + 32 < loader.endp) and (byte(loader.readp^) <> $1A) do inc(loader.readp);
  // Find the first 0 byte after $1A, where the header starts.
- while (lofs + 32 < loadersize) and (byte((loader + lofs)^) <> 0) do inc(lofs);
- if byte((loader + lofs)^) <> 0 then begin
-  PrintError('Failed to find start of header 1A-00!');
-  exit;
- end;
+ while (loader.readp + 32 < loader.endp) and (byte(loader.readp^) <> 0) do inc(loader.readp);
+ if byte(loader.readp^) <> 0 then
+  raise Exception.Create('Failed to find start of header 1A-00!');
 
  // Remember the beginning of the header for use below.
- i := lofs; inc(lofs);
+ i := loader.ofs; inc(loader.readp);
 
  // Read the header.
- header.modelcode := byte((loader + lofs)^); inc(lofs);
- header.modelflags := byte((loader + lofs)^); inc(lofs);
- header.screenmode := byte((loader + lofs)^); inc(lofs);
+ header.modelcode := loader.ReadByte;
+ header.modelflags := loader.ReadByte;
+ header.screenmode := loader.ReadByte;
 
- header.left := word((loader + lofs)^); inc(lofs, 2);
- header.top := word((loader + lofs)^); inc(lofs, 2);
- header.right := word((loader + lofs)^); inc(lofs, 2);
- header.bottom := word((loader + lofs)^); inc(lofs, 2);
+ header.left := loader.ReadWord;
+ header.top := loader.ReadWord;
+ header.right := loader.ReadWord;
+ header.bottom := loader.ReadWord;
 
- header.flagaofs := i + dword((loader + lofs)^); inc(lofs, 4);
- header.flagbofs := i + dword((loader + lofs)^); inc(lofs, 4);
- inc(lofs, 4); // skip flag B stream size, unnecessary
- header.colorofs := i + dword((loader + lofs)^); inc(lofs, 4);
- inc(lofs, 4); // skip color index stream size, unnecessary
+ header.flagaofs := i + loader.ReadDword;
+ header.flagbofs := i + loader.ReadDword;
+ inc(loader.readp, 4); // skip flag B stream size, unnecessary
+ header.colorofs := i + loader.ReadDword;
+ inc(loader.readp, 4); // skip color index stream size, unnecessary
 
- if (header.flagaofs >= loadersize)
- or (header.flagbofs >= loadersize)
- or (header.colorofs >= loadersize) then begin
-  PrintError('Section offset out of bounds!'); exit;
- end;
+ if (header.flagaofs >= loader.size)
+ or (header.flagbofs >= loader.size)
+ or (header.colorofs >= loader.size) then
+  raise Exception.Create('Section offset out of bounds!');
 
  // Read GRB palette, usually 16, sometimes up to 256 entries.
  // Let's read from current position up to the start of the flag A stream.
- setlength(tempimage.palette, (header.flagaofs - lofs) div 3);
+ setlength(tempimage.palette, (header.flagaofs - loader.ofs) div 3);
  if length(tempimage.palette) <> 0 then
   for i := 0 to length(tempimage.palette) - 1 do
    with tempimage.palette[i] do begin
-    g := byte((loader + lofs)^) and $F0; inc(lofs);
-    r := byte((loader + lofs)^) and $F0; inc(lofs);
-    b := byte((loader + lofs)^) and $F0; inc(lofs);
+    g := loader.ReadByte and $F0;
+    r := loader.ReadByte and $F0;
+    b := loader.ReadByte and $F0;
     // only the top nibble is significant; the bottom nibble is 0 if the top
     // is 0, else it is $F
     if g <> 0 then g := g or $F;
@@ -500,48 +497,35 @@ begin
   move(tempimage.palette[0], PNGlist[PNGindex].pal[0], i * sizeof(tempimage.palette[0]));
 end;
 
-function Decomp_Makichan(const srcfile, outputfile : UTF8string) : UTF8string;
+procedure Decomp_Makichan(const loader : TFileLoader; const outputfile : UTF8string);
 // Reads the indicated Maki-chan graphics file, and saves it in outputfile as
 // a normal PNG.
-// Returns an empty string if successful, otherwise returns an error message.
+// Throws an exception in case of errors.
 var imunamu : UTF8string;
     i, j : dword;
     PNGindex : dword;
     tempbmp : bitmaptype;
 begin
- // Load the input file into loader^.
- Decomp_Makichan := LoadFile(srcfile);
- if Decomp_Makichan <> '' then exit;
-
  tempbmp.image := NIL;
 
  // Find this graphic name in PNGlist[], or create if doesn't exist yet.
- imunamu := ExtractFileName(srcfile);
+ imunamu := ExtractFileName(loader.filename);
  imunamu := upcase(copy(imunamu, 1, length(imunamu) - length(ExtractFileExt(imunamu))));
  PNGindex := seekpng(imunamu, TRUE);
 
  // Check the file for a "MAKI" signature.
- if dword(loader^) <> $494B414D then begin
-  Decomp_Makichan := 'no MAKI signature';
-  exit;
- end;
+ if loader.ReadDword <> $494B414D then raise Exception.Create('no MAKI signature');
 
  // Call the right decompressor.
- i := dword((loader + 4)^); // 01A, 01B, or 02
- lofs := 8;
+ i := loader.ReadDword; // 01A, 01B, or 02
  case i of
-  $20413130: UnpackMakiGraphic(PNGindex, 1); // 01A
-  $20423130: UnpackMakiGraphic(PNGindex, 2); // 01B
-  $20203230: UnpackMAG2Graphic(PNGindex); // 02
-  else begin
-   Decomp_Makichan := 'unknown MAKI subtype $' + strhex(i);
-   exit;
-  end;
+  $20413130: UnpackMakiGraphic(loader, PNGindex, 1); // 01A
+  $20423130: UnpackMakiGraphic(loader, PNGindex, 2); // 01B
+  $20203230: UnpackMAG2Graphic(loader, PNGindex); // 02
+  else raise Exception.Create('unknown MAKI subtype $' + strhex(i));
  end;
- if PNGlist[PNGindex].bitmap = NIL then begin
-  Decomp_Makichan := 'failed to load image';
-  exit;
- end;
+ if PNGlist[PNGindex].bitmap = NIL then
+  raise Exception.Create('failed to load image');
 
  // Put the uncompressed image into a bitmaptype for PNG conversion...
  tempbmp.image := PNGlist[PNGindex].bitmap;
@@ -571,13 +555,12 @@ begin
  mcg_ForgetImage(@tempbmp);
 
  if i <> 0 then begin
-  Decomp_Makichan := mcg_errortxt;
   if PNGlist[PNGindex].bitmap <> NIL then begin
    freemem(PNGlist[PNGindex].bitmap); PNGlist[PNGindex].bitmap := NIL;
   end;
-  exit;
+  raise Exception.Create(mcg_errortxt);
  end;
 
- Decomp_Makichan := SaveFile(outputfile, PNGlist[PNGindex].bitmap, j);
+ SaveFile(outputfile, PNGlist[PNGindex].bitmap, j);
  freemem(PNGlist[PNGindex].bitmap); PNGlist[PNGindex].bitmap := NIL;
 end;

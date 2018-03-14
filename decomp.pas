@@ -48,7 +48,7 @@ program SuperSakura_Decompiler;
 // .LIB/.CAT from PC98 Nocturnal Illusion and Mayclub
 // --> various standard resources
 
-{$mode fpc}
+{$mode objfpc}
 {$ifdef WINDOWS}{$apptype console}{$endif}
 {$codepage UTF8}
 {$asmmode intel}
@@ -68,7 +68,7 @@ program SuperSakura_Decompiler;
 // some extra case-insensitive checks.
 {$ifndef WINDOWS}{$define caseshenanigans}{$endif}
 
-uses sysutils, mcgloder, sjisutf8, mccommon;
+uses sysutils, mcgloder, sjisutf8, mcfileio, mccommon;
 
 // Override "decomp" with "ssakura" since this tool is a part of ssakura.
 // This is used by GetAppConfigDir to decide on a good config directory.
@@ -94,9 +94,6 @@ type PNGtype = record
        // 1 - integerscaling only
        // 128 - if set, 32-bit RGBA, else 32-bit RGBx
      end;
-
-// File loader object etc.
-{$include inc/fileio.pas}
 
 var errorcount : dword;
 
@@ -727,21 +724,20 @@ begin
  ProcessMetaData(decomp_param.outputdir + 'data.txt');
 end;
 
-procedure GetStuffFromExe(const exenamu : UTF8string);
+procedure GetStuffFromExe(const exefilename : UTF8string);
 // Reads an executable file and extracts useful data, like animation frames
 // or music file lists.
 // The executable's game ID must be known before calling.
-var poku : pointer;
+var loader : TFileLoader;
+    poku : pointer;
     txt : UTF8string;
     songnamu : string[15];
     ivar, jvar : dword;
     songlistofs, animdataofs : dword;
 begin
- txt := LoadFile(exenamu);
- if txt <> '' then begin
-  PrintError(txt); exit;
- end;
+ loader := TFileLoader.Open(exefilename);
 
+ try
  // Extract constant data from the EXE
  songlistofs := 0; animdataofs := 0;
  songnamu := '';
@@ -790,7 +786,7 @@ begin
   for ivar := high(songlist) downto 0 do byte(songlist[ivar][0]) := 0;
   ivar := 0;
   while ivar < dword(length(songlist)) do begin
-   if byte((loader + songlistofs)^) = 0 then begin
+   if loader.ReadByteFrom(songlistofs) = 0 then begin
     // crop out the extension
     while (length(songlist[ivar]) <> 0)
     and (songlist[ivar][length(songlist[ivar])] <> '.')
@@ -798,7 +794,7 @@ begin
     dec(byte(songlist[ivar][0]));
     inc(ivar);
    end else
-    songlist[ivar] := songlist[ivar] + char((loader + songlistofs)^);
+    songlist[ivar] := songlist[ivar] + char(loader.ReadByteFrom(songlistofs));
    inc(songlistofs);
   end;
   writeln(stdout, 'Extracted songlist, ' + strdec(length(songlist)) + ' entries.');
@@ -807,7 +803,7 @@ begin
 
  // Extract animation data.
  if animdataofs <> 0 then begin
-  lofs := animdataofs;
+  loader.ofs := animdataofs;
   getmem(poku, 178);
 
   // Snowcat and Tenkousei use a modified format.
@@ -819,13 +815,15 @@ begin
    end;
    repeat
     // read the animation sequence length (word) + 32 more words.
-    move((loader + lofs)^, poku^, 66); inc(lofs, 66);
+    move(loader.readp^, poku^, 66);
+    inc(loader.readp, 66);
     // invalid sequence length means we're done.
     if (word(poku^) > $FF) or (dword(poku^) = 0) then break;
     // read the rest of the animation record.
-    move((loader + lofs)^, (poku + 38)^, 140); inc(lofs, 140);
+    move(loader.readp^, (poku + 38)^, 140);
+    inc(loader.readp, 140);
     // read the animation file name.
-    move((loader + jvar + word((poku + 2)^))^, songnamu[1], 9);
+    move(loader.PtrAt(jvar + word((poku + 2)^))^, songnamu[1], 9);
     // find the null to determine string length.
     for ivar := 1 to 9 do
      if songnamu[ivar] = chr(0) then begin
@@ -845,7 +843,8 @@ begin
   // Other games use a more common format
   else begin
    repeat
-    move((loader + lofs)^, poku^, 178); inc(lofs, 178);
+    move(loader.readp^, poku^, 178);
+    inc(loader.readp, 178);
     // 0 seqlen or 0 name? We're done
     if (word(poku^) = 0) or (word((poku + 2)^) = 0) then break;
     // grab the animation name.
@@ -871,10 +870,14 @@ begin
  if game = gid_TRANSFER98 then begin
   txt := 'Extracting bytecode from TK.EXE...';
   writeln(txt); writeln(stdout, txt);
-  lofs := $14FC6;
-  loadersize := $14FC6 + $9A5; // up to excluding $1596B
-  txt := Decomp_JastOvl(exenamu, decomp_param.outputdir + 'scr' + DirectorySeparator + 'tkexe.txt');
-  if txt <> '' then PrintError('TK.EXE: ' + txt);
+  loader.ofs := $14FC6;
+  loader.size := $14FC6 + $9A5; // up to excluding $1596B
+  Decomp_JastOvl(loader, decomp_param.outputdir + 'scr' + DirectorySeparator + 'tkexe.txt');
+ end;
+
+ finally
+  if loader <> NIL then loader.free;
+  loader := NIL;
  end;
 end;
 
@@ -911,12 +914,11 @@ function DispatchFile(srcfile : UTF8string) : dword;
 // identification depends on the currently identified game ID and file
 // suffix.
 // Returns 1 if attempted to convert the file, 0 if skipped file.
-var basename, suffix, decompresult : UTF8string;
+var basename, suffix : UTF8string;
     isagraphic : boolean;
 begin
  DispatchFile := 0;
  write(stdout, srcfile, ': ');
- decompresult := 'skip';
 
  suffix := lowercase(ExtractFileExt(srcfile));
  basename := ExtractFileName(srcfile);
@@ -931,13 +933,13 @@ begin
      gid_SETSUJUU, gid_TRANSFER98, gid_3SIS, gid_3SIS98, gid_EDEN, gid_FROMH,
      gid_HOHOEMI, gid_VANISH, gid_RUNAWAY, gid_RUNAWAY98, gid_SAKURA,
      gid_SAKURA98, gid_MAJOKKO, gid_TASOGARE, gid_PARFAIT:
-     decompresult := Decomp_JastOvl(srcfile, decomp_param.outputdir + 'scr' + DirectorySeparator + basename + '.txt');
+     Decomp_JastOvl(TFileLoader.Open(srcfile), decomp_param.outputdir + 'scr' + DirectorySeparator + basename + '.txt');
    end;
 
    '.s':
    case game of
      gid_MAYCLUB, gid_MAYCLUB98, gid_NOCTURNE, gid_NOCTURNE98:
-     decompresult := Decomp_ExcellentS(srcfile, decomp_param.outputdir + 'scr' + DirectorySeparator + basename + '.txt');
+     Decomp_ExcellentS(TFileLoader.Open(srcfile), decomp_param.outputdir + 'scr' + DirectorySeparator + basename + '.txt');
    end;
 
    // === Graphics ===
@@ -948,14 +950,14 @@ begin
      gid_HOHOEMI, gid_VANISH, gid_RUNAWAY, gid_RUNAWAY98, gid_SAKURA,
      gid_SAKURA98, gid_MAJOKKO, gid_TASOGARE:
      begin
-      decompresult := Decomp_Pi(srcfile, decomp_param.outputdir + 'gfx' + DirectorySeparator + basename + '.png');
+      Decomp_Pi(TFileLoader.Open(srcfile), decomp_param.outputdir + 'gfx' + DirectorySeparator + basename + '.png');
       isagraphic := TRUE;
      end;
    end;
 
    '.mki', '.mag', '.max':
    begin
-    decompresult := Decomp_Makichan(srcfile, decomp_param.outputdir + 'gfx' + DirectorySeparator + basename + '.png');
+    Decomp_Makichan(TFileLoader.Open(srcfile), decomp_param.outputdir + 'gfx' + DirectorySeparator + basename + '.png');
     isagraphic := TRUE;
    end;
 
@@ -963,51 +965,41 @@ begin
    case game of
      gid_NOCTURNE, gid_NOCTURNE98, gid_MAYCLUB, gid_MAYCLUB98:
      begin
-      decompresult := Decomp_ExcellentG(srcfile, decomp_param.outputdir + 'gfx' + DirectorySeparator + basename + '.png');
+      Decomp_ExcellentG(TFileLoader.Open(srcfile), decomp_param.outputdir + 'gfx' + DirectorySeparator + basename + '.png');
       isagraphic := TRUE;
      end;
    end;
 
    // === Music ===
    '.m':
-   decompresult := Decomp_dotM(srcfile, decomp_param.outputdir + 'aud' + DirectorySeparator + basename + '.mid');
+   Decomp_dotM(TFileLoader.Open(srcfile), decomp_param.outputdir + 'aud' + DirectorySeparator + basename + '.mid');
 
    '.sc5':
-   decompresult := Decomp_SC5(srcfile, decomp_param.outputdir + 'aud' + DirectorySeparator + basename + '.mid');
+   Decomp_SC5(TFileLoader.Open(srcfile), decomp_param.outputdir + 'aud' + DirectorySeparator + basename + '.mid');
 
    // === Bundles ===
    '.dat':
    case game of
      gid_NOCTURNE, gid_MAYCLUB:
      // must be accompanied by a .lst file
-     decompresult := Decomp_ExcellentDAT(srcfile, copy(srcfile, 1, length(srcfile) - 3) + 'lst', decomp_param.outputdir);
+     Decomp_ExcellentDAT(TFileLoader.Open(srcfile), copy(srcfile, 1, length(srcfile) - 3) + 'lst', decomp_param.outputdir);
    end;
 
    '.lib':
    case game of
      gid_NOCTURNE98, gid_MAYCLUB98:
      // must be accompanied by a .cat file
-     decompresult := Decomp_ExcellentLib(srcfile, copy(srcfile, 1, length(srcfile) - 3) + 'cat', decomp_param.outputdir);
+     Decomp_ExcellentLib(TFileLoader.Open(srcfile), copy(srcfile, 1, length(srcfile) - 3) + 'cat', decomp_param.outputdir);
    end;
  end;
 
  // Present the file dispatch result.
- if decompresult = '' then begin
   writeln(stdout, 'ok');
   if isagraphic then begin
    if newgfxcount >= dword(length(newgfxlist)) then setlength(newgfxlist, length(newgfxlist) shl 1 + 64);
    newgfxlist[newgfxcount] := basename;
    inc(newgfxcount);
   end;
- end
- else if decompresult = 'skip' then begin
-  writeln(stdout, 'skip');
- end
- else begin
-  write(srcfile, ': ');
-  PrintError(decompresult);
- end;
- if decompresult <> 'skip' then DispatchFile := 1;
 end;
 
 procedure ProcessFiles(srcdir : UTF8string);
@@ -1190,7 +1182,6 @@ begin
  writeln(txt); writeln(stdout, txt);
 
  // Make sure memory is freed.
- if loader <> NIL then begin freemem(loader); loader := NIL; end;
  if length(PNGlist) <> 0 then
   for ivar := length(PNGlist) - 1 downto 0 do
    if PNGlist[ivar].bitmap <> NIL then begin

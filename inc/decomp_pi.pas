@@ -85,66 +85,69 @@ begin
  end;
 end;
 
-function l_getcolorcode : byte;
-// Translates a variable-bit-length color code into a normal number.
-begin
- if l_getbit then begin // 1x
-  if l_getbit then l_getcolorcode := 15 else l_getcolorcode := 16;
-
- end else begin // 0.....
-  if l_getbit then begin // 01....
-   if l_getbit then begin // 011xxx
-    if l_getbit then begin // 0111xx
-     if l_getbit then begin // 01111x
-      if l_getbit then l_getcolorcode := 1 else l_getcolorcode := 2;
-     end else begin // 01110x
-      if l_getbit then l_getcolorcode := 3 else l_getcolorcode := 4;
-     end;
-    end else begin // 0110xx
-     if l_getbit then begin // 01101x
-      if l_getbit then l_getcolorcode := 5 else l_getcolorcode := 6;
-     end else begin // 01100x
-      if l_getbit then l_getcolorcode := 7 else l_getcolorcode := 8;
-     end;
-    end;
-   end else begin // 010xx
-    if l_getbit then begin // 0101x
-     if l_getbit then l_getcolorcode := 9 else l_getcolorcode := 10;
-    end else begin // 0100x
-     if l_getbit then l_getcolorcode := 11 else l_getcolorcode := 12;
-    end;
-   end;
-  end else begin // 00x
-   if l_getbit then l_getcolorcode := 13 else l_getcolorcode := 14;
-  end;
- end;
-end;
-
-function l_getlencode : dword;
-// Returns a variable-bit-length number used for repetition lengths.
-var luxus : word;
-begin
- luxus := 0;
- while l_getbit do inc(luxus);
- l_getlencode := 1 shl luxus;
- while luxus <> 0 do begin
-  dec(luxus);
-  if l_getbit then inc(l_getlencode, dword(1 shl luxus));
- end;
-end;
-
-procedure UnpackPiGraphic(PNGindex : dword);
+procedure UnpackPiGraphic(loader : TFileLoader; PNGindex : dword);
 var iofs : dword;
     lcolors : array[0..15] of array[1..16] of byte;
     lpp, lnp : dword;
     ltv, llv : word;
     pair1, pair2, pairx : word;
     l_firstrep, l_mode : byte;
+
+  function l_getcolorcode : byte;
+  // Translates a variable-bit-length color code into a normal number.
+  begin
+   if loader.ReadBit then begin // 1x
+    if loader.ReadBit then l_getcolorcode := 15 else l_getcolorcode := 16;
+
+   end else begin // 0.....
+    if loader.ReadBit then begin // 01....
+     if loader.ReadBit then begin // 011xxx
+      if loader.ReadBit then begin // 0111xx
+       if loader.ReadBit then begin // 01111x
+        if loader.ReadBit then l_getcolorcode := 1 else l_getcolorcode := 2;
+       end else begin // 01110x
+        if loader.ReadBit then l_getcolorcode := 3 else l_getcolorcode := 4;
+       end;
+      end else begin // 0110xx
+       if loader.ReadBit then begin // 01101x
+        if loader.ReadBit then l_getcolorcode := 5 else l_getcolorcode := 6;
+       end else begin // 01100x
+        if loader.ReadBit then l_getcolorcode := 7 else l_getcolorcode := 8;
+       end;
+      end;
+     end else begin // 010xx
+      if loader.ReadBit then begin // 0101x
+       if loader.ReadBit then l_getcolorcode := 9 else l_getcolorcode := 10;
+      end else begin // 0100x
+       if loader.ReadBit then l_getcolorcode := 11 else l_getcolorcode := 12;
+      end;
+     end;
+    end else begin // 00x
+     if loader.ReadBit then l_getcolorcode := 13 else l_getcolorcode := 14;
+    end;
+   end;
+  end;
+
+  function l_getlencode : dword;
+  // Returns a variable-bit-length number used for repetition lengths.
+  var luxus : word;
+  begin
+   luxus := 0;
+   while loader.ReadBit do inc(luxus);
+   l_getlencode := 1 shl luxus;
+   while luxus <> 0 do begin
+    dec(luxus);
+    if loader.ReadBit then inc(l_getlencode, dword(1 shl luxus));
+   end;
+  end;
+
 begin
  // best have some room for overflow
  getmem(PNGlist[PNGindex].bitmap, PNGlist[PNGindex].origsizexp * PNGlist[PNGindex].origsizeyp + 32768);
 
- l_firstrep := 1; l_mode := 1; l_bitptr := 7; lpp := 0; iofs := 0;
+ loader.bitindex := 7;
+ l_firstrep := 1; l_mode := 1;
+ lpp := 0; iofs := 0;
  for llv := 0 to 15 do for ltv := 1 to 16 do lcolors[llv][ltv] := ltv;
 
  repeat
@@ -177,17 +180,17 @@ begin
        inc(iofs);
 
        if (l_firstrep <> 0) then l_mode := 2
-       else if l_getbit = false then l_mode := 2;
+       else if loader.ReadBit = false then l_mode := 2;
       end;
    // Repetition
    2: begin
-       if l_getbit then begin
-        if l_getbit then begin
-         if l_getbit then ltv := 111 else ltv := 110;
+       if loader.ReadBit then begin
+        if loader.ReadBit then begin
+         if loader.ReadBit then ltv := 111 else ltv := 110;
         end
         else ltv := 10;
        end else begin
-        if l_getbit then ltv := 1 else ltv := 0;
+        if loader.ReadBit then ltv := 1 else ltv := 0;
        end;
 
        repeat
@@ -289,13 +292,13 @@ begin
         end;
 
         lnp := ltv;
-        if l_getbit then begin
-         if l_getbit then begin
-          if l_getbit then ltv := 111 else ltv := 110;
+        if loader.ReadBit then begin
+         if loader.ReadBit then begin
+          if loader.ReadBit then ltv := 111 else ltv := 110;
          end
          else ltv := 10;
         end else begin
-         if l_getbit then ltv := 1 else ltv := 0;
+         if loader.ReadBit then ltv := 1 else ltv := 0;
         end;
 
         l_firstrep := 0;
@@ -304,100 +307,90 @@ begin
        l_mode := 1;
       end;
   end;
- until (iofs shl 1 >= PNGlist[PNGindex].origsizexp * PNGlist[PNGindex].origsizeyp) or (lofs + 2 > loadersize);
 
- if lofs + 2 > loadersize then begin
-  PrintError('Ran out of datastream before image finished!'); exit;
- end;
+  if loader.readp + 2 > loader.endp then
+   raise Exception.Create('Ran out of datastream before image finished!');
+
+ until (iofs shl 1 >= PNGlist[PNGindex].origsizexp * PNGlist[PNGindex].origsizeyp);
 end;
 
-function Decomp_Pi(const srcfile, outputfile : UTF8string) : UTF8string;
+procedure Decomp_Pi(const loader : TFileLoader; const outputfile : UTF8string);
 // Reads the indicated Pi graphics file, and saves it in outputfile as
 // a normal PNG.
-// Returns an empty string if successful, otherwise returns an error message.
+// Throws an exception in case of errors.
 var imunamu : UTF8string;
     ivar, jvar : dword;
     PNGindex, xparency, clippedx : dword;
     tempbmp : bitmaptype;
 begin
- // Load the input file into loader^.
- Decomp_Pi := LoadFile(srcfile);
- if Decomp_Pi <> '' then exit;
-
  tempbmp.image := NIL;
 
  // Find this graphic name in PNGlist[], or create if doesn't exist yet.
- imunamu := ExtractFileName(srcfile);
+ imunamu := ExtractFileName(loader.filename);
  imunamu := upcase(copy(imunamu, 1, length(imunamu) - length(ExtractFileExt(imunamu))));
  PNGindex := seekpng(imunamu, TRUE);
 
- if (game = gid_DEEP) and (imunamu = 'DB_05_08') then begin
-  Decomp_Pi := 'This is probably badly corrupted and would crash Decomp.';
-  exit;
- end;
+ if (game = gid_DEEP) and (imunamu = 'DB_05_08') then
+  raise Exception.Create('This image is probably badly corrupted and would crash Decomp.');
 
  // Check the file for a SADBMP signature.
- if dword(loader^) = $002A4949 then begin
+ if dword(loader.readp^) = $002A4949 then begin
   write(stdout, '[sadbmp] ');
-  PNGlist[PNGindex].origsizexp := dword((loader + 30)^);
-  PNGlist[PNGindex].origsizeyp := dword((loader + 42)^);
+  PNGlist[PNGindex].origsizexp := loader.ReadDwordFrom(30);
+  PNGlist[PNGindex].origsizeyp := loader.ReadDwordFrom(42);
   // Read the deranged palette.
   setlength(PNGlist[PNGindex].pal, 16);
-  lofs := $100;
+  loader.ofs := $100;
   for ivar := 0 to 15 do with PNGlist[PNGindex].pal[ivar] do begin
-   r := word((loader + lofs)^) and $F0;
-   g := word((loader + lofs + 32)^) and $F0;
-   b := word((loader + lofs + 64)^) and $F0;
-   inc(lofs, 2);
+   r := loader.ReadWordFrom(loader.ofs + 0) and $F0;
+   g := loader.ReadWordFrom(loader.ofs + 32) and $F0;
+   b := loader.ReadWordFrom(loader.ofs + 64) and $F0;
+   inc(loader.readp, 2);
   end;
   // Copy the picture over, while expanding 4bpp indexed --> 8bpp indexed.
   ivar := PNGlist[PNGindex].origsizexp * PNGlist[PNGindex].origsizeyp;
   getmem(PNGlist[PNGindex].bitmap, ivar);
   ivar := ivar shr 1;
-  lofs := $200; jvar := 0;
-  while (ivar <> 0) and (lofs < loadersize) do begin
+  loader.ofs := $200;
+  jvar := 0;
+  while (ivar <> 0) and (loader.readp < loader.endp) do begin
    dec(ivar);
-   byte((PNGlist[PNGindex].bitmap + jvar)^) := byte((loader + lofs)^) and $F;
+   byte((PNGlist[PNGindex].bitmap + jvar)^) := byte(loader.readp^) and $F;
    inc(jvar);
-   byte((PNGlist[PNGindex].bitmap + jvar)^) := byte((loader + lofs)^) shr 4;
-   inc(jvar); inc(lofs);
+   byte((PNGlist[PNGindex].bitmap + jvar)^) := byte(loader.readp^) shr 4;
+   inc(jvar); inc(loader.readp);
   end;
  end else
 
  // Check the file for a "MAKI" signature.
- if dword(loader^) = $494B414D then begin
+ if dword(loader.readp^) = $494B414D then begin
   write(stdout, '[makichan] ');
   // Forward to the appropriate decompressor.
-  ivar := dword((loader + 4)^); // 01A, 01B, or 02
-  lofs := 8;
+  inc(loader.readp, 4);
+  ivar := loader.ReadDword; // 01A, 01B, or 02
   case ivar of
-   $20413130: UnpackMakiGraphic(PNGindex, 1); // 01A
-   $20423130: UnpackMakiGraphic(PNGindex, 2); // 01B
-   $20203230: UnpackMAG2Graphic(PNGindex); // 02
-   else begin
-    Decomp_Pi := 'unknown MAKI subtype $' + strhex(ivar);
-    exit;
-   end;
+   $20413130: UnpackMakiGraphic(loader, PNGindex, 1); // 01A
+   $20423130: UnpackMakiGraphic(loader, PNGindex, 2); // 01B
+   $20203230: UnpackMAG2Graphic(loader, PNGindex); // 02
+   else raise Exception.Create('unknown MAKI subtype $' + strhex(ivar));
   end;
  end
 
  else begin
   // The file starts with a metadata string. Find the terminating 1A marker!
-  while byte((loader + lofs)^) <> $1A do begin
-   inc(lofs);
-   if (lofs + 16 >= loadersize) then begin
-    Decomp_Pi := 'Initial block not found! Maybe not a PI file.';
-    exit;
-   end;
+  while byte(loader.readp^) <> $1A do begin
+   inc(loader.readp);
+   if (loader.readp + 16 >= loader.endp) then
+    raise Exception.Create('Initial block not found! Maybe not a PI file.');
   end;
 
   // If the metadata string is $166 bytes long, it contains animation data.
-  if lofs = $166 then begin
+  if loader.ofs = $166 then begin
    // Pack nibbles into bytes
    for ivar := 1 to 178 do
-    byte((loader + ivar)^) := byte((loader + ivar * 2)^) or (byte((loader + ivar * 2 + 1)^) shr 4);
+    byte(loader.PtrAt(ivar)^) := loader.ReadByteFrom(ivar * 2) or (loader.ReadByteFrom(ivar * 2 + 1) shr 4);
    // Process the data
-   ChewAnimations(loader + 1, PNGindex);
+   ChewAnimations(loader.PtrAt(1), PNGindex);
   end;
   // Non-animated images never have offsets in the file, so reset those to
   // zero. Thus, at this point, every image has a proper baseline ofs.
@@ -407,51 +400,46 @@ begin
   end;
 
   // Read ahead until 00 encountered
-  while byte((loader + lofs)^) <> $00 do begin
-   inc(lofs);
-   if (lofs + 4 >= loadersize) then begin
-    Decomp_Pi := 'No 00 in initial block??';
-    exit;
-   end;
+  while byte(loader.readp^) <> $00 do begin
+   inc(loader.readp);
+   if (loader.readp + 4 >= loader.endp) then
+    raise Exception.Create('No 00 in initial block??');
   end;
 
   // Skip this and next four bytes, hope to land on a signature.
-  inc(lofs, 5);
+  inc(loader.readp, 5);
   // Skip over sig.
-  inc(lofs, 4);
+  inc(loader.readp, 4);
   // Skip over a 00 byte.
-  inc(lofs);
+  inc(loader.readp);
   // Now follows what feels like a pascal-string of unknown data.
-  ivar := byte((loader + lofs)^);
-  inc(lofs, ivar + 1);
+  ivar := loader.ReadByte;
+  inc(loader.readp, ivar);
 
   // Next two words are image width and height.
-  PNGlist[PNGindex].origsizexp := byte((loader + lofs)^) shl 8 + byte((loader + lofs + 1)^);
-  PNGlist[PNGindex].origsizeyp := byte((loader + lofs + 2)^) shl 8 + byte((loader + lofs + 3)^);
-  inc(lofs, 4);
+  PNGlist[PNGindex].origsizexp := (loader.ReadByte shl 8) or loader.ReadByte;
+  PNGlist[PNGindex].origsizeyp := (loader.ReadByte shl 8) or loader.ReadByte;
 
-  if (PNGlist[PNGindex].origsizexp > 640) or (PNGlist[PNGindex].origsizeyp > 800)
-  or (PNGlist[PNGindex].origsizexp < 2) or (PNGlist[PNGindex].origsizeyp < 2) then begin
-   Decomp_Pi := 'Suspicious size ' + strdec(PNGlist[PNGindex].origsizexp) + 'x' + strdec(PNGlist[PNGindex].origsizeyp) + ' is causing dragons of loading to refuse.';
-   exit;
-  end;
+  if (PNGlist[PNGindex].origsizexp > 640)
+  or (PNGlist[PNGindex].origsizeyp > 800)
+  or (PNGlist[PNGindex].origsizexp < 2)
+  or (PNGlist[PNGindex].origsizeyp < 2) then
+   raise Exception.Create('Suspicious size ' + strdec(PNGlist[PNGindex].origsizexp) + 'x' + strdec(PNGlist[PNGindex].origsizeyp) + ' is causing dragons of loading to refuse.');
 
   // Read the palette.
   setlength(PNGlist[PNGindex].pal, 16);
   for ivar := 0 to 15 do with PNGlist[PNGindex].pal[ivar] do begin
-   r := byte((loader + lofs)^) and $F0; inc(lofs);
-   g := byte((loader + lofs)^) and $F0; inc(lofs);
-   b := byte((loader + lofs)^) and $F0; inc(lofs);
+   r := loader.ReadByte and $F0;
+   g := loader.ReadByte and $F0;
+   b := loader.ReadByte and $F0;
   end;
 
-  UnpackPiGraphic(PNGindex);
+  UnpackPiGraphic(loader, PNGindex);
  end;
 
  // Did we get the image?
- if PNGlist[PNGindex].bitmap = NIL then begin
-  Decomp_Pi := 'failed to load image';
-  exit;
- end;
+ if PNGlist[PNGindex].bitmap = NIL then
+  raise Exception.Create('failed to load image');
 
  // If the image has a transparent palette index, it must be marked.
  // The transparent index is almost always 8, and usually applies only to
@@ -852,13 +840,12 @@ begin
  mcg_ForgetImage(@tempbmp);
 
  if ivar <> 0 then begin
-  Decomp_Pi := mcg_errortxt;
   if PNGlist[PNGindex].bitmap <> NIL then begin
    freemem(PNGlist[PNGindex].bitmap); PNGlist[PNGindex].bitmap := NIL;
   end;
-  exit;
+  raise Exception.Create(mcg_errortxt);
  end;
 
- Decomp_Pi := SaveFile(outputfile, PNGlist[PNGindex].bitmap, jvar);
+ SaveFile(outputfile, PNGlist[PNGindex].bitmap, jvar);
  freemem(PNGlist[PNGindex].bitmap); PNGlist[PNGindex].bitmap := NIL;
 end;

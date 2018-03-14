@@ -17,70 +17,61 @@
 { along with SuperSakura.  If not, see <https://www.gnu.org/licenses/>.     }
 {                                                                           }
 
-function decomp_ExcellentG(srcfile, outputfile : UTF8string) : UTF8string;
+procedure decomp_ExcellentG(const loader : TFileLoader; const outputfile : UTF8string);
 // Reads the indicated Excellents graphic file, and saves it in outputfile
 // as a standard PNG.
-// Returns an empty string if successful, otherwise returns an error message.
+// Throws an exception in case of errors.
 var imunamu : UTF8string;
     ivar, jvar : dword;
     PNGindex, xparency : dword;
     tempbmp : bitmaptype;
 begin
- // Load the input file into loader^.
- Decomp_ExcellentG := LoadFile(srcfile);
- if Decomp_ExcellentG <> '' then exit;
-
  tempbmp.image := NIL;
 
  // Find this graphic name in PNGlist[], or create if doesn't exist yet.
- imunamu := ExtractFileName(srcfile);
+ imunamu := ExtractFileName(loader.filename);
  imunamu := upcase(copy(imunamu, 1, length(imunamu) - length(ExtractFileExt(imunamu))));
  PNGindex := seekpng(imunamu, TRUE);
 
  // Test for "PiUser" signature... signifies a full MAGv3 image.
- if dword((loader + lofs)^) = $73556950 then begin
-  while byte((loader + lofs)^) <> $1A do inc(lofs);
+ if dword(loader.readp^) = $73556950 then begin
+  while byte(loader.readp^) <> $1A do inc(loader.readp);
   // Read ahead until 00 encountered
-  while byte((loader + lofs)^) <> $00 do begin
-   inc(lofs);
-   if (lofs + 4 >= loadersize) then begin
-    Decomp_ExcellentG := 'No 00 in initial block??';
-    exit;
-   end;
+  while byte(loader.readp^) <> $00 do begin
+   inc(loader.readp);
+   if (loader.readp + 4 >= loader.endp) then
+    raise Exception.Create('No 00 in initial block??');
   end;
   // Skip things.
-  inc(lofs, 10);
+  inc(loader.readp, 10);
   // Now follows what feels like a pascal-string of unknown data.
-  ivar := byte((loader + lofs)^);
-  inc(lofs, ivar + 1);
+  ivar := loader.ReadByte;
+  inc(loader.readp, ivar);
  end;
 
  // Next two words are image width and height.
- PNGlist[PNGindex].origsizexp := byte((loader + lofs)^) shl 8 + byte((loader + lofs + 1)^);
- PNGlist[PNGindex].origsizeyp := byte((loader + lofs + 2)^) shl 8 + byte((loader + lofs + 3)^);
- inc(lofs, 4);
+ PNGlist[PNGindex].origsizexp := (loader.ReadByte shl 8) or loader.ReadByte;
+ PNGlist[PNGindex].origsizeyp := (loader.ReadByte shl 8) or loader.ReadByte;
 
- if (PNGlist[PNGindex].origsizexp > 640) or (PNGlist[PNGindex].origsizeyp > 800)
- or (PNGlist[PNGindex].origsizexp < 2) or (PNGlist[PNGindex].origsizeyp < 2) then begin
-  Decomp_ExcellentG := 'Suspicious size ' + strdec(PNGlist[PNGindex].origsizexp) + 'x' + strdec(PNGlist[PNGindex].origsizeyp) + ' is causing dragons of loading to refuse.';
-  exit;
- end;
+ if (PNGlist[PNGindex].origsizexp > 640)
+ or (PNGlist[PNGindex].origsizeyp > 800)
+ or (PNGlist[PNGindex].origsizexp < 2)
+ or (PNGlist[PNGindex].origsizeyp < 2) then
+  raise Exception.Create('Suspicious size ' + strdec(PNGlist[PNGindex].origsizexp) + 'x' + strdec(PNGlist[PNGindex].origsizeyp) + ' is causing dragons of loading to refuse.');
 
  // Read the palette.
  setlength(PNGlist[PNGindex].pal, 16);
  for ivar := 0 to 15 do with PNGlist[PNGindex].pal[ivar] do begin
-  r := byte((loader + lofs)^) and $F0; inc(lofs);
-  g := byte((loader + lofs)^) and $F0; inc(lofs);
-  b := byte((loader + lofs)^) and $F0; inc(lofs);
+  r := loader.ReadByte and $F0;
+  g := loader.ReadByte and $F0;
+  b := loader.ReadByte and $F0;
  end;
 
- UnpackPiGraphic(PNGindex);
+ UnpackPiGraphic(loader, PNGindex);
 
  // Did we get the image?
- if PNGlist[PNGindex].bitmap = NIL then begin
-  Decomp_ExcellentG := 'failed to load image';
-  exit;
- end;
+ if PNGlist[PNGindex].bitmap = NIL then
+  raise Exception.Create('failed to load image');
 
  {$note mayclubs d27*.g have garbage pixels}
 
@@ -152,13 +143,12 @@ begin
  mcg_ForgetImage(@tempbmp);
 
  if ivar <> 0 then begin
-  Decomp_ExcellentG := mcg_errortxt;
   if PNGlist[PNGindex].bitmap <> NIL then begin
    freemem(PNGlist[PNGindex].bitmap); PNGlist[PNGindex].bitmap := NIL;
   end;
-  exit;
+  raise Exception.Create(mcg_errortxt);
  end;
 
- Decomp_ExcellentG := SaveFile(outputfile, PNGlist[PNGindex].bitmap, jvar);
+ SaveFile(outputfile, PNGlist[PNGindex].bitmap, jvar);
  freemem(PNGlist[PNGindex].bitmap); PNGlist[PNGindex].bitmap := NIL;
 end;

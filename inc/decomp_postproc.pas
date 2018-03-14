@@ -32,10 +32,10 @@ function Composite(namu1, namu2 : UTF8string; action : byte) : dword;
 // $40 bit set - use namu2's palette
 // Also, if $80 bit is set, namu2 will not be deleted.
 // Returns PNGlist[] index of namu1 for convenience.
-var ivar, jvar, kvar, lvar, png1, png2 : dword;
+var loader : TFileLoader;
+    ivar, jvar, kvar, lvar, png1, png2 : dword;
     poku : pointer;
     image1, image2 : bitmaptype;
-    outfilu : file;
     txt : UTF8string;
     bvar : byte;
 begin
@@ -55,25 +55,27 @@ begin
  png1 := seekpng(namu1, FALSE);
  png2 := seekpng(namu2, FALSE);
 
- txt := LoadFile(decomp_param.outputdir + 'gfx' + DirectorySeparator + namu1 + '.png');
- if txt <> '' then begin
-  PrintError(txt);
-  exit;
- end;
- ivar := mcg_PNGtoMemory(loader, loadersize, @image1);
- if ivar <> 0 then begin
-  PrintError(mcg_errortxt); mcg_ForgetImage(@image1); exit;
+ loader := TFileLoader.Open(decomp_param.outputdir + 'gfx' + DirectorySeparator + namu1 + '.png');
+ try
+  ivar := mcg_PNGtoMemory(loader.readp, loader.size, @image1);
+  if ivar <> 0 then begin
+   PrintError(mcg_errortxt); mcg_ForgetImage(@image1); exit;
+  end;
+ finally
+  if loader <> NIL then loader.free;
+  loader := NIL;
  end;
 
- txt := LoadFile(decomp_param.outputdir + 'gfx' + DirectorySeparator + namu2 + '.png');
- if txt <> '' then begin
-  PrintError(txt);
-  exit;
- end;
- ivar := mcg_PNGtoMemory(loader, loadersize, @image2);
- if ivar <> 0 then begin
-  PrintError(mcg_errortxt);
-  mcg_ForgetImage(@image1); mcg_ForgetImage(@image2); exit;
+ loader := TFileLoader.Open(decomp_param.outputdir + 'gfx' + DirectorySeparator + namu2 + '.png');
+ try
+  ivar := mcg_PNGtoMemory(loader.readp, loader.size, @image2);
+  if ivar <> 0 then begin
+   PrintError(mcg_errortxt);
+   mcg_ForgetImage(@image1); mcg_ForgetImage(@image2); exit;
+  end;
+ finally
+  if loader <> NIL then loader.free;
+  loader := NIL;
  end;
 
  bvar := 0;
@@ -163,7 +165,7 @@ begin
  if jvar <> 0 then begin
   PrintError(mcg_errortxt); exit;
  end;
- txt := SaveFile(decomp_param.outputdir + 'gfx' + DirectorySeparator + namu1 + '.png', poku, ivar);
+ SaveFile(decomp_param.outputdir + 'gfx' + DirectorySeparator + namu1 + '.png', poku, ivar);
  freemem(poku); poku := NIL;
  if txt <> '' then begin
   mcg_ForgetImage(@image1);

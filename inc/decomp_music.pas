@@ -170,10 +170,10 @@ begin
  remember(makemidivarlength(deltatime), idx);
 end;
 
-function Decomp_dotM(const srcfile, outputfile : UTF8string) : UTF8string;
+procedure Decomp_dotM(const loader: TFileLoader; const outputfile : UTF8string);
 // Reads the indicated .M music file, and saves it in outputfile as a normal
 // midi file.
-// Returns an empty string if successful, otherwise returns an error message.
+// Throws an exception in case of errors.
 var ivar, jvar, lvar : dword;
     txt : string;
     musname : UTF8string;
@@ -193,44 +193,36 @@ var ivar, jvar, lvar : dword;
              delay, rate, stepsize, depth : byte;
             end;
 begin
- // Load the input file into loader^.
- Decomp_dotM := LoadFile(srcfile);
- if Decomp_dotM <> '' then exit;
- Decomp_dotM := '.M file support is offline';
+ raise Exception.Create('.M file support is offline');
  exit;
 
- musname := ExtractFileName(srcfile);
+ musname := ExtractFileName(loader.filename);
  musname := upcase(copy(musname, 1, length(musname) - length(ExtractFileExt(musname))));
 
  repecount[1] := 0; // just to remove a compiler warning
 
- mversion := byte(loader^);
- if (word((loader + 1)^) <> $1A)
- and (word(loader^) <> $1A)
- then begin
-  Decomp_dotM := 'Unfamiliar .M format...';
-  exit;
- end;
+ mversion := byte(loader.readp^);
+ if (word((loader.readp + 1)^) <> $1A)
+ and (word(loader.readp^) <> $1A) then
+  raise Exception.Create('Unfamiliar .M format...');
 
  // If there's a version byte at the start, add a constant offset
- if word(loader^) = $1A then cofs := 0 else cofs := 1;
+ if word(loader.readp^) = $1A then cofs := 0 else cofs := 1;
 
  // Set default conversion values
  fillbyte(songinfo.instmap, length(songinfo.instmap), 4);
  fillbyte(songinfo.instkey, length(songinfo.instkey), 12);
 
  // Read the track pointers
- lofs := 1;
+ loader.ofs := 1;
  numtracks := 0;
  for ivar := 0 to 12 do begin
-  trackptr[numtracks] := word((loader + lofs)^) + cofs;
-  inc(lofs, 2);
+  trackptr[numtracks] := loader.ReadWord + cofs;
   if ivar <= 10 then inc(numtracks);
  end;
 
- if numtracks = 0 then begin
-  PrintError('No tracks identified!'); exit;
- end;
+ if numtracks = 0 then
+  raise Exception.Create('No tracks identified!');
  // --Insert instrument auto-detection heuristics here--
 
  // Read hand-picked conversion rules
@@ -239,7 +231,7 @@ begin
 
  {$ifdef enable_hacks}
  // Hack: Ridiculous loop count cut to a sensible number
- if musname = 'SK_09' then byte(pointer(loader + $691)^) := $F;
+ if musname = 'SK_09' then byte(loader.PtrAt($691)^) := $F;
  {$endif enable_hacks}
 
  // Process all tracks
@@ -250,7 +242,7 @@ begin
   tracktime[ivar] := 0;
   trackloop[ivar] := $FFFFFFFF;
 
-  lofs := trackptr[ivar];
+  loader.ofs := trackptr[ivar];
   vibra.active := 0;
   staccato := 0; volume := $69;
   noteplaying := $FF; bent := 0; pitchbendrange := 2;
@@ -283,10 +275,10 @@ begin
   // construct the event sequence for this track
   repeat
 
-   lvar := byte((loader + lofs)^);
-   m := byte((loader + lofs + 1)^);
-   n := byte((loader + lofs + 2)^);
-   //write(strhex(lofs):3,':',strhex(l):2,'; ');
+   lvar := byte(loader.readp^);
+   m := byte((loader.readp + 1)^);
+   n := byte((loader.readp + 2)^);
+   //write(strhex(loader.ofs):3,':',strhex(l):2,'; ');
 
    case lvar of
     $00..$0B, $10..$1B, $20..$2B, $30..$3B, $40..$4B, $50..$5B, $60..$6B,
@@ -364,14 +356,14 @@ begin
                 end;
                 noteplaying := $FF;
                end;
-               inc(lofs, 2);
+               inc(loader.readp, 2);
               end;
     // Pause
     $0F: begin
           if (tracktime[ivar] = 0) and (trackloop[ivar] = $FFFFFFFF)
           and (m < 5) then m := m shr 1; // reduce constant channel delays
           inc(cur_ticks, m * 2); // pause length, at double resolution
-          inc(lofs, 2);
+          inc(loader.readp, 2);
          end;
     // End of track
     $80: begin
@@ -384,17 +376,17 @@ begin
           break; // stop processing this track
          end;
     // unknown
-    $BB, $C5: inc(lofs, 2);
-    $C0: inc(lofs);
+    $BB, $C5: inc(loader.readp, 2);
+    $C0: inc(loader.readp);
     // unknown, points to last track, then 00 00 00 00
-    $C6: inc(lofs, 7);
+    $C6: inc(loader.readp, 7);
     // unknown
-    $C8: inc(lofs, 4);
+    $C8: inc(loader.readp, 4);
     // unknown
-    $C9, $CA, $CB, $CC, $CF: inc(lofs, 2);
-    $CD: inc(lofs, 6);
+    $C9, $CA, $CB, $CC, $CF: inc(loader.readp, 2);
+    $CD: inc(loader.readp, 6);
     // unknown
-    $D5,$D6: inc(lofs, 3);
+    $D5,$D6: inc(loader.readp, 3);
     // Pitch slide from m to n during j
     $DA: begin
           m := byte(m shr 4) * $C + (m and $F) + songinfo.instkey[cur_inst];
@@ -453,7 +445,7 @@ begin
           remember(txt, ivar);
 
           // Generate a series of pitch wheel events, over duration j
-          jvar := byte((loader + lofs + 3)^) * 2; // (double resolution)
+          jvar := byte((loader.readp + 3)^) * 2; // (double resolution)
           lvar := jvar;
           while lvar <> 0 do begin
            dec(lvar);
@@ -468,9 +460,9 @@ begin
           bent := n - noteplaying;
 
           // The note's duration is over.
-          inc(lofs, 4);
+          inc(loader.readp, 4);
           // If the next code is FB, off the note and reset pitch bend.
-          if byte((loader + lofs)^) <> $FB then begin
+          if byte(loader.readp^) <> $FB then begin
            writedeltatime(ivar, cur_ticks);
            txt := chr($80 or cur_channel) + chr(noteplaying) + chr(volume);
            remember(txt, ivar);
@@ -485,28 +477,26 @@ begin
           end;
          end;
     // unknown
-    $DC, $DD: inc(lofs, 2);
+    $DC, $DD: inc(loader.readp, 2);
     // Reset? DF C0
-    $DF: if m = $C0 then inc(lofs, 2)
-         else begin
-          Decomp_dotM := '$DF subcommand $' + strhex(m) + ' not known! @ $' + strhex(lofs);
-          exit;
-         end;
+    $DF: if m = $C0 then inc(loader.readp, 2)
+         else
+          raise Exception.Create('$DF subcommand $' + strhex(m) + ' not known! @ $' + strhex(loader.ofs));
     // Unknown...
-    $E2,$E3,$E8,$ED,$EE: inc(lofs, 2);
-    $E6, $EF: inc(lofs, 1);
-    $F0: inc(lofs, 5);
+    $E2,$E3,$E8,$ED,$EE: inc(loader.readp, 2);
+    $E6, $EF: inc(loader.readp, 1);
+    $F0: inc(loader.readp, 5);
     // Vibrato
     $F1: begin
           vibra.active := m and 3;
-          inc(lofs, 2);
+          inc(loader.readp, 2);
          end;
     $F2: begin
           vibra.delay := m;
           vibra.rate := n;
-          vibra.stepsize := byte((loader + lofs + 1)^);
-          vibra.depth := byte((loader + lofs + 2)^);
-          inc(lofs, 5);
+          vibra.stepsize := byte((loader.readp + 1)^);
+          vibra.depth := byte((loader.readp + 2)^);
+          inc(loader.readp, 5);
           if vibra.delay = 1 then vibra.delay := 8
           else if vibra.delay = 2 then vibra.delay := 16;
           if vibra.depth > 6 then vibra.depth := 127
@@ -515,16 +505,16 @@ begin
     // Volumesliding
     $F3: begin
           volume := (volume * 15) div 16;
-          inc(lofs);
+          inc(loader.readp);
          end;
     $F4: begin
           volume := (volume * 16) div 15 + 1;
           if volume > 127 then volume := 127;
-          inc(lofs);
+          inc(loader.readp);
          end;
     // Transposition
     $E7,$F5: begin
-          inc(lofs, 2);
+          inc(loader.readp, 2);
          end;
     // Loop marker
     $F6: begin
@@ -533,10 +523,10 @@ begin
           remember(txt, ivar);
           trackloop[ivar] := tofs[ivar];
           tracktime[ivar] := 0;
-          inc(lofs);
+          inc(loader.readp);
          end;
     // unknown, points to an F8
-    $F7: inc(lofs, 3);
+    $F7: inc(loader.readp, 3);
     // Repetition
     $F8: begin
           //m := m or (n shl 8);
@@ -544,12 +534,12 @@ begin
           if repecount[repenest] = $FFFF then repecount[repenest] := m;
           dec(repecount[repenest]);
           if repecount[repenest] <> 0 then
-           lofs := (byte((loader + lofs + 3)^) or (byte((loader + lofs + 4)^) shl 8)) + 2 + cofs
-          else begin inc(lofs, 5); dec(repenest); end;
+           loader.ofs := (byte((loader.readp + 3)^) or (byte((loader.readp + 4)^) shl 8)) + 2 + cofs
+          else begin inc(loader.readp, 5); dec(repenest); end;
          end;
     $F9: begin
           inc(repenest); repecount[repenest] := $FFFF;
-          inc(lofs, 3);
+          inc(loader.readp, 3);
          end;
     // Detuning
     $FA: begin
@@ -559,10 +549,10 @@ begin
           txt := chr($E0 or chnmap[ivar]) + chr(j and $7F) + chr((j shr 7) and $7F);
           remember(txt, ivar); // pitch bend
           {$endif}
-          inc(lofs, 3);
+          inc(loader.readp, 3);
          end;
     // Continue the previous note without cutting it
-    $FB: inc(lofs);
+    $FB: inc(loader.readp);
     // Tempo
     $FC: begin
           writedeltatime(ivar, cur_ticks);
@@ -570,20 +560,20 @@ begin
           txt := chr($FF) + chr($51) + chr($03) + chr((jvar shr 16) and $FF)
                  + chr((jvar shr 8) and $FF) + chr(jvar and $FF);
           remember(txt, ivar); // add tempo change to data stream
-          if (mversion = 0) and (m = $FE) then inc(lofs);
-          inc(lofs, 2);
+          if (mversion = 0) and (m = $FE) then inc(loader.readp);
+          inc(loader.readp, 2);
          end;
     // Volume
     $FD: begin
           volume := (m * 3 div 4) * songinfo.instvol[cur_inst] div 64;
           //if volume < 1 then volume := 1;
           if volume > 127 then volume := 127;
-          inc(lofs, 2);
+          inc(loader.readp, 2);
          end;
     // Staccato, values range 0..$F
     $FE: begin
           staccato := m and $F;
-          inc(lofs, 2);
+          inc(loader.readp, 2);
          end;
     // Instrument selection
     $FF: begin
@@ -601,16 +591,14 @@ begin
             remember(txt, ivar);
            end;
           end;
-          inc(lofs, 2);
+          inc(loader.readp, 2);
          end;
 
-    else begin
-          Decomp_dotM := 'Unrecognized command $' + strhex(lvar) + ' @ $' + strhex(lofs);
-          exit;
-         end;
+    else
+     raise Exception.Create('Unrecognized command $' + strhex(lvar) + ' @ $' + strhex(loader.ofs));
    end;
 
-  until lofs + cofs >= trackptr[ivar + 1];
+  until loader.ofs + cofs >= trackptr[ivar + 1];
 
   if tracktime[ivar] <> 0 then begin
    write(stdout, 'Track ' + strdec(ivar + 1) + ':');
@@ -682,7 +670,7 @@ begin
  end;
 end;
 
-function Decomp_SC5(const srcfile, outputfile : UTF8string) : UTF8string;
+procedure Decomp_SC5(const loader : TFileLoader; const outputfile : UTF8string);
 // Reads the indicated .SC5 Recomposer midi file, and saves it in outputfile
 // as a normal midi file.
 // Returns an empty string if successful, otherwise returns an error message.
@@ -712,32 +700,27 @@ var ivar : longint;
     numtracks : byte;
     global_keyadjust : shortint;
 begin
- // Load the input file into loader^.
- Decomp_SC5 := LoadFile(srcfile);
- if Decomp_SC5 <> '' then exit;
- Decomp_SC5 := '.SC5 file support is offline';
+ raise Exception.Create('.SC5 file support is offline');
  exit;
 
  livenotes[0].note := $FF; // just to remove a compiler warning
  loopstarttime[0] := 0;
  filldword(loopstarttime[0], length(loopstarttime), 0);
 
- if (dword(loader^) <> $2D4D4352) or (dword((loader + 4)^) <> $38394350)
- or (dword((loader + 8)^) <> $302E3256)
- then begin
-  Decomp_SC5 := 'Unknown file signature';
-  exit;
- end;
+ if (dword(loader.readp^) <> $2D4D4352)
+ or (dword((loader.readp + 4)^) <> $38394350)
+ or (dword((loader.readp + 8)^) <> $302E3256) then
+  raise Exception.Create('Unknown file signature');
 
  //ReadSongInfo(musname + '.sc5');
 
  // Read the header
- lofs := $1C0;
- ticksperquarternote := byte((loader + lofs)^) + byte((loader + lofs + 27)^) shl 8;
- tempo := byte((loader + lofs + 1)^);
- timesignature := word((loader + lofs + 2)^);
- global_keyadjust := byte((loader + lofs + 5)^);
- numtracks := byte((loader + lofs + 26)^);
+ loader.ofs := $1C0;
+ ticksperquarternote := byte(loader.readp^) + byte((loader.readp + 27)^) shl 8;
+ tempo := byte((loader.readp + 1)^);
+ timesignature := word((loader.readp + 2)^);
+ global_keyadjust := byte((loader.readp + 5)^);
+ numtracks := byte((loader.readp + 26)^);
  if numtracks in [1..18] = FALSE then numtracks := 18;
  // Init the control track
  setlength(control, 2);
@@ -752,27 +735,25 @@ begin
  control[1].event := chr($FF) + chr($58) + chr(4)
   + chr(timesignature and $FF) + chr(lvar) + chr($18) + chr(8);
 
- ivar := 0; lofs := $586; // jump to start of first track
+ ivar := 0; loader.ofs := $586; // jump to start of first track
  while ivar < numtracks do begin
   inc(ivar);
   setlength(trackdata[ivar], 65536);
   tofs[ivar] := 0; tracktime[ivar] := 0; cur_ticks := 0;
   trackloop[ivar] := $FFFFFFFF;
-  if lofs + $30 > loadersize then begin
-   Decomp_SC5 := 'Unexpected end of file!';
-   exit;
-  end;
+  if loader.readp + $30 > loader.endp then
+   raise Exception.Create('Unexpected end of file!');
   // Read the track header
-  track.startofs := lofs;
-  track.size := word((loader + lofs)^);
-  track.channel := byte((loader + lofs + 4)^);
+  track.startofs := loader.ofs;
+  track.size := word(loader.readp^);
+  track.channel := byte((loader.readp + 4)^);
   // If the track is disabled, or only contains the header, screw it
   if (track.channel = $FF) or (track.size <= $30) then begin
-   lofs := track.startofs + track.size; // jump to next track's header
+   loader.ofs := track.startofs + track.size; // jump to next track's header
    dec(ivar); dec(numtracks); continue;
   end;
   track.channel := track.channel and $F;
-  track.keyadjust := shortint((loader + lofs + 5)^);
+  track.keyadjust := shortint((loader.readp + 5)^);
   if track.keyadjust and $80 <> 0 then track.keyadjust := -global_keyadjust;
   track.repenestlevel := 0;
   track.jumpedfrom := 0;
@@ -797,22 +778,20 @@ begin
 
   // Get the track's name, add it to midi track data
   byte(txt[0]) := 36;
-  move((loader + lofs + 8)^, txt[1], 36);
+  move((loader.readp + 8)^, txt[1], 36);
   while (byte(txt[0]) <> 0) and (txt[byte(txt[0])] in [chr(0), chr(32)]) do dec(byte(txt[0]));
   txt := chr(0) + chr($FF) + chr($03) + chr(length(txt)) + txt;
   remember(txt, ivar);
 
-  inc(lofs, 44); // on to the event data
-  while lofs < track.startofs + track.size do begin
+  inc(loader.readp, 44); // on to the event data
+  while loader.ofs < track.startofs + track.size do begin
 
    // Overflow/infinite loop protection
-   if tofs[ivar] > 256000 then begin
-    Decomp_SC5 := 'Midi output overflow on track ' + strdec(ivar) + ' @ $' + strhex(lofs) + ' (jumped from $' + strhex(track.jumpedfrom) + ')';
-    exit;
-   end;
+   if tofs[ivar] > 256000 then
+    raise Exception.Create('Midi output overflow on track ' + strdec(ivar) + ' @ $' + strhex(loader.ofs) + ' (jumped from $' + strhex(track.jumpedfrom) + ')');
 
-   jvar := dword((loader + lofs)^); // get the entire dword event into j
-   inc(lofs, 4); // point to the next event
+   // Get the entire dword event into j, and point to the next event.
+   jvar := loader.ReadDword;
 
    // Act on known event codes
    case jvar and $FF of
@@ -852,7 +831,7 @@ begin
            lvar := high(livenotes);
            while (lvar <> 0) and (livenotes[lvar].duration <= jvar) do dec(lvar);
            if livenotes[lvar].duration <= jvar then
-            PrintError('Too much polyphony @ $' + strhex(lofs) + '! max ' + strdec(length(livenotes)));
+            PrintError('Too much polyphony @ $' + strhex(loader.ofs) + '! max ' + strdec(length(livenotes)));
            // Move everything below that slot down by one, to make room
            ivar := 0;
            while dword(ivar) < lvar do begin livenotes[ivar] := livenotes[ivar + 1]; inc(ivar); end;
@@ -924,7 +903,7 @@ begin
           then begin
            // More repetition is needed
            inc(track.repecount[track.repenestlevel - 1]);
-           lofs := track.repefromlofs[track.repenestlevel - 1];
+           loader.ofs := track.repefromlofs[track.repenestlevel - 1];
           end else begin
            // Enough is enough. Drop down a nesting level.
            dec(track.repenestlevel);
@@ -932,17 +911,15 @@ begin
          end;
     // Loop start
     $F9: if track.repenestlevel > high(track.repefromlofs)
-         then begin
-          Decomp_SC5 := 'F9 loop nested too much @ $' + strhex(lofs);
-          exit;
-         end else
-         begin
+         then
+          raise Exception.Create('F9 loop nested too much @ $' + strhex(loader.ofs))
+         else begin
           // drop a marker
           writedeltatime(ivar, cur_ticks);
           txt := chr($FF) + chr(6) + chr(1) + '>';
           remember(txt, ivar);
           // push current state onto repetition stack
-          track.repefromlofs[track.repenestlevel] := lofs;
+          track.repefromlofs[track.repenestlevel] := loader.ofs;
           track.repefromtofs[track.repenestlevel] := tofs[ivar];
           track.repefromtime[track.repenestlevel] := tracktime[ivar];
           track.repecount[track.repenestlevel] := 1;
@@ -952,22 +929,22 @@ begin
     $FC: // Are we already in a goto?
          if track.jumpedfrom <> 0 then begin
           // yes! In that case, return.
-          lofs := track.jumpedfrom;
+          loader.ofs := track.jumpedfrom;
           track.jumpedfrom := 0;
           track.repenestlevel := track.repenestbackup;
          end else begin
           // no! Jump to the new address, remember the old one!
           lvar := (jvar shr 16);
-          if lvar > track.size then PrintError('FC jump out of bounds @ ' + strhex(lofs))
+          if lvar > track.size then PrintError('FC jump out of bounds @ ' + strhex(loader.ofs))
           else begin
-           track.jumpedfrom := lofs;
-           lofs := track.startofs + lvar;
+           track.jumpedfrom := loader.ofs;
+           loader.ofs := track.startofs + lvar;
            track.repenestbackup := track.repenestlevel;
           end;
          end;
     // Return from goto!
     $FD: if track.jumpedfrom <> 0 then begin
-          lofs := track.jumpedfrom;
+          loader.ofs := track.jumpedfrom;
           track.jumpedfrom := 0;
           track.repenestlevel := track.repenestbackup;
          end;
@@ -1027,7 +1004,7 @@ begin
    remember(txt, ivar);
   end;
   // jump to the next track's header
-  lofs := track.startofs + track.size;
+  loader.ofs := track.startofs + track.size;
  end;
 
  // Handle asynchronous track looping

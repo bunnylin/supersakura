@@ -20,21 +20,10 @@
 // SuperSakura_GRAMOVL_Decompiler
 // Decomp --- Script bytecode conversion code
 
-function GetLoaderString(ofsu : dword) : string;
-// Returns a null-terminated string from (loader^)[ofsu]
-var ivar : dword;
-begin
- ivar := 0;
- while (byte((loader + ofsu + ivar)^) <> 0) and (ofsu + ivar < loadersize) do inc(ivar);
- if ivar > 255 then ivar := 255;
- byte(GetLoaderString[0]) := ivar;
- move((loader + ofsu)^, GetLoaderString[1], ivar);
-end;
-
-function Decomp_JastOvl(const srcfile, outputfile : UTF8string) : UTF8string;
+procedure Decomp_JastOvl(const loader : TFileLoader; const outputfile : UTF8string);
 // Reads the indicated JAST/Tiare bytecode file, and saves it in outputfile
 // as a plain text sakurascript file.
-// Returns an empty string if successful, otherwise returns an error message.
+// Throws an exception in case of errors.
 var outbuf : record
       labellist : array of dword;
       linelist : array of UTF8string;
@@ -100,7 +89,7 @@ var outbuf : record
     setlength(outbuf.labellist, length(outbuf.labellist) shl 1);
     setlength(outbuf.linelist, length(outbuf.labellist) shl 1);
    end;
-   outbuf.labellist[outbuf.bufindex] := lofs;
+   outbuf.labellist[outbuf.bufindex] := loader.ofs;
    outbuf.linelist[outbuf.bufindex] := '';
   end;
 
@@ -367,26 +356,26 @@ var outbuf : record
    implicitwaitkey := 2;
    printofs := 1;
    setlength(printstr, 256);
-   dec(lofs); // step back to the character that triggered DoTextOutput
+   dec(loader.readp); // step back to the character that triggered DoTextOutput
 
    {$ifdef enable_hacks}
    case game of
      gid_RUNAWAY: begin
       // Hack: don't interpret colon as a dialogue title
-      if (scriptname = 'MT_0104') and (lofs = $166)
-      or (scriptname = 'MT_0417') and (lofs = $2E4) then maybetitle := FALSE;
+      if (scriptname = 'MT_0104') and (loader.ofs = $166)
+      or (scriptname = 'MT_0417') and (loader.ofs = $2E4) then maybetitle := FALSE;
      end;
 
      gid_SAKURA: begin
       // Hack: don't interpret colon as a dialogue title
-      if (scriptname = 'CSA08') and (lofs = $92F) then maybetitle := FALSE;
+      if (scriptname = 'CSA08') and (loader.ofs = $92F) then maybetitle := FALSE;
      end;
    end;
 
    // Special case: single dot followed by a brief sleep or something.
    // These should be marked as global since they're ubiquitous.
-   if (word((loader + lofs)^) = $4581)
-   and (byte((loader + lofs + 2)^) < $20)
+   if (word(loader.readp^) = $4581)
+   and (byte((loader.readp + 2)^) < $20)
    then writebuf('print ~"')
    else writebuf('print "');
 
@@ -396,13 +385,13 @@ var outbuf : record
    gid_SETSUJUU, gid_TRANSFER98, gid_TASOGARE, gid_VANISH]
    then begin
     // Catch Shift-JIS dialogue titles, written as "[name]:"
-    if word((loader + lofs)^) = $7981 then begin
+    if word(loader.readp^) = $7981 then begin
      jvar := 2;
-     while (jvar <= 20) and (word((loader + lofs + jvar)^) <> $7A81) do begin
-      lvar := byte((loader + lofs + jvar)^); inc(jvar);
+     while (jvar <= 20) and (word((loader.readp + jvar)^) <> $7A81) do begin
+      lvar := byte((loader.readp + jvar)^); inc(jvar);
       // double-byte?
       if lvar in [$81..$84,$88..$9F,$E0..$EA] then begin
-       lvar := lvar shl 8 + byte((loader + lofs + jvar)^); inc(jvar);
+       lvar := lvar shl 8 + byte((loader.readp + jvar)^); inc(jvar);
       end;
       // add each character to printstr, except in-text spaces in snowcat
       if (game <> gid_SETSUJUU) or (lvar <> $8140) then begin
@@ -413,17 +402,17 @@ var outbuf : record
       end;
      end;
 
-     if word((loader + lofs + jvar)^) = $7A81 then begin
-      inc(lofs, jvar + 2);
+     if word((loader.readp + jvar)^) = $7A81 then begin
+      inc(loader.readp, jvar + 2);
 
       if copy(printstr, 1, 2) = '%0' then
        writebuf('\$s' + strdec(valx(printstr)) + ';')
       else
        writebuf(printstr, printofs - 1);
       writebuf('\:');
-      if word((loader + lofs)^) = $4681 then inc(lofs, 2) // ":"
-      else if byte((loader + lofs)^) = $3A then inc(lofs); // ":"
-      if byte((loader + lofs)^) = $A then inc(lofs); // linebreak
+      if word(loader.readp^) = $4681 then inc(loader.readp, 2) // ":"
+      else if byte(loader.readp^) = $3A then inc(loader.readp); // ":"
+      if byte(loader.readp^) = $A then inc(loader.readp); // linebreak
       maybetitle := FALSE;
      end;
     end;
@@ -431,15 +420,14 @@ var outbuf : record
 
    // Eliminate useless starting spaces
    if game = gid_FROMH then begin
-    //if byte((loader + lofs)^) = $A then inc(lofs);
-    if (word((loader + lofs)^) = $4081)
-    and (word((loader + lofs + 2)^) <> $4081)
-    then inc(lofs, 2);
+    if (word(loader.readp^) = $4081)
+    and (word((loader.readp + 2)^) <> $4081)
+    then inc(loader.readp, 2);
    end;
    {$endif enable_hacks}
 
    printofs := 1;
-   jvar := byte((loader + lofs)^);
+   jvar := byte(loader.readp^);
    while jvar in [$0A, $20..$EF] do begin
 
     // expand the string variable if necessary.
@@ -448,12 +436,12 @@ var outbuf : record
     {$ifdef enable_hacks}
     // Catch "--" and replace it with a long dash
     if (game in [gid_3SIS, gid_RUNAWAY, gid_SAKURA])
-    and (word((loader + lofs)^) = $2D2D) then begin
+    and (word(loader.readp^) = $2D2D) then begin
      byte(printstr[printofs]) := $E2; inc(printofs);
      byte(printstr[printofs]) := $80; inc(printofs);
      byte(printstr[printofs]) := $93; inc(printofs);
-     inc(lofs, 2);
-     jvar := byte((loader + lofs)^);
+     inc(loader.readp, 2);
+     jvar := byte(loader.readp^);
      continue;
     end;
     {$endif enable_hacks}
@@ -464,16 +452,16 @@ var outbuf : record
        if game in [gid_3SIS, gid_RUNAWAY, gid_SAKURA] then begin
         // latin alphabet
         // write nothing if there's a hyphen or space already
-        if (char((loader + lofs - 1)^) <> '-')
-        and (char((loader + lofs - 1)^) <> ' ')
-        and (char((loader + lofs + 1)^) <> ' ') then begin
+        if (char((loader.readp - 1)^) <> '-')
+        and (char((loader.readp - 1)^) <> ' ')
+        and (char((loader.readp + 1)^) <> ' ') then begin
          // replace it with a space in most cases,
          // unless it's the string's last character.
-         if (byte((loader + lofs + 1)^) < 32) then begin
+         if (byte((loader.readp + 1)^) < 32) then begin
           if printofs > 1 then begin
            printstr[printofs] := '\'; inc(printofs);
            printstr[printofs] := 'n'; inc(printofs);
-           inc(lofs);
+           inc(loader.readp);
            break;
           end;
          end else begin
@@ -487,7 +475,7 @@ var outbuf : record
        else begin
         printstr[printofs] := '\'; inc(printofs);
         printstr[printofs] := 'n'; inc(printofs);
-        inc(lofs);
+        inc(loader.readp);
         break;
        end;
       end;
@@ -501,10 +489,10 @@ var outbuf : record
       {$ifdef enable_hacks}
       // change string var %00x to use our escape code + end mark
       $25: begin
-       lvar := dword((loader + lofs)^);
+       lvar := dword(loader.readp^);
        if lvar and $FFFF = $3025 then begin
         lvar := ((lvar shr 24) and $F) + ((lvar shr 16) and $F * 10);
-        inc(lofs, 3);
+        inc(loader.readp, 3);
         printstr[printofs] := '\'; inc(printofs);
         printstr[printofs] := '$'; inc(printofs);
         printstr[printofs] := 's'; inc(printofs);
@@ -520,11 +508,11 @@ var outbuf : record
       // change ":  " and ": " to a title identifier mark,
       // but only if we are still close to the line beginning.
       $3A: begin
-       if (byte((loader + lofs + 1)^) = 32) then begin
+       if (byte((loader.readp + 1)^) = 32) then begin
         lvar := 1;
-        if (byte((loader + lofs + 2)^) = 32) then inc(lvar);
+        if (byte((loader.readp + 2)^) = 32) then inc(lvar);
         if (printofs < 32) and (maybetitle) then begin
-         inc(lofs, lvar);
+         inc(loader.readp, lvar);
          maybetitle := FALSE;
          if printstr[1] = ' ' then writebuf(copy(printstr, 2, printofs - 2))
          else writebuf(printstr, printofs - 1);
@@ -542,8 +530,8 @@ var outbuf : record
 
       // Double-byte JIS
       $81..$9F, $E0..$EF: begin
-       inc(lofs);
-       u8c := GetUTF8(jvar shl 8 + byte((loader + lofs)^));
+       inc(loader.readp);
+       u8c := GetUTF8(jvar shl 8 + byte(loader.readp^));
        move(u8c[1], printstr[printofs], length(u8c));
        inc(printofs, length(u8c));
       end;
@@ -561,13 +549,13 @@ var outbuf : record
       end;
     end;
 
-    inc(lofs);
-    jvar := byte((loader + lofs)^);
+    inc(loader.readp);
+    jvar := byte(loader.readp^);
     {$ifdef enable_hacks}
     // Jump into the middle of a string... add a string break
-    if (game = gid_ANGELSCOLLECTION1) and (scriptname = 'SCB12') and (lofs = $20C)
-    or (game = gid_ANGELSCOLLECTION2) and (scriptname = 'S2_009') and (lofs = $18B)
-    or (game = gid_VANISH) and (scriptname = 'EB049_01') and (lofs = $9A6)
+    if (game = gid_ANGELSCOLLECTION1) and (scriptname = 'SCB12') and (loader.ofs = $20C)
+    or (game = gid_ANGELSCOLLECTION2) and (scriptname = 'S2_009') and (loader.ofs = $18B)
+    or (game = gid_VANISH) and (scriptname = 'EB049_01') and (loader.ofs = $9A6)
     then break;
     {$endif enable_hacks}
    end;
@@ -578,14 +566,6 @@ var outbuf : record
   end;
 
 begin
- // Load the input file into loader^. Unless the source file name is an .exe,
- // in which case assume it's already loaded.
- Decomp_JastOvl := '';
- if upcase(ExtractFileExt(srcfile)) <> '.EXE' then begin
-  Decomp_JastOvl := LoadFile(srcfile);
-  if Decomp_JastOvl <> '' then exit;
- end;
-
  scriptname := ExtractFileName(outputfile);
  scriptname := upcase(copy(scriptname, 1, length(scriptname) - length(ExtractFileExt(scriptname))));
 
@@ -621,29 +601,31 @@ begin
  if game in [gid_PARFAIT] then bitness := 2;
 
  {$ifdef enable_hacks}
+ lvar := loader.ofs;
+ loader.ofs := 0;
  // HACK collection, fixes for original bugs and decompilation issues
  case game of
   gid_3SIS: begin
    // Hack: split a thought due to a jump into the middle of a string
-   if scriptname = 'SK_103' then byte((loader + $9EE)^) := 1;
+   if scriptname = 'SK_103' then byte(loader.PtrAt($9EE)^) := 1;
    // Hack: replace waitkey.noclear with plain waitkey, also remove a space
-   if scriptname = 'SK_105' then word((loader + $715)^) := $0120;
+   if scriptname = 'SK_105' then word(loader.PtrAt($715)^) := $0120;
    // Hack: remove a hyphen
    if scriptname = 'SK_108' then begin
     txt := 'tution scandal.  ';
-    move(txt[1], (loader + $470)^, length(txt));
+    move(txt[1], loader.PtrAt($470)^, length(txt));
    end;
    // Hack: add a waitkey
-   if scriptname = 'SK_112' then word((loader + $BB9)^) := $0121;
+   if scriptname = 'SK_112' then word(loader.PtrAt($BB9)^) := $0121;
    // Hack: add a waitkey that's supposed to be there
    if scriptname = 'SK_121' then begin
     txt := chr(1) + '%001:';
-    move(txt[1], (loader + $2D0)^, length(txt));
+    move(txt[1], loader.PtrAt($2D0)^, length(txt));
    end;
    // Hack: change a choice variable to use a unique tracking variable
-   if scriptname = 'SK_212' then byte((loader + $1BA)^) := $10;
+   if scriptname = 'SK_212' then byte(loader.PtrAt($1BA)^) := $10;
    // Hack: fix bug in original, jumps to exit instead of start of string
-   if scriptname = 'SK_213' then inc(byte((loader + $907)^));
+   if scriptname = 'SK_213' then inc(byte(loader.PtrAt($907)^));
    // Hack: add a missing graphic that seems to crash even the original
    if scriptname = 'SK_406' then begin
     gfxlist[2].gfxname := 'TB_000';
@@ -653,303 +635,304 @@ begin
    if scriptname = 'SK_737' then begin
     // Hack: cut common ending sequence, replace with call to ENDINGS (2)
     txt := chr(1) + chr($C) + chr(3) + chr($FF) + chr(2) + chr(4) + 'ENDINGS' + chr(0);
-    fillbyte((loader + $88E)^, 1996, 0);
-    move(txt[1], (loader + $88C)^, length(txt));
+    fillbyte(loader.PtrAt($88E)^, 1996, 0);
+    move(txt[1], loader.PtrAt($88C)^, length(txt));
    end;
    if scriptname = 'SK_738' then begin
     // Hack: change a final IF into a catch-all ELSE
-    dword((loader + $123)^) := $00162336;
+    dword(loader.PtrAt($123)^) := $00162336;
     // Hack: eliminate unnecessary 5-second sleeps
     txt := chr(1) + chr($B) + chr($36) + chr($7C) + chr($19) + chr(0);
-    move(txt[1], (loader + $4BE)^, length(txt));
-    move(txt[1], (loader + $84D)^, length(txt));
-    move(txt[1], (loader + $BDD)^, length(txt));
-    move(txt[1], (loader + $F6C)^, length(txt));
-    move(txt[1], (loader + $12BF)^, length(txt));
-    move(txt[1], (loader + $161B)^, length(txt));
-    move(txt[1], (loader + $1974)^, length(txt));
+    move(txt[1], loader.PtrAt($4BE)^, length(txt));
+    move(txt[1], loader.PtrAt($84D)^, length(txt));
+    move(txt[1], loader.PtrAt($BDD)^, length(txt));
+    move(txt[1], loader.PtrAt($F6C)^, length(txt));
+    move(txt[1], loader.PtrAt($12BF)^, length(txt));
+    move(txt[1], loader.PtrAt($161B)^, length(txt));
+    move(txt[1], loader.PtrAt($1974)^, length(txt));
     // Hack: cut common ending sequence, replace with call to ENDINGS (1)
     txt := chr($C) + chr(3) + chr($FF) + chr(1) + chr(4) + 'ENDINGS' + chr(0);
-    move(txt[1], (loader + $197C)^, length(txt));
-    loadersize := $197C + length(txt);
+    move(txt[1], loader.PtrAt($197C)^, length(txt));
+    loader.size := $197C + length(txt);
    end;
    if scriptname = 'SK_743' then begin
     // Hack: add a missing waitkey
-    txt := chr(1) + '%001:'; move(txt[1], (loader + $6B9)^, length(txt));
+    txt := chr(1) + '%001:';
+    move(txt[1], loader.PtrAt($6B9)^, length(txt));
     // Hack: cut common ending sequence, replace with call to ENDINGS (0)
     txt := chr($C) + chr(3) + chr($FF) + chr(0) + chr(4) + 'ENDINGS' + chr(0);
-    move(txt[1], (loader + $756)^, length(txt));
-    loadersize := $756 + length(txt);
+    move(txt[1], loader.PtrAt($756)^, length(txt));
+    loader.size := $756 + length(txt);
    end;
   end;
 
   gid_3SIS98: begin
    // Hack: replace a newline with a waitkey
-   if scriptname = 'SK_106' then byte((loader + $1BF)^) := 1;
+   if scriptname = 'SK_106' then byte(loader.PtrAt($1BF)^) := 1;
    // Hack: fix a jump into the middle of a string
-   if scriptname = 'SK_406' then word((loader + $A1)^) := $5F4;
+   if scriptname = 'SK_406' then word(loader.PtrAt($A1)^) := $5F4;
   end;
 
   gid_ANGELSCOLLECTION2: begin
    // Hack: change weird 8757 Shift-JIS to a visually similar double-slash
-   if scriptname = 'S2_007' then word((loader + $349)^) := $2F2F;
+   if scriptname = 'S2_007' then word(loader.PtrAt($349)^) := $2F2F;
    // Hack: clip unreachable code
-   if scriptname = 'S4_016' then loadersize := $61D;
-   if scriptname = 'S4_021' then loadersize := $C4;
-   if scriptname = 'S4_022' then loadersize := $112;
-   if scriptname = 'S4_027' then loadersize := $3F;
-   if scriptname = 'S4_031' then loadersize := $25C;
-   if scriptname = 'S4_035' then loadersize := $74;
-   if scriptname = 'S4_036' then loadersize := $2BB;
-   if scriptname = 'S4_043' then loadersize := $109;
-   if scriptname = 'S4_044' then loadersize := $66F;
-   if scriptname = 'S4_051' then loadersize := $1C5;
-   if scriptname = 'S4_052' then loadersize := $182;
-   if scriptname = 'S4_064' then loadersize := $62B;
-   if scriptname = 'S4_071' then loadersize := $17E;
-   if scriptname = 'S4_072' then loadersize := $1C9;
-   if scriptname = 'S4_073' then loadersize := $6F9;
+   if scriptname = 'S4_016' then loader.size := $61D;
+   if scriptname = 'S4_021' then loader.size := $C4;
+   if scriptname = 'S4_022' then loader.size := $112;
+   if scriptname = 'S4_027' then loader.size := $3F;
+   if scriptname = 'S4_031' then loader.size := $25C;
+   if scriptname = 'S4_035' then loader.size := $74;
+   if scriptname = 'S4_036' then loader.size := $2BB;
+   if scriptname = 'S4_043' then loader.size := $109;
+   if scriptname = 'S4_044' then loader.size := $66F;
+   if scriptname = 'S4_051' then loader.size := $1C5;
+   if scriptname = 'S4_052' then loader.size := $182;
+   if scriptname = 'S4_064' then loader.size := $62B;
+   if scriptname = 'S4_071' then loader.size := $17E;
+   if scriptname = 'S4_072' then loader.size := $1C9;
+   if scriptname = 'S4_073' then loader.size := $6F9;
    // Hack: erase problems in reachable but redundant code
-   if scriptname = 'S4_067' then dword((loader + $30C)^) := 0;
-   if scriptname = 'S4_068' then dword((loader + $3E0)^) := 0;
-   if scriptname = 'S4_070' then dword((loader + $1C9)^) := 0;
+   if scriptname = 'S4_067' then dword(loader.PtrAt($30C)^) := 0;
+   if scriptname = 'S4_068' then dword(loader.PtrAt($3E0)^) := 0;
+   if scriptname = 'S4_070' then dword(loader.PtrAt($1C9)^) := 0;
   end;
 
   gid_DEEP: begin
    // Hack: restore incorrectly missing actions... even if they were disabled
    // on purpose, it's throwing my header parser off
-   if scriptname = 'H03_08' then word((loader + $22)^) := $008D;
-   if scriptname = 'H04_03' then word((loader + $2A)^) := $00AE;
+   if scriptname = 'H03_08' then word(loader.PtrAt($22)^) := $008D;
+   if scriptname = 'H04_03' then word(loader.PtrAt($2A)^) := $00AE;
   end;
 
   gid_EDEN: begin
    // Hack: remove a dummy 09 opcode by adding a space and shifting text
    if scriptname = 'JO4101' then begin
     //txt := ' ' + chr(1) + 'ÅyÉWÉá';
-    //move(txt[1], (loader + $D1)^, length(txt));
-    dword((loader + $D1)^) := $79810120;
-    dword((loader + $D5)^) := $87835783;
+    //move(txt[1], loader.PtrAt($D1)^, length(txt));
+    dword(loader.PtrAt($D1)^) := $79810120;
+    dword(loader.PtrAt($D5)^) := $87835783;
    end;
   end;
 
   gid_FROMH: begin
    // Hack: Correct 0B-4B item count, enables unaccessible code
-   if scriptname = 'AT_002' then inc(byte((loader + $1041)^));
+   if scriptname = 'AT_002' then inc(byte(loader.PtrAt($1041)^));
    // Hack: Correct 0B-4B item count
-   if scriptname = 'MT_004' then inc(byte((loader + $3A1F)^));
+   if scriptname = 'MT_004' then inc(byte(loader.PtrAt($3A1F)^));
    // Hack: Correct 0B-4B item count
-   if scriptname = 'RT_001' then inc(byte((loader + $95A)^));
+   if scriptname = 'RT_001' then inc(byte(loader.PtrAt($95A)^));
    // Hack: Correct 0B-4B item count
-   if scriptname = 'RT_001B' then inc(byte((loader + $958)^));
+   if scriptname = 'RT_001B' then inc(byte(loader.PtrAt($958)^));
   end;
 
   gid_MAJOKKO: begin
    // Hack: separate two exit commands so the latter can be jumped to
-   if scriptname = 'MP7809' then byte((loader + $FAF)^) := 1;
-   if scriptname = 'MP780E' then byte((loader + $1083)^) := 1;
-   if scriptname = 'MP7A09' then byte((loader + $10DA)^) := 1;
-   if scriptname = 'MP7A0E' then byte((loader + $102E)^) := 1;
-   if scriptname = 'MP7C08' then byte((loader + $FD9)^) := 1;
-   if scriptname = 'MP7C0D' then byte((loader + $FD5)^) := 1;
+   if scriptname = 'MP7809' then byte(loader.PtrAt($FAF)^) := 1;
+   if scriptname = 'MP780E' then byte(loader.PtrAt($1083)^) := 1;
+   if scriptname = 'MP7A09' then byte(loader.PtrAt($10DA)^) := 1;
+   if scriptname = 'MP7A0E' then byte(loader.PtrAt($102E)^) := 1;
+   if scriptname = 'MP7C08' then byte(loader.PtrAt($FD9)^) := 1;
+   if scriptname = 'MP7C0D' then byte(loader.PtrAt($FD5)^) := 1;
   end;
 
   gid_RUNAWAY: begin
    // Hack: change a dash into a long dash
-   if scriptname = 'MT_0101' then byte((loader + $1F9C)^) := $2D;
+   if scriptname = 'MT_0101' then byte(loader.PtrAt($1F9C)^) := $2D;
    // Hack: fix typo
-   if scriptname = 'MT_0116' then word((loader + $99)^) := $524F;
+   if scriptname = 'MT_0116' then word(loader.PtrAt($99)^) := $524F;
    // Hack: separate two dialogue lines
-   if scriptname = 'MT_0208' then byte((loader + $942)^) := 1;
+   if scriptname = 'MT_0208' then byte(loader.PtrAt($942)^) := 1;
    // Hack: remove extraneous waitkey
-   if scriptname = 'MT_0214' then char((loader + $B49)^) := ' ';
+   if scriptname = 'MT_0214' then char(loader.PtrAt($B49)^) := ' ';
    // Hack: split dialogue lines
    if scriptname = 'MT_0218' then begin
-    byte((loader + $7C)^) := 1;
-    byte((loader + $AD)^) := 1;
+    byte(loader.PtrAt($7C)^) := 1;
+    byte(loader.PtrAt($AD)^) := 1;
    end;
    // Hack: remove a waitkey
-   if scriptname = 'MT_0304' then char((loader + $E43)^) := ' ';
+   if scriptname = 'MT_0304' then char(loader.PtrAt($E43)^) := ' ';
    // Hack: particularly ugly, two separate verbs GO, change one to G0
-   if scriptname = 'MT_0305' then char((loader + $C0)^) := '0';
+   if scriptname = 'MT_0305' then char(loader.PtrAt($C0)^) := '0';
    // Hack: remove a waitkey
-   if scriptname = 'MT_0808' then char((loader + $1091)^) := ' ';
+   if scriptname = 'MT_0808' then char(loader.PtrAt($1091)^) := ' ';
    // Hack: remove a double-quote
-   if scriptname = 'MT_1002' then char((loader + $1EB7)^) := ' ';
+   if scriptname = 'MT_1002' then char(loader.PtrAt($1EB7)^) := ' ';
    // Hack: another one, PROCEED x2, change one to Pr0ceed
-   if scriptname = 'MT_1003' then char((loader + $CA)^) := '0';
+   if scriptname = 'MT_1003' then char(loader.PtrAt($CA)^) := '0';
    // Hack: unreachable code causes parsing errors, just snip it out
-   if scriptname = 'MT_1118' then loadersize := $38A;
-   if scriptname = 'MT_1119' then loadersize := $8BD;
+   if scriptname = 'MT_1118' then loader.size := $38A;
+   if scriptname = 'MT_1119' then loader.size := $8BD;
    // Hack: shift ENDINGS hook a bit earlier
-   if scriptname = 'MT_9906' then word((loader + $2BA)^) := $0010;
+   if scriptname = 'MT_9906' then word(loader.PtrAt($2BA)^) := $0010;
   end;
 
   gid_SAKURA: begin
    // Hack: split two lines from one dialogue entry, twice
    if scriptname = 'CS103' then begin
-    byte((loader + $9FC)^) := 1;
-    byte((loader + $A36)^) := 1;
+    byte(loader.PtrAt($9FC)^) := 1;
+    byte(loader.PtrAt($A36)^) := 1;
    end;
    // Hack: change %100 to %001
-   if scriptname = 'CS104' then dword((loader + $11C6)^) := $20313030;
+   if scriptname = 'CS104' then dword(loader.PtrAt($11C6)^) := $20313030;
    // Hack: change odd transition to a crossfade
-   if scriptname = 'CS208' then byte((loader + $51A)^) := $3B;
+   if scriptname = 'CS208' then byte(loader.PtrAt($51A)^) := $3B;
    // Hack: remove trailing space from TALK
-   if scriptname = 'CS211' then byte((loader + $3D)^) := 0;
+   if scriptname = 'CS211' then byte(loader.PtrAt($3D)^) := 0;
    // Hack: change THINK + GIRL to just THINK (inconsistent scripting)
-   if scriptname = 'CS212' then word((loader + $67)^) := $FFFF;
+   if scriptname = 'CS212' then word(loader.PtrAt($67)^) := $FFFF;
    // Hack: change TALK + BAGS to just TALK
-   if scriptname = 'CS403' then word((loader + $78)^) := $FFFF;
+   if scriptname = 'CS403' then word(loader.PtrAt($78)^) := $FFFF;
    if scriptname = 'CS501' then begin
     // Hack: split two lines from one dialogue entry
-    byte((loader + $419)^) := 1;
+    byte(loader.PtrAt($419)^) := 1;
     // Hack: add a waitkey to keep lines apart
-    byte((loader + $5CB)^) := 1;
+    byte(loader.PtrAt($5CB)^) := 1;
     // Hack: change "Shuji..." to "%001... "
-    dword((loader + $CEB)^) := $31303025;
-    dword((loader + $CEF)^) := $202E2E2E;
+    dword(loader.PtrAt($CEB)^) := $31303025;
+    dword(loader.PtrAt($CEF)^) := $202E2E2E;
    end;
    // Hack: fix inconsistent clothing change
-   if scriptname = 'CS510_11' then char((loader + $172)^) := 'F';
+   if scriptname = 'CS510_11' then char(loader.PtrAt($172)^) := 'F';
    // Hack: fix an animation slot
-   if scriptname = 'CS514_E' then byte((loader + $DCA)^) := 3;
+   if scriptname = 'CS514_E' then byte(loader.PtrAt($DCA)^) := 3;
    // Hack: split two lines from one dialogue entry
-   if scriptname = 'CS601' then byte((loader + $BFB)^) := 1;
+   if scriptname = 'CS601' then byte(loader.PtrAt($BFB)^) := 1;
    // Hack: eliminate a false positive dialogue title
-   if scriptname = 'CS605' then char((loader + $36A)^) := '!';
+   if scriptname = 'CS605' then char(loader.PtrAt($36A)^) := '!';
    // Hack: split two lines from one dialogue entry
-   if scriptname = 'CS702' then byte((loader + $4C4)^) := 1;
+   if scriptname = 'CS702' then byte(loader.PtrAt($4C4)^) := 1;
    // Hack: split two lines from one dialogue entry
-   if scriptname = 'CS704' then byte((loader + $67C)^) := 1;
+   if scriptname = 'CS704' then byte(loader.PtrAt($67C)^) := 1;
    // Hack: split two lines from one dialogue entry, and combine three titles
    if scriptname = 'CS705' then begin
-    byte((loader + $374)^) := 1;
+    byte(loader.PtrAt($374)^) := 1;
     txt := '/Kiyomi/Mio:  %001!!' + space(18);
-    move(txt[1], (loader + $643)^, length(txt));
+    move(txt[1], loader.PtrAt($643)^, length(txt));
     // Hack: translation error, should be Hidemi instead of Meimi
     txt := 'Hidemi:';
-    move(txt[1], (loader + $C52)^, length(txt));
+    move(txt[1], loader.PtrAt($C52)^, length(txt));
    end;
    // Hack: combine 3 titles, split dialogue pair
    if scriptname = 'CS707' then begin
     txt := '/Kiyomi/Mio:  %001!!' + space(15);
-    move(txt[1], (loader + $670)^, length(txt));
-    byte((loader + $FFD)^) := 1;
+    move(txt[1], loader.PtrAt($670)^, length(txt));
+    byte(loader.PtrAt($FFD)^) := 1;
    end;
    // Hack: split two lines from one dialogue entry, premature slot call fix
    if scriptname = 'CS801_3' then begin
-    byte((loader + $96A)^) := 1;
+    byte(loader.PtrAt($96A)^) := 1;
     animslot[6].ofsx := 96; animslot[6].namu := 'CT03A0';
     animslot[5].namu := 'CT02IA0';
    end;
    if scriptname = 'CS801_4' then begin
     // Hack: combine three synchronized exclamations
     txt := '/Kiyomi/Mio:  %001!' + space(15);
-    move(txt[1], (loader + $A38)^, length(txt));
+    move(txt[1], loader.PtrAt($A38)^, length(txt));
     // Hack: remove unintended exit, enabling unreachable code
-    byte((loader + $40A)^) := $20;
+    byte(loader.PtrAt($40A)^) := $20;
    end;
    // Hack: split Reiko/Mio lines properly
    if scriptname = 'CS804' then begin
-    byte((loader + $12F)^) := 1;
+    byte(loader.PtrAt($12F)^) := 1;
     txt := '/Mio:  ';
-    move(txt[1], (loader + $199)^, length(txt));
-    move(txt[1], (loader + $3E6)^, length(txt));
+    move(txt[1], loader.PtrAt($199)^, length(txt));
+    move(txt[1], loader.PtrAt($3E6)^, length(txt));
     txt := '.......';
-    move(txt[1], (loader + $1B4)^, length(txt));
-    move(txt[1], (loader + $405)^, length(txt));
+    move(txt[1], loader.PtrAt($1B4)^, length(txt));
+    move(txt[1], loader.PtrAt($405)^, length(txt));
    end;
    // Hack: split Meimi/Seia line
-   if scriptname = 'CS810' then byte((loader + $DB4)^) := 1;
+   if scriptname = 'CS810' then byte(loader.PtrAt($DB4)^) := 1;
    // Hack: fix original animation slot bugs
    if scriptname = 'CS810_1' then begin
-    byte((loader + $E8)^) := 1;
-    byte((loader + $1C3)^) := 7;
+    byte(loader.PtrAt($E8)^) := 1;
+    byte(loader.PtrAt($1C3)^) := 7;
    end;
    // Hack: combine *pantpant* lines
    if scriptname = 'CS811' then begin
     txt := '/Aki:  *pant pant*' + space(14);
-    move(txt[1], (loader + $4B0)^, length(txt));
-    move(txt[1], (loader + $51B)^, length(txt));
+    move(txt[1], loader.PtrAt($4B0)^, length(txt));
+    move(txt[1], loader.PtrAt($51B)^, length(txt));
     txt := '/Girl:  *pant pant*' + space(14);
-    move(txt[1], (loader + $53F)^, length(txt));
+    move(txt[1], loader.PtrAt($53F)^, length(txt));
     txt := '/%001:  *pant pant pant*' + space(19);
-    move(txt[1], (loader + $6E3)^, length(txt));
+    move(txt[1], loader.PtrAt($6E3)^, length(txt));
     txt := '/Girl:  *pant pant pant*' + space(19);
-    move(txt[1], (loader + $712)^, length(txt));
-    move(txt[1], (loader + $7F3)^, length(txt));
-    move(txt[1], (loader + $83D)^, length(txt));
-    move(txt[1], (loader + $9A1)^, length(txt));
-    move(txt[1], (loader + $AA6)^, length(txt));
+    move(txt[1], loader.PtrAt($712)^, length(txt));
+    move(txt[1], loader.PtrAt($7F3)^, length(txt));
+    move(txt[1], loader.PtrAt($83D)^, length(txt));
+    move(txt[1], loader.PtrAt($9A1)^, length(txt));
+    move(txt[1], loader.PtrAt($AA6)^, length(txt));
    end;
    // Hack: fix a dialogue title
    if scriptname = 'CS819' then begin
     txt := ':  ';
-    move(txt[1], (loader + $AA4)^, length(txt));
+    move(txt[1], loader.PtrAt($AA4)^, length(txt));
    end;
    // Hack: make a waitkey nonclearing
-   if scriptname = 'CS824' then byte((loader + $77E)^) := 8;
+   if scriptname = 'CS824' then byte(loader.PtrAt($77E)^) := 8;
    // Hack: split dialogue lines
    if scriptname = 'CS901' then begin
-    byte((loader + $2A7)^) := 1;
-    byte((loader + $31A)^) := 1;
-    byte((loader + $383)^) := 1;
+    byte(loader.PtrAt($2A7)^) := 1;
+    byte(loader.PtrAt($31A)^) := 1;
+    byte(loader.PtrAt($383)^) := 1;
    end;
    // Hack: skip over useless code
    if scriptname = 'CS904_A' then begin
-    dword((loader + $72)^) := $008D360B;
-    fillbyte((loader + $76)^, 10, 0);
+    dword(loader.PtrAt($72)^) := $008D360B;
+    fillbyte(loader.PtrAt($76)^, 10, 0);
    end;
    // Hack: remove an extraneous waitkey
-   if scriptname = 'CS904_H' then byte((loader + $743)^) := 32;
+   if scriptname = 'CS904_H' then byte(loader.PtrAt($743)^) := 32;
    // Hack: change a waitkey to noclear
-   if scriptname = 'CSA01' then byte((loader + $534)^) := 8;
+   if scriptname = 'CSA01' then byte(loader.PtrAt($534)^) := 8;
    // Hack: force a linefeed
-   if scriptname = 'CSA10' then byte((loader + $847)^) := $A;
+   if scriptname = 'CSA10' then byte(loader.PtrAt($847)^) := $A;
    // Hack: force linefeeds in read mini-letters, signature tries to be sort
    // of right-aligned by using lots of whitespace
    if scriptname = 'CSB05_' then begin
-    byte((loader + $D4B)^) := 10;
-    byte((loader + $EB2)^) := 10;
-    byte((loader + $1037)^) := 10;
+    byte(loader.PtrAt($D4B)^) := 10;
+    byte(loader.PtrAt($EB2)^) := 10;
+    byte(loader.PtrAt($1037)^) := 10;
    end;
    // Hack: Replace some exits with returns for consistency
    if scriptname = 'CSC01_A' then begin
-    byte((loader + $7E8)^) := 3;
-    byte((loader + $908)^) := 3;
-    byte((loader + $A3F)^) := 3;
-    byte((loader + $B47)^) := 3;
+    byte(loader.PtrAt($7E8)^) := 3;
+    byte(loader.PtrAt($908)^) := 3;
+    byte(loader.PtrAt($A3F)^) := 3;
+    byte(loader.PtrAt($B47)^) := 3;
    end;
    if scriptname = 'CSC01_C' then begin
-    byte((loader + $789)^) := 3;
-    byte((loader + $80E)^) := 3;
-    byte((loader + $944)^) := 3;
-    byte((loader + $A24)^) := 3;
+    byte(loader.PtrAt($789)^) := 3;
+    byte(loader.PtrAt($80E)^) := 3;
+    byte(loader.PtrAt($944)^) := 3;
+    byte(loader.PtrAt($A24)^) := 3;
    end;
    if scriptname = 'CSC01_F' then begin
-    byte((loader + $69B)^) := 3;
-    byte((loader + $6A1)^) := 3;
-    byte((loader + $7A2)^) := 3;
-    byte((loader + $7CC)^) := 3;
-    byte((loader + $85C)^) := 3;
-    byte((loader + $890)^) := 3;
-    byte((loader + $970)^) := 3;
+    byte(loader.PtrAt($69B)^) := 3;
+    byte(loader.PtrAt($6A1)^) := 3;
+    byte(loader.PtrAt($7A2)^) := 3;
+    byte(loader.PtrAt($7CC)^) := 3;
+    byte(loader.PtrAt($85C)^) := 3;
+    byte(loader.PtrAt($890)^) := 3;
+    byte(loader.PtrAt($970)^) := 3;
    end;
    if scriptname = 'CSE_ABAD' then begin
     // Hack: change "Shuji..." to "%001...."
-    dword((loader + $88)^) := $31303025;
-    byte((loader + $8C)^) := $2E;
+    dword(loader.PtrAt($88)^) := $31303025;
+    byte(loader.PtrAt($8C)^) := $2E;
    end;
    // Hack: fix a title
-   if scriptname = 'CSE_BBAD' then char((loader + $2FA)^) := ':';
+   if scriptname = 'CSE_BBAD' then char(loader.PtrAt($2FA)^) := ':';
    // Hack: force a linefeed
-   if scriptname = 'CSE_E_7' then byte((loader + $A72)^) := 10;
+   if scriptname = 'CSE_E_7' then byte(loader.PtrAt($A72)^) := 10;
    // Hack: fix anim slot 20 to something smaller
-   if scriptname = 'CSE_FBAD' then byte((loader + $4A2)^) := 8;
+   if scriptname = 'CSE_FBAD' then byte(loader.PtrAt($4A2)^) := 8;
    // Hack: split dialogue lines
    if scriptname = 'CSE_H_1' then begin
-    byte((loader + $2A5)^) := 1;
-    byte((loader + $2CC)^) := 1;
+    byte(loader.PtrAt($2A5)^) := 1;
+    byte(loader.PtrAt($2CC)^) := 1;
    end;
   end;
 
@@ -961,47 +944,47 @@ begin
    end;
    // Hack: fix original animation slot bugs
    if scriptname = 'CS810_1' then begin
-    byte((loader + $E0)^) := 1;
-    byte((loader + $1EF)^) := 7;
+    byte(loader.PtrAt($E0)^) := 1;
+    byte(loader.PtrAt($1EF)^) := 7;
    end;
    // Hack: Replace some exits with returns for consistency
    if scriptname = 'CSC01_A' then begin
-    byte((loader + $7F8)^) := 3;
-    byte((loader + $906)^) := 3;
-    byte((loader + $A62)^) := 3;
-    byte((loader + $BA1)^) := 3;
+    byte(loader.PtrAt($7F8)^) := 3;
+    byte(loader.PtrAt($906)^) := 3;
+    byte(loader.PtrAt($A62)^) := 3;
+    byte(loader.PtrAt($BA1)^) := 3;
    end;
    if scriptname = 'CSC01_C' then begin
-    byte((loader + $887)^) := 3;
-    byte((loader + $93E)^) := 3;
-    byte((loader + $AC6)^) := 3;
-    byte((loader + $BCB)^) := 3;
+    byte(loader.PtrAt($887)^) := 3;
+    byte(loader.PtrAt($93E)^) := 3;
+    byte(loader.PtrAt($AC6)^) := 3;
+    byte(loader.PtrAt($BCB)^) := 3;
    end;
    if scriptname = 'CSC01_F' then begin
-    byte((loader + $784)^) := 3;
-    byte((loader + $78A)^) := 3;
-    byte((loader + $88C)^) := 3;
-    byte((loader + $8C6)^) := 3;
-    byte((loader + $994)^) := 3;
-    byte((loader + $9DC)^) := 3;
-    byte((loader + $AB9)^) := 3;
+    byte(loader.PtrAt($784)^) := 3;
+    byte(loader.PtrAt($78A)^) := 3;
+    byte(loader.PtrAt($88C)^) := 3;
+    byte(loader.PtrAt($8C6)^) := 3;
+    byte(loader.PtrAt($994)^) := 3;
+    byte(loader.PtrAt($9DC)^) := 3;
+    byte(loader.PtrAt($AB9)^) := 3;
    end;
   end;
 
   gid_SETSUJUU: begin
    // Hack: change erroneous choice.off to a repeat of previous
-   if scriptname = 'SMG_S031' then byte((loader + $17B)^) := 2;
+   if scriptname = 'SMG_S031' then byte(loader.PtrAt($17B)^) := 2;
   end;
 
   gid_TRANSFER98: begin
    // Hack: separate dialogue lines
-   if scriptname = 'TEN_S007' then byte((loader + $1E4)^) := 1;
+   if scriptname = 'TEN_S007' then byte(loader.PtrAt($1E4)^) := 1;
    // Hack: fix graphic type
-   if scriptname = 'TEN_S069' then byte((loader + $33)^) := $4E;
+   if scriptname = 'TEN_S069' then byte(loader.PtrAt($33)^) := $4E;
    // Hack: fix graphic type
-   if scriptname = 'TEN_S105' then byte((loader + $51)^) := $4E;
+   if scriptname = 'TEN_S105' then byte(loader.PtrAt($51)^) := $4E;
    // Hack: fix graphic type
-   if scriptname = 'TEN_S106' then byte((loader + $3E)^) := $4E;
+   if scriptname = 'TEN_S106' then byte(loader.PtrAt($3E)^) := $4E;
    // Hack: fix a missing graphic definition
    if scriptname = 'TEN_S108' then begin
     gfxlist[2].gfxname := 'TT_02';
@@ -1013,85 +996,89 @@ begin
   gid_TASOGARE: begin
    // Hack: streamline 0F ending minicode segments
    if scriptname = 'TA_ED01' then begin
-    byte((loader + $637)^) := 0;
-    byte((loader + $C46)^) := 0;
-    dec(loadersize);
+    byte(loader.PtrAt($637)^) := 0;
+    byte(loader.PtrAt($C46)^) := 0;
+    loader.size := loader.size - 1;
    end;
    if scriptname = 'TA_ED02' then begin
     txt := chr($F) + chr(1) + 'YE_041' + chr(0) + chr(3);
-    move(txt[1], (loader + $600)^, length(txt));
-    dword((loader + $7C7)^) := $8103040F;
-    byte((loader + $830)^) := 0;
-    byte((loader + $EC5)^) := 0;
+    move(txt[1], loader.PtrAt($600)^, length(txt));
+    dword(loader.PtrAt($7C7)^) := $8103040F;
+    byte(loader.PtrAt($830)^) := 0;
+    byte(loader.PtrAt($EC5)^) := 0;
     txt[8] := '0';
-    move(txt[1], (loader + $134A)^, length(txt));
-    byte((loader + $185F)^) := 0;
+    move(txt[1], loader.PtrAt($134A)^, length(txt));
+    byte(loader.PtrAt($185F)^) := 0;
    end;
    if scriptname = 'TA_00DG' then begin
     // Hack: fix incorrect variable reference, triggers some new strings
-    inc(byte((loader + $2C)^));
+    inc(byte(loader.PtrAt($2C)^));
     // Hack: add a missing exit
-    dword((loader + $84E)^) := $00000300;
+    dword(loader.PtrAt($84E)^) := $00000300;
    end;
    if scriptname = 'TA_0801' then begin
     // Hack: correct 0B-4B item count, enables previously unreachable code,
     //   although all that does is an 11-04 and return to the same choices.
-    byte((loader + $DA6)^) := 3;
+    byte(loader.PtrAt($DA6)^) := 3;
     // Hack: avoid a double-waitkey by jumping a byte further
-    inc(byte((loader + $471)^));
+    inc(byte(loader.PtrAt($471)^));
    end;
    // Hack: add a missing script name
    if scriptname = 'TA_1402' then begin
-    inc(loadersize, 3); reallocmem(loader, loadersize);
-    txt := 'TA_1100' + chr(0); move(txt[1], (loader + $134A)^, length(txt));
+    loader.size := loader.size + 3;
+    txt := 'TA_1100' + chr(0);
+    move(txt[1], loader.PtrAt($134A)^, length(txt));
    end;
    // Hack: eliminate a troublesome lone linebreak
-   if scriptname = 'TA_2403' then word((loader + $413)^) := $0413;
+   if scriptname = 'TA_2403' then word(loader.PtrAt($413)^) := $0413;
    // Hack: correct 0B-4B item count
-   if scriptname = 'TA_3803' then dec(byte((loader + $2DBE)^));
+   if scriptname = 'TA_3803' then dec(byte(loader.PtrAt($2DBE)^));
    if scriptname = 'TA_4001' then begin
     // Hack: correct 0B-4B item count, enables previously unreachable code
-    byte((loader + $1580)^) := 3;
+    byte(loader.PtrAt($1580)^) := 3;
     // Hack: correct bug in said unreachable code
-    for ivar := $16A0 to $16B1 do byte((loader + ivar)^) := byte((loader + ivar + 1)^);
+    for ivar := $16A0 to $16B1 do byte(loader.PtrAt(ivar)^) := loader.ReadByteFrom(ivar + 1);
    end;
    // Hack: eliminate a troublesome lone linebreak
-   if scriptname = 'TA_4908' then dword((loader + $901)^) := $01011620;
+   if scriptname = 'TA_4908' then dword(loader.PtrAt($901)^) := $01011620;
   end;
 
   gid_VANISH: begin
    // Hack: remove unaccessable code
-   if scriptname = 'EB020' then loadersize := $6B;
+   if scriptname = 'EB020' then loader.size := $6B;
    // Hack: remove unaccessable code
-   if scriptname = 'EB040' then loadersize := $71;
+   if scriptname = 'EB040' then loader.size := $71;
    // Hack: remove unaccessable code
-   if scriptname = 'EB045' then loadersize := $68;
+   if scriptname = 'EB045' then loader.size := $68;
    // Hack: remove unaccessable code
-   if scriptname = 'EB046' then loadersize := $68;
+   if scriptname = 'EB046' then loader.size := $68;
    // Hack: remove unaccessable code
-   if scriptname = 'EB049' then loadersize := $68;
+   if scriptname = 'EB049' then loader.size := $68;
   end;
 
  end;
+ loader.ofs := lvar;
  {$endif enable_hacks}
 
  ptrscript := 0;
 
  // Maririn DX has a wholly different header, handled here
  if game = gid_MARIRIN then begin
-  ptrresults := word(loader^);
-  ptrscript := word((loader + word((loader + 2)^) )^);
+  ptrresults := word(loader.readp^);
+  ptrscript := word((loader.readp + word((loader.readp + 2)^) )^);
   writebufln('// ID list:');
-  lofs := ptrresults;
-  while (lofs < loadersize) and (lofs < word((loader + ptrresults)^)) do begin
-   ivar := word((loader + lofs)^); // current word pointer
-   inc(lofs, 2);
-   if lofs < word((loader + ptrresults)^)
-    then jvar := word((loader + lofs)^) else jvar := ptrscript;
+  loader.ofs := ptrresults;
+  lvar := loader.ReadWordFrom(ptrresults);
+  while (loader.readp < loader.endp)
+  and (loader.ofs < lvar)
+  do begin
+   ivar := loader.ReadWord; // current word pointer
+   if loader.ofs < lvar
+    then jvar := word(loader.readp^) else jvar := ptrscript;
    dec(jvar, ivar);
    writebuf('//');
    for gutan := 1 to jvar do begin
-    txt := strhex(byte((loader + ivar)^));
+    txt := strhex(loader.ReadByteFrom(ivar));
     if length(txt) = 1 then txt := '0' + txt;
     writebuf(' ' + txt);
     inc(ivar);
@@ -1099,43 +1086,42 @@ begin
    writebufln('');
   end;
   writebufln('');
-  lofs := ptrscript;
+  loader.ofs := ptrscript;
  end else
 
  // Deep has a different header, handled here
  if game = gid_DEEP then begin
   // Read constant pointers
-  ptrresults := word(loader^);
-  ptrscript := word((loader + 2)^);
-  ptrpix := word((loader + 4)^);
-  ptrnil := word((loader + 6)^);
-  if ptrresults in [0,6,8] = FALSE then begin
-   Decomp_JastOvl := 'Script header starts with $' + strhex(ptrresults) + '??';
-   exit;
-  end;
+  ptrresults := loader.ReadWordFrom(0);
+  ptrscript := loader.ReadWordFrom(2);
+  ptrpix := loader.ReadWordFrom(4);
+  ptrnil := loader.ReadWordFrom(6);
+  if ptrresults in [0,6,8] = FALSE then
+   raise Exception.Create('Script header starts with $' + strhex(ptrresults) + '??');
+
   if ptrresults = 6 then begin // alternative tiny header skips first array
    ptrnil := ptrpix; ptrpix := ptrscript; ptrscript := ptrresults;
   end else
   if ptrresults = 0 then begin // alternative bloated header with extra 0000
    ptrresults := ptrscript; ptrscript := ptrpix; ptrpix := ptrnil;
-   ptrnil := word((loader + 8)^);
+   ptrnil := loader.ReadWordFrom(8);
   end;
   // Read local var list? or action mapping? from fourth array
-  lvar := word((loader + ptrresults)^);
-  if lvar = 0 then lvar := word((loader + ptrscript)^);
+  lvar := loader.ReadWordFrom(ptrresults);
+  if lvar = 0 then lvar := loader.ReadWordFrom(ptrscript);
   writebuf('// Fourth array:');
   while (ptrnil < lvar) do begin
-   writebuf(' ' + strdec(byte((loader + ptrnil)^)));
+   writebuf(' ' + strdec(loader.ReadByteFrom(ptrnil)));
    inc(ptrnil);
   end;
   writebufln('');
-  lofs := word((loader + ptrscript)^); // script main entry point
+  loader.ofs := loader.ReadWordFrom(ptrscript); // script main entry point
   // Read click action list, from first array
-  if word((loader + ptrresults)^) <> 0 then
+  if loader.ReadWordFrom(ptrresults) <> 0 then
   while (ptrresults < ptrscript) do begin
    writebuf('// ');
-   ptrnil := word((loader + ptrresults)^);
-   case byte((loader + ptrnil)^) of // action type
+   ptrnil := loader.ReadWordFrom(ptrresults);
+   case loader.ReadByteFrom(ptrnil) of // action type
     1: writebuf('Look');
     2: writebuf('Go');
     3: writebuf('Talk');
@@ -1146,16 +1132,16 @@ begin
     8: writebuf('Lick');
     9: writebuf('Kiss');
     10: writebuf('Drill');
-    else writebuf('Unknown action ' + strdec(byte((loader + ptrnil)^)));
+    else writebuf('Unknown action ' + strdec(loader.ReadByteFrom(ptrnil)));
    end;
    inc(ptrnil); // local var number
-   writebuf(': $v' + strdec(byte((loader + ptrnil)^)));
+   writebuf(': $v' + strdec(loader.ReadByteFrom(ptrnil)));
    inc(ptrnil);
-   while (ptrnil < word((loader + ptrresults + 2)^)) do begin
-    ivar := byte((loader + ptrnil)^); // jump addresses
-    if ivar = 0 then begin Decomp_JastOvl := '0!!!'; exit; end;
+   while (ptrnil < loader.ReadWordFrom(ptrresults + 2)) do begin
+    ivar := loader.ReadByteFrom(ptrnil); // jump addresses
+    if ivar = 0 then raise Exception.Create('0!!!');
     dec(ivar); // make it 0-based
-    txt := strhex(word((loader + ptrscript + ivar * 2)^));
+    txt := strhex(loader.ReadWordFrom(ptrscript + ivar * 2));
     while length(txt) < 4 do txt := '0' + txt;
     writebuf('; ' + txt);
     inc(ptrnil);
@@ -1171,142 +1157,136 @@ begin
   writebufln('// OVL is divided in four sections, so work around it with a case jump');
   writebufln('case $v512 SHR 8; ."noarray:array2:array4:array6"');
   writebufln('');
-  ptrscript := word(loader^);
+  ptrscript := loader.ReadWordFrom(0);
   ivar := 2;
   while ivar < ptrscript do begin
    writebufln('');
    writebufln('@array' + strdec(ivar) + ':');
    writebuf('case $v512 AND 0xFF; ."');
-   jvar := word((loader + ivar)^);
-   lofs := jvar;
-   while lofs < word((loader + jvar)^) do begin
-    if lofs <> jvar then writebuf(':');
-    gutan := word((loader + lofs)^);
+   jvar := loader.ReadWordFrom(ivar);
+   loader.ofs := jvar;
+   lvar := loader.ReadWordFrom(jvar);
+   while loader.ofs < lvar do begin
+    if loader.ofs <> jvar then writebuf(':');
+    gutan := loader.ReadWord;
     txt := strhex(gutan);
     while length(txt) < 4 do txt := '0' + txt;
     writebuf(txt);
-    inc(lofs, 2);
    end;
    writebufln('"');
-   fillbyte((loader + jvar)^, lofs - jvar, 0);
+   fillbyte(loader.PtrAt(jvar)^, loader.ofs - jvar, 0);
    inc(ivar, 2);
   end;
   writebufln('');
   writebufln('@noarray:');
-  lofs := 8;
+  loader.ofs := 8;
  end else
 
  // If option lists exist, handle them; sometimes it's plain code, no lists
- if word(loader^) in [$0008, $000A, $000C] then begin
+ if loader.ReadWordFrom(0) in [$0008, $000A, $000C] then begin
   // Read constant pointers
-  ptrresults := word(loader^);
-  ptrscript := word((loader + 2)^);
-  ptroptions := word((loader + 4)^);
-  ptrpix := word((loader + 6)^);
-  ptrnil := word((loader + 8)^);
+  ptrresults := loader.ReadWordFrom(0);
+  ptrscript := loader.ReadWordFrom(2);
+  ptroptions := loader.ReadWordFrom(4);
+  ptrpix := loader.ReadWordFrom(6);
+  ptrnil := loader.ReadWordFrom(8);
 
   // Get the address of the bytecode entrypoint
-  ptrscript := word((loader + ptrscript)^);
+  ptrscript := loader.ReadWordFrom(ptrscript);
 
   // First word array must have non-zero length, and the first offset must be
   // valid, otherwise there are no choices to be made.
-  lofs := word((loader + ptrresults)^);
-  if (ptrresults < word((loader + 2)^))
-  and (lofs > ptrnil) and (lofs < ptrscript)
+  loader.ofs := loader.ReadWordFrom(ptrresults);
+  if (ptrresults < loader.ReadWordFrom(2))
+  and (loader.ofs > ptrnil) and (loader.ofs < ptrscript)
   then begin
    // Read the choice combination records
    repeat
-    if combos > high(choicecombo) then begin
-     Decomp_JastOvl := 'Choicecombo overflow @ $' + strhex(lofs);
-     exit;
-    end;
+    if combos > high(choicecombo) then
+     raise Exception.Create('Choicecombo overflow @ $' + strhex(loader.ofs));
     // verb pointer
-    ivar := word((loader + lofs)^); inc(lofs, 2);
+    ivar := loader.ReadWord;
     if (ivar <= ptrnil) or (ivar >= ptrscript) then break; // validity check
-    choicecombo[combos].verbtext := capsize(GetLoaderString(ivar + 1));
+    choicecombo[combos].verbtext := capsize(loader.ReadStringFrom(ivar + 1));
     // subject pointer
-    ivar := word((loader + lofs)^); inc(lofs, 2);
+    ivar := loader.ReadWord;
     if (ivar <= ptrnil) or (ivar >= ptrscript) // validity check
     then choicecombo[combos].subjecttext := ''
-    else choicecombo[combos].subjecttext := capsize(GetLoaderString(ivar + 1));
+    else choicecombo[combos].subjecttext := capsize(loader.ReadStringFrom(ivar + 1));
     // variable ID
-    choicecombo[combos].ID := word((loader + lofs)^); inc(lofs, 2);
+    choicecombo[combos].ID := loader.ReadWord;
     // jump addresses, read up to first invalid address or start of bytecode
     lvar := 0;
     repeat
-     ivar := word((loader + lofs)^);
-     if (ivar < ptrscript) or (lofs >= ptrscript) then break;
-     if lvar >= high(choicecombo[1].jumpresult) then begin
-      Decomp_JastOvl := 'Choicecombo jumpresult overflow @ $' + strhex(lofs);
-      exit;
-     end;
+     ivar := loader.ReadWordFrom(loader.ofs);
+     if (ivar < ptrscript) or (loader.ofs >= ptrscript) then break;
+     if lvar >= high(choicecombo[1].jumpresult) then
+      raise Exception.Create('Choicecombo jumpresult overflow @ $' + strhex(loader.ofs));
+
      choicecombo[combos].jumpresult[lvar] := ivar;
-     inc(lvar); inc(lofs, 2);
-    until (lofs >= ptrscript);
+     inc(lvar); inc(loader.readp, 2);
+    until (loader.ofs >= ptrscript);
     choicecombo[combos].jumpresult[lvar] := $FFFF; // mark end of results
     // If the next word is a zero, skip it
-    if word((loader + lofs)^) = 0 then inc(lofs, 2);
+    if loader.ReadWordFrom(loader.ofs) = 0 then inc(loader.readp, 2);
 
     inc(combos);
-   until lofs >= ptrscript;
+   until loader.ofs >= ptrscript;
   end;
 
 
   if combos <> 0 then begin
    // Read option list addresses
-   lofs := ptroptions;
-   while (lofs < ptrpix) do begin
-    ivar := word((loader + lofs)^); inc(lofs, 2);
+   loader.ofs := ptroptions;
+   while (loader.ofs < ptrpix) do begin
+    ivar := loader.ReadWord;
     if (ivar <= ptrnil) or (ivar >= ptrscript) then continue; // in data section?
     inc(options);
-    if options > high(optionlist) then begin
-     Decomp_JastOvl := 'Optionlist overflow @ $' + strhex(lofs);
-     exit;
-    end;
+    if options > high(optionlist) then
+     raise Exception.Create('Optionlist overflow @ $' + strhex(loader.ofs));
+
     optionlist[options].address := ivar;
    end;
 
    ivar := 1;
    while ivar <= options do begin
-    lofs := optionlist[ivar].address;
+    loader.ofs := optionlist[ivar].address;
     // read the verb string
-    optionlist[ivar].verbtext := capsize(GetLoaderString(word((loader + lofs)^) + 1));
-    inc(lofs, 2);
+    optionlist[ivar].verbtext := capsize(loader.ReadStringFrom(loader.ReadWord + 1));
     // read subject strings, until FFFF
-    lvar := word((loader + lofs)^); inc(lofs, 2);
+    lvar := loader.ReadWord;
     jvar := 0;
     while lvar <> $FFFF do begin
      inc(jvar);
-     optionlist[ivar].subjecttext[jvar] := capsize(GetLoaderString(lvar + 1));
-     lvar := word((loader + lofs)^); inc(lofs, 2);
+     optionlist[ivar].subjecttext[jvar] := capsize(loader.ReadStringFrom(lvar + 1));
+     lvar := loader.ReadWord;
     end;
     inc(ivar);
    end;
   end;
 
   // read picture list
-  if (word((loader + word((loader + ptrpix)^))^) <> 0)
+  if (loader.ReadWordFrom(loader.ReadWordFrom(ptrpix)) <> 0)
   then begin
-   lofs := ptrpix;
-   while lofs < ptrnil do begin
-    if pictures > high(gfxlist) then begin
-     Decomp_JastOvl := 'Picture list overflow @ $' + strhex(lofs);
-     exit;
-    end;
-    jvar := word((loader + lofs)^);
-    writebuf('// Gfx ' + strdec(pictures) + ': style $' + strhex(byte((loader + jvar)^)));
-    case byte((loader + jvar)^) of // translate swipe styles to uniform values
-                                      // 2: sweep from top
-                                      // 3: sweep from left
-     4: gfxlist[pictures].data1 := 4; // 4: box fill inward from edges
-     5: gfxlist[pictures].data1 := 5; // 5: spiral fill inward from edges
-     6: gfxlist[pictures].data1 := 6; // 6: box fill outward from center
-     7: gfxlist[pictures].data1 := 7; // 7: sweep from mid to left and right
-     8: gfxlist[pictures].data1 := 8; // 8: sweep from mid to top and bottom
-     9: gfxlist[pictures].data1 := 9; // 9: noisy fade in (crossfade)
-     $A: gfxlist[pictures].data1 := $A; // interlaced sweep from top & bottom
-     $B: gfxlist[pictures].data1 := $B; // ragged uneven sweep from left
-     else gfxlist[pictures].data1 := 0; // 0: instant
+   loader.ofs := ptrpix;
+   while loader.ofs < ptrnil do begin
+    if pictures > high(gfxlist) then
+     raise Exception.Create('Picture list overflow @ $' + strhex(loader.ofs));
+    jvar := loader.ReadWordFrom(loader.ofs);
+    writebuf('// Gfx ' + strdec(pictures) + ': style $' + strhex(loader.ReadByteFrom(jvar)));
+    case loader.ReadByteFrom(jvar) of
+      // translate swipe styles to uniform values
+      // 2: sweep from top
+      // 3: sweep from left
+      4: gfxlist[pictures].data1 := 4; // 4: box fill inward from edges
+      5: gfxlist[pictures].data1 := 5; // 5: spiral fill inward from edges
+      6: gfxlist[pictures].data1 := 6; // 6: box fill outward from center
+      7: gfxlist[pictures].data1 := 7; // 7: sweep from mid to left and right
+      8: gfxlist[pictures].data1 := 8; // 8: sweep from mid to top and bottom
+      9: gfxlist[pictures].data1 := 9; // 9: noisy fade in (crossfade)
+      $A: gfxlist[pictures].data1 := $A; // interlaced sweep from top & bottom
+      $B: gfxlist[pictures].data1 := $B; // ragged uneven sweep from left
+      else gfxlist[pictures].data1 := 0; // 0: instant
     end;
     {$ifdef enable_hacks}
     // Hack: Turn all instant transitions into crossfades
@@ -1314,16 +1294,15 @@ begin
     and (gfxlist[pictures].data1 = 0) then gfxlist[pictures].data1 := 9;
     {$endif}
     inc(jvar);
-    gfxlist[pictures].data2 := byte((loader + jvar)^);
-    writebuf(' type $' + strhex(byte((loader + jvar)^)));
+    gfxlist[pictures].data2 := loader.ReadByteFrom(jvar);
+    writebuf(' type $' + strhex(loader.ReadByteFrom(jvar)));
     inc(jvar);
-    gfxlist[pictures].gfxname := upcase(GetLoaderString(jvar));
+    gfxlist[pictures].gfxname := upcase(loader.ReadStringFrom(jvar));
     writebufln(' ' + gfxlist[pictures].gfxname);
-    if gfxlist[pictures].data2 in [$03,$38,$42,$4E,$50] = FALSE then begin
-     Decomp_JastOvl := 'Unknown image type $' + strhex(gfxlist[pictures].data2) + ': ' + gfxlist[pictures].gfxname;
-     exit;
-    end;
-    inc(pictures); inc(lofs, 2);
+    if gfxlist[pictures].data2 in [$03,$38,$42,$4E,$50] = FALSE then
+     raise Exception.Create('Unknown image type $' + strhex(gfxlist[pictures].data2) + ': ' + gfxlist[pictures].gfxname);
+
+    inc(pictures); inc(loader.readp, 2);
    end;
    writebufln('');
   end;
@@ -1373,7 +1352,7 @@ begin
    writebufln('');
   end;
 
-  lofs := ptrscript;
+  loader.ofs := ptrscript;
  end;
  // end of option lists handling
 
@@ -1385,16 +1364,14 @@ begin
    writebufln('mus.play TK_19');
    writebufln('#event.create.interrupt');
    writebufln('sleep 1000');
-   while lofs < loadersize do begin
-    ivar := byte((loader + lofs)^);
-    inc(lofs);
+   while loader.ofs < loader.size do begin
+    ivar := loader.ReadByte;
     case ivar of
      1: begin
-         txt := upcase(GetLoaderString(lofs));
-         inc(lofs, dword(length(txt) + 1));
+         txt := upcase(loader.ReadString);
          writebufln('gfx.show ' + txt);
          writebufln('gfx.transition 0');
-         if byte((loader + lofs)^) = 2 then writebufln('sleep 100');
+         if loader.ReadWordFrom(loader.ofs) = 2 then writebufln('sleep 100');
         end;
      2: if lvar = 0 then writebufln('gfx.clearall')
         else begin
@@ -1402,8 +1379,7 @@ begin
          writebufln('tbox.clear');
         end;
      3: begin
-         jvar := byte((loader + lofs)^);
-         inc(lofs);
+         jvar := loader.ReadByte;
          writebufln('sleep ' + strdec(jvar * 100));
         end;
      4: begin
@@ -1413,12 +1389,10 @@ begin
         end;
      5: begin
          gutan := 0; // track longest row, 16 chars is about half scr width
-         jvar := byte((loader + lofs)^);
-         inc(lofs);
+         jvar := loader.ReadByte;
          while jvar <> 0 do begin
           dec(jvar);
-          txt := GetLoaderString(lofs);
-          inc(lofs, dword(length(txt) + 1));
+          txt := loader.ReadString;
           if gutan < length(txt) then gutan := length(txt);
           if jvar <> 0 then txt := txt + '\n';
           writebufln('print ' + txt);
@@ -1428,12 +1402,10 @@ begin
          lvar := 1;
         end;
      6: begin
-         jvar := byte((loader + lofs)^);
-         inc(lofs);
+         jvar := loader.ReadByte;
          while jvar <> 0 do begin
           dec(jvar);
-          txt := GetLoaderString(lofs);
-          inc(lofs, dword(length(txt) + 1));
+          txt := loader.ReadString;
           if (txt[1] = chr($81)) and (txt[2] = chr($40))
            then txt := copy(txt, 3, $FF); // cut initial whitespace
           if jvar <> 0 then txt := txt + '\n';
@@ -1444,8 +1416,7 @@ begin
          writebufln('sleep 500');
         end;
      7: begin
-         txt := upcase(GetLoaderString(lofs));
-         inc(lofs, dword(length(txt) + 1));
+         txt := upcase(loader.ReadString);
          writebufln('gfx.show ' + txt);
          writebufln('#gfx.solidblit ' + txt + '; $FFFFFFFF');
          writebufln('gfx.transition 0');
@@ -1464,14 +1435,13 @@ begin
          end;
     end;
    end;
-   lofs := loadersize;
+   loader.ofs := loader.size;
   end;
 
   gid_TRANSFER98: if scriptname = 'TKEXE' then begin
    jvar := 0; lvar := 0;
-   while lofs < loadersize do begin
-    ivar := byte((loader + lofs)^);
-    inc(lofs);
+   while loader.ofs < loader.size do begin
+    ivar := loader.ReadByte;
     case ivar of
       0: begin
        writebufln('return');
@@ -1479,7 +1449,7 @@ begin
        writebuf('@');
        inc(jvar);
        if jvar < 10 then writebuf('0');
-       writebufln(strdec(jvar) + ': // $' + strhex(lofs));
+       writebufln(strdec(jvar) + ': // $' + strhex(loader.ofs));
       end;
       1: writebufln('waitkey');
       2: writebufln('call INTRO.QUESTIONS');
@@ -1494,7 +1464,7 @@ begin
       else DoTextOutput;
     end;
    end;
-   lofs := loadersize;
+   loader.ofs := loader.size;
   end;
  end;
 
@@ -1529,13 +1499,14 @@ begin
  nextgra.transition := $FF;
  nextgra.unswiped := 0;
 
- // LOFS was set to ptrscript at the end of header handling.
- // If header was not present, LOFS is still 0.
- while lofs < loadersize do begin
+ // loader.ofs was set to ptrscript at the end of header handling.
+ // If header was not present, loader.ofs is still 0.
+ while loader.ofs < loader.size do begin
 
   // Transition in drawn graphics if the next command doesn't draw more
   if (waitkeyswipe <> $FF)
-  and (byte((loader + lofs)^) <> $06) and (word((loader + lofs)^) <> $0211)
+  and (loader.ReadByteFrom(loader.ofs) <> $06)
+  and (loader.ReadWordFrom(loader.ofs) <> $0211)
   then begin
    writebufln('gfx.transition ' + strdec(waitkeyswipe));
    writebufln('sleep');
@@ -1547,7 +1518,7 @@ begin
   for ivar := combos - 1 downto 0 do with choicecombo[ivar] do begin
    for jvar := 0 to dword(high(jumpresult)) do begin
     if jumpresult[jvar] = $FFFF then break;
-    if jumpresult[jvar] = lofs then begin
+    if jumpresult[jvar] = loader.ofs then begin
      writebuf('### ' + verbtext + ' : ');
      if subjecttext <> '' then writebuf(subjecttext + ' : ');
      writebufln('v' + strdec(ID) + '=' + strdec(jvar));
@@ -1564,29 +1535,29 @@ begin
 
    gid_RUNAWAY: begin
     // Hack: Skip a clearallabovebkg
-    if (scriptname = 'MT_0215') and (lofs = $8F) then persistence := TRUE;
+    if (scriptname = 'MT_0215') and (loader.ofs = $8F) then persistence := TRUE;
    end;
 
    gid_SAKURA: begin
     if scriptname = 'CS904_A' then begin
      // Hack: add a snow effect
-     if lofs = $A8 then begin
+     if loader.ofs = $A8 then begin
       writebufln('//$v901 := 48');
       writebufln('//fx.precipitate.init SNOW1; SNOW2; snow; 20');
      end else
-     if lofs = $262 then begin
+     if loader.ofs = $262 then begin
       writebufln('//fx.precipitate.end');
       writebufln('//$v901 := 20');
      end else
      // Hack: redraw oddly missing sprite
-     if lofs = $39C then begin
+     if loader.ofs = $39C then begin
       writebufln('gfx.show ofs 8192 CT01C');
       writebufln('gfx.show ofs 8192 CT01R');
      end else
-     if lofs = $1AD then writebuf('//');
+     if loader.ofs = $1AD then writebuf('//');
     end;
     // Hack: Insert a missing swipe
-    if (scriptname = 'CSA01') and (lofs = $EC) then begin
+    if (scriptname = 'CSA01') and (loader.ofs = $EC) then begin
      writebufln('gfx.transition 3');
      writebufln('sleep');
     end;
@@ -1596,12 +1567,11 @@ begin
   {$endif enable_hacks}
 
   // See SAKURA.TXT for documentation on most bytecodes.
-  ivar := byte((loader + lofs)^);
-  inc(lofs);
+  ivar := loader.ReadByte;
 
   if implicitwaitkey = 2 then
    if (ivar in [0,2..5])
-   or (ivar = $0B) and (byte((loader + lofs)^) in [$A, $32..$37, $39])
+   or (ivar = $0B) and (loader.ReadByteFrom(loader.ofs) in [$A, $32..$37, $39])
    then begin
     if ivar = 3 then writebuf('waitkey') else writebuf('waitkey noclear=1');
     writebufln(' // implicit');
@@ -1612,7 +1582,10 @@ begin
    // 00 [00] - end of bytecode section; get user input
    0: begin
        {$note try to suppress some 00, see sakura.txt}
-       while (lofs < loadersize) and (byte((loader + lofs)^) = 0) do inc(lofs);
+       while (loader.ofs < loader.size)
+       and (loader.ReadByteFrom(loader.ofs) = 0)
+       do inc(loader.readp);
+
        if haschoices then
         writebufln('choice.go')
        else // if no choices have been defined, pop the script
@@ -1630,7 +1603,7 @@ begin
    // 02 - Jump to new OVL by number
    2: case game of
        gid_ANGELSCOLLECTION1, gid_SETSUJUU, gid_TRANSFER98: begin
-        jvar := byte((loader + lofs)^); inc(lofs);
+        jvar := loader.ReadByte;
         txt := strdec(jvar);
         while length(txt) < 3 do txt := '0' + txt;
         case game of
@@ -1638,27 +1611,23 @@ begin
          gid_SETSUJUU: writebufln('call SMG_S' + txt + '.');
          gid_TRANSFER98: writebufln('call TEN_S' + txt + '.');
         end;
-        if byte((loader + lofs)^) <> 0 then writebufln('');
+        if loader.ReadByteFrom(loader.ofs) <> 0 then writebufln('');
        end;
        gid_DEEP: begin
-        jvar := byte((loader + lofs)^);
-        inc(lofs);
+        jvar := loader.ReadByte;
         writebufln('//dummy $02 ' + strhex(jvar) + ' // unlock map square, go to script H01_xx?');
        end;
        gid_MARIRIN: begin
-        jvar := byte((loader + lofs)^);
-        inc(lofs);
+        jvar := loader.ReadByte;
         writebufln('//dummy $02 ' + strhex(jvar));
        end;
        gid_TASOGARE: begin // enter the dungeon!
-        jvar := dword((loader + lofs)^); inc(lofs, 3);
+        jvar := loader.ReadDwordFrom(loader.ofs); inc(loader.readp, 3);
         writebufln('// dungeon romp! map ' + strdec(jvar and $FF) + ' coords ' + strdec((jvar shr 8) and $FF) + ',' + strdec((jvar shr 16) and $FF));
-        if byte((loader + lofs)^) <> 0 then writebufln('');
+        if loader.ReadByteFrom(loader.ofs) <> 0 then writebufln('');
        end;
-       else begin
-        Decomp_JastOvl := 'Unknown code $02 @ $' + strhex(lofs);
-        exit;
-       end;
+       else
+        raise Exception.Create('Unknown code $02 @ $' + strhex(loader.ofs));
       end;
 
    // 03 - Return to wherever last jumped from
@@ -1676,23 +1645,20 @@ begin
         end;
         else writebufln('return');
        end;
-       if byte((loader + lofs)^) <> 0 then writebufln('');
+       if loader.ReadByteFrom(loader.ofs) <> 0 then writebufln('');
       end;
 
    // 04 - Jump to new OVL by name
    4: case game of
        gid_DEEP: begin
         writebuf('//dummy runscript 04');
-        for jvar := 2 downto 0 do begin
-         writebuf(', ' + strdec(byte((loader + lofs)^)));
-         inc(lofs);
-        end;
+        for jvar := 2 downto 0 do
+         writebuf(', ' + strdec(loader.ReadByte));
         writebufln('');
-        if byte((loader + lofs)^) in [0,3] = FALSE then writebufln('');
+        if loader.ReadByteFrom(loader.ofs) in [0,3] = FALSE then writebufln('');
        end;
        else begin
-        txt := GetLoaderString(lofs);
-        inc(lofs, dword(length(txt) + 1));
+        txt := loader.ReadString;
         jvar := pos('.', txt);
         if jvar <> 0 then txt := copy(txt, 1, jvar - 1);
         {$ifdef enable_hacks}
@@ -1703,36 +1669,32 @@ begin
          end;
         {$endif}
         writebufln('call ' + txt + '.');
-        if byte((loader + lofs)^) <> 0 then writebufln('');
+        if loader.ReadByteFrom(loader.ofs) <> 0 then writebufln('');
        end;
       end;
 
    // 05 - Jump to new OVL by name?
    5: case game of
        gid_HOHOEMI, gid_PARFAIT, gid_TASOGARE: begin
-        txt := GetLoaderString(lofs);
-        inc(lofs, dword(length(txt) + 1));
+        txt := loader.ReadString;
         jvar := pos('.', txt);
         if jvar <> 0 then txt := copy(txt, 1, jvar - 1);
         writebufln('call ' + txt + '. // 05');
        end;
        gid_DEEP: begin
-        txt := strdec(byte((loader + lofs)^)); inc(lofs);
+        txt := strdec(loader.ReadByte);
         if length(txt) < 2 then txt := '0' + txt;
         writebuf('call E' + txt + '.');
-        if byte((loader + lofs)^) <> 0 then writebuf('x // depends which character is selected');
-        inc(lofs);
+        if loader.ReadByte <> 0 then writebuf('x // depends which character is selected');
         writebufln('');
-        if byte((loader + lofs)^) in [0,3] = FALSE then writebufln('');
+        if loader.ReadByteFrom(loader.ofs) in [0,3] = FALSE then writebufln('');
        end;
        gid_MARIRIN: begin
-        jvar := byte((loader + lofs)^); inc(lofs);
+        jvar := loader.ReadByte;
         writebufln('//dummy $05 ' + strhex(jvar));
        end;
-       else begin
-        Decomp_JastOvl := 'Unknown code $05 @ $' + strhex(lofs);
-        exit;
-       end;
+       else
+        raise Exception.Create('Unknown code $05 @ $' + strhex(loader.ofs));
       end;
 
    // 06 - [Sakura] play song xx / [3sis] show graphic xx (no persistence)
@@ -1741,12 +1703,9 @@ begin
        gid_RUNAWAY, gid_RUNAWAY98, gid_SETSUJUU, gid_VANISH:
        begin
         if implicitwaitkey = 0 then inc(implicitwaitkey);
-        jvar := byte((loader + lofs)^);
-        inc(lofs);
-        if jvar >= length(gfxlist) then begin
-         Decomp_JastOvl := 'Graphic draw request out of bounds @ $' + strhex(lofs);
-         exit;
-        end;
+        jvar := loader.ReadByte;
+        if jvar >= length(gfxlist) then
+         raise Exception.Create('Graphic draw request out of bounds @ $' + strhex(loader.ofs));
         if persistence = FALSE then begin
          writebufln('gfx.clearkids');
          if (gfxlist[jvar].data2 = $50) and (gfxlist[jvar].data1 <> 0)
@@ -1783,11 +1742,9 @@ begin
        gid_TRANSFER98:
        begin
         if implicitwaitkey = 0 then inc(implicitwaitkey);
-        jvar := byte((loader + lofs)^); inc(lofs);
-        if jvar >= length(gfxlist) then begin
-         Decomp_JastOvl := 'Graphic draw request out of bounds @ $' + strhex(lofs);
-         exit;
-        end;
+        jvar := loader.ReadByte;
+        if jvar >= length(gfxlist) then
+         raise Exception.Create('Graphic draw request out of bounds @ $' + strhex(loader.ofs));
         if gfxlist[jvar].data2 <> $38 then begin
          writebufln('gfx.clearkids');
          if (gfxlist[jvar].data2 = $50) and (gfxlist[jvar].data1 <> 0)
@@ -1821,30 +1778,26 @@ begin
        gid_SAKURA, gid_SAKURA98, gid_TASOGARE:
        begin
         // Play song
-        jvar := byte((loader + lofs)^); inc(lofs);
+        jvar := loader.ReadByte;
         if jvar in [0,$FF] then writebufln('mus.stop')
-        else if jvar > dword(length(songlist)) then begin
-         Decomp_JastOvl := 'Song outside list @ $' + strhex(lofs);
-         exit;
-        end else
+        else if jvar > dword(length(songlist)) then
+         raise Exception.Create('Song outside list @ $' + strhex(loader.ofs))
+        else
          writebufln('mus.play ' + songlist[jvar - 1]);
        end;
 
        gid_PARFAIT: begin // unknown
-        jvar := byte((loader + lofs)^); inc(lofs);
-        lvar := byte((loader + lofs)^); inc(lofs);
+        jvar := loader.ReadByte;
+        lvar := loader.ReadByte;
         writebufln('//dummy 06 // $' + strhex(jvar) + ' $' + strhex(lvar));
        end;
-       else begin
-        Decomp_JastOvl := 'Unknown code $06 @ $' + strhex(lofs);
-        exit;
-       end;
+       else
+        raise Exception.Create('Unknown code $06 @ $' + strhex(loader.ofs));
       end;
 
    // 07 - 3sis/Runaway play song xx
    7: begin
-    jvar := byte((loader + lofs)^);
-    inc(lofs);
+    jvar := loader.ReadByte;
 
     case game of
       gid_3SIS, gid_3SIS98, gid_RUNAWAY, gid_RUNAWAY98,
@@ -1852,10 +1805,9 @@ begin
       gid_SETSUJUU, gid_VANISH:
       begin
        if jvar in [0,$FF] then writebufln('mus.stop')
-       else if jvar > dword(length(songlist)) then begin
-        Decomp_JastOvl := 'Song outside list @ $' + strhex(lofs);
-        exit;
-       end else
+       else if jvar > dword(length(songlist)) then
+        raise Exception.Create('Song outside list @ $' + strhex(loader.ofs))
+       else
         writebufln('mus.play ' + songlist[jvar - 1]);
       end;
 
@@ -1871,10 +1823,8 @@ begin
        writebufln('print \$v' + strdec(jvar));
       end;
 
-      else begin
-       Decomp_JastOvl := 'Unknown code $07 @ $' + strhex(lofs);
-       exit;
-      end;
+      else
+       Exception.Create('Unknown code $07 @ $' + strhex(loader.ofs));
     end;
    end;
 
@@ -1882,14 +1832,12 @@ begin
    8: case game of
        gid_SETSUJUU, gid_TRANSFER98, gid_VANISH:
        begin // play sound effect, one data byte
-        writebuf('// sound effect ' + strdec(byte((loader + lofs)^)));
-        inc(lofs);
+        writebuf('// sound effect ' + strdec(loader.ReadByte));
         writebufln('');
        end;
 
        gid_DEEP: begin
-        writebuf('// begin fight #' + strdec(byte((loader + lofs)^)));
-        inc(lofs);
+        writebuf('// begin fight #' + strdec(loader.ReadByte));
         writebufln('');
        end;
 
@@ -1901,10 +1849,8 @@ begin
         implicitwaitkey := 0;
        end;
 
-       else begin
-        Decomp_JastOvl := 'Unknown code $08 @ $' + strhex(lofs);
-        exit;
-       end;
+       else
+        raise Exception.Create('Unknown code $08 @ $' + strhex(loader.ofs));
       end;
    // 09 - Wait for keypress, don't clear message area afterward (or sleep)
    9: case game of
@@ -1916,46 +1862,41 @@ begin
                  end;
        gid_HOHOEMI, gid_DEEP, gid_MAJOKKO, gid_PARFAIT, gid_TASOGARE:
                  begin // interruptable pause
-                  writebufln('sleep ' + strdec(byte((loader + lofs)^) * 100) + ' // 09');
-                  inc(lofs);
+                  writebufln('sleep ' + strdec(loader.ReadByte * 100) + ' // 09');
                  end;
        gid_FROMH: begin // weird strings
                    writebuf('//dummy $09 "');
-                   while byte((loader + lofs)^) in [32..122] do begin
-                    writebuf(char((loader + lofs)^)); inc(lofs);
-                   end;
+                   while loader.ReadByteFrom(loader.ofs) in [32..122] do
+                    writebuf(char(loader.ReadByte));
                    writebufln('"');
                   end;
        gid_TRANSFER98: begin // redundant runscript command
-                        inc(lofs);
-                        txt := strdec(word((loader + lofs)^));
-                        inc(lofs, 2);
+                        inc(loader.readp);
+                        txt := strdec(loader.ReadWord);
                         while length(txt) < 3 do txt := '0' + txt;
                         writebufln('call TEN_S' + txt + '.');
                        end;
-       else begin
-        Decomp_JastOvl := 'Unknown code $09 @ $' + strhex(lofs);
-        exit;
-       end;
+       else
+        raise Exception.Create('Unknown code $09 @ $' + strhex(loader.ofs));
       end;
    // 0A - Linebreak, handled with other text output
    // 0B - Local variable functions
    $B: begin
-        inc(lofs);
+        inc(loader.readp);
         if bitness = 2 then begin
          // 16-bit references
-         jvar := word((loader + lofs)^); // yy
-         lvar := word((loader + lofs + 2)^); // zz
-         gutan := word((loader + lofs + 4)^); // aa
+         jvar := loader.ReadWordFrom(loader.ofs + 0); // yy
+         lvar := loader.ReadWordFrom(loader.ofs + 2); // zz
+         gutan := loader.ReadWordFrom(loader.ofs + 4); // aa
         end else begin
          // 8-bit references
-         jvar := byte((loader + lofs)^); // yy
-         lvar := byte((loader + lofs + 1)^); // zz
-         gutan := byte((loader + lofs + 2)^); // aa
+         jvar := loader.ReadByteFrom(loader.ofs + 0); // yy
+         lvar := loader.ReadByteFrom(loader.ofs + 1); // zz
+         gutan := loader.ReadByteFrom(loader.ofs + 2); // aa
         end;
-        case byte((loader + lofs - 1)^) of // xx
+        case loader.ReadByteFrom(loader.ofs - 1) of // xx
          1: begin
-             inc(lofs, bitness + bitness);
+             inc(loader.readp, bitness + bitness);
              AddLocalVar(jvar);
              if bitness = 1 then longint(lvar) := shortint(lvar) else longint(lvar) := integer(lvar);
              if lvar = 1 then writebufln('inc v' + strdec(jvar)) else
@@ -1967,40 +1908,40 @@ begin
              end;
             end;
          2: begin
-             inc(lofs, bitness + bitness);
+             inc(loader.readp, bitness + bitness);
              writebufln('$v' + strdec(jvar) + ' += $v' + strdec(lvar));
             end;
          3: begin
-             inc(lofs, bitness + bitness);
+             inc(loader.readp, bitness + bitness);
              writebufln('$v' + strdec(jvar) + ' -= $v' + strdec(lvar));
             end;
          4: begin
-             inc(lofs, bitness + bitness);
+             inc(loader.readp, bitness + bitness);
              writebufln('$v' + strdec(jvar) + ' := $v' + strdec(lvar));
             end;
          5: begin
              AddLocalVar(jvar);
-             inc(lofs, bitness + bitness);
+             inc(loader.readp, bitness + bitness);
              writebufln('$v' + strdec(jvar) + ' := ' + strdec(lvar));
             end;
          6: begin
-             inc(lofs, dword(bitness * 3));
+             inc(loader.readp, dword(bitness * 3));
              writebufln('$v' + strdec(jvar) + ' := $v' + strdec(lvar) + ' - $v' + strdec(gutan));
             end;
          7: begin
-             inc(lofs, dword(bitness * 3));
+             inc(loader.readp, dword(bitness * 3));
              writebufln('$v' + strdec(jvar) + ' := $v' + strdec(lvar) + ' - ' + strdec(gutan));
             end;
          8: begin
-             inc(lofs, dword(bitness * 3));
+             inc(loader.readp, dword(bitness * 3));
              writebufln('$v' + strdec(jvar) + ' := $v' + strdec(lvar) + ' and $v' + strdec(gutan));
             end;
          9: begin
-             inc(lofs, dword(bitness * 3));
+             inc(loader.readp, dword(bitness * 3));
              writebufln('$v' + strdec(jvar) + ' := $v' + strdec(lvar) + ' or $v' + strdec(gutan));
             end;
          $A: begin
-              inc(lofs, bitness);
+              inc(loader.readp, bitness);
               writebuf('if $v' + strdec(jvar) + ' == 0 then ');
               if haschoices then
                writebufln('choice.go end')
@@ -2009,110 +1950,113 @@ begin
              end;
          $B,$C: begin
                  writebuf('$v' + strdec(lvar) + ' := $v' + strdec(lvar));
-                 lvar := byte((loader + lofs - 1)^);
-                 inc(lofs, bitness + bitness); dec(jvar);
+                 lvar := loader.ReadByteFrom(loader.ofs - 1);
+                 inc(loader.readp, bitness + bitness);
+                 dec(jvar);
                  while jvar <> 0 do begin
-                  if bitness = 1 then gutan := byte((loader + lofs)^) else gutan := word((loader + lofs)^);
+                  if bitness = 1
+                  then gutan := loader.ReadByte
+                  else gutan := loader.ReadWord;
+
                   if lvar = $B then writebuf(' AND $v' + strdec(gutan))
                   else writebuf(' OR $v' + strdec(gutan));
-                  inc(lofs, bitness); dec(jvar);
+                  dec(jvar);
                  end;
                  writebufln('');
                 end;
          $14: begin
-               inc(lofs, bitness + bitness);
+               inc(loader.readp, bitness + bitness);
                writebufln('$v' + strdec(jvar) + ' := rnd ' + strdec(lvar));
               end;
          $15: begin
-               inc(lofs, bitness);
+               inc(loader.readp, bitness);
                writebufln('//dummy $0B 15 play song var ' + strhex(jvar));
               end;
          $1D: begin
-               inc(lofs, dword(bitness * 3));
+               inc(loader.readp, dword(bitness * 3));
                writebufln('//dummy $0B 1D // $' + strhex(jvar) + ' $' + strhex(lvar) + ' $' + strhex(gutan));
               end;
          $32..$35: begin
                writebuf('if $v' + strdec(jvar) + ' ');
-               case byte((loader + lofs - 1)^) of
+               case loader.ReadByteFrom(loader.ofs - 1) of
                 $32: writebuf('>');
                 $33: writebuf('==');
                 $34: writebuf('<');
                 $35: writebuf('<>');
                end;
-               inc(lofs, bitness);
-               lvar := word((loader + lofs)^);
-               inc(lofs, 2);
+               inc(loader.readp, bitness);
+               lvar := loader.ReadWord;
                txt := strhex(lvar);
                while length(txt) < 4 do txt := '0' + txt;
                writebufln(' 0 then goto ."' + txt + '" end');
 
                // Make sure there's room in the jump list, and add this.
                if jumpcount + 16 >= dword(length(jumplist)) then setlength(jumplist, length(jumplist) shl 1);
-               jumplist[jumpcount] := lvar; inc(jumpcount);
+               jumplist[jumpcount] := lvar;
+               inc(jumpcount);
               end;
          $36: begin
-               txt := strhex(word((loader + lofs)^));
+               txt := strhex(loader.ReadWordFrom(loader.ofs));
                while length(txt) < 4 do txt := '0' + txt;
                writebufln('goto ."' + txt + '"');
 
                // Make sure there's room in the jump list, and add this.
                if jumpcount + 16 >= dword(length(jumplist)) then setlength(jumplist, length(jumplist) shl 1);
-               jumplist[jumpcount] := word((loader + lofs)^); inc(jumpcount);
+               jumplist[jumpcount] := loader.ReadWord; inc(jumpcount);
 
-               inc(lofs, 2);
-               if byte((loader + lofs)^) <> 0 then writebufln('');
+               if loader.ReadByteFrom(loader.ofs) <> 0 then writebufln('');
               end;
          $37: begin
-               ivar := 0; gutan := $FFFF; inc(lofs, bitness);
+               ivar := 0; gutan := $FFFF;
+               inc(loader.readp, bitness);
                writebufln('// 0B-37 multijump');
                writebuf('casecall $v' + strdec(jvar) + ' ."');
                repeat
                 // checks for undetected array ends
                 if game = gid_TASOGARE then begin
                  lvar := valx(copy(scriptname, 4, 4));
-                 if (lvar = 4831) and (lofs = $2C)
-                 or (lvar = 4252) and (lofs = $2E)
-                 or (lvar = 4250) and (lofs = $2E)
-                 or (lvar = 2101) and (lofs = $1D34)
-                 or (lvar = 1953) and (lofs = $2E)
+                 if (lvar = 4831) and (loader.ofs = $2C)
+                 or (lvar = 4252) and (loader.ofs = $2E)
+                 or (lvar = 4250) and (loader.ofs = $2E)
+                 or (lvar = 2101) and (loader.ofs = $1D34)
+                 or (lvar = 1953) and (loader.ofs = $2E)
                  then break;
                 end;
-                lvar := word((loader + lofs)^);
+                lvar := loader.ReadWordFrom(loader.ofs);
                 // To find end of array, must test each new word address for
                 // validity. Also, see if we've hit the closest of the jump
                 // addresses given, since that means the array ended already.
-                if (lvar < ptrscript) or (lvar >= loadersize) or (lofs = gutan) then break;
-                if (lvar < gutan) and (lvar > lofs) then gutan := lvar;
+                if (lvar < ptrscript) or (lvar >= loader.size) or (loader.ofs = gutan) then break;
+                if (lvar < gutan) and (lvar > loader.ofs) then gutan := lvar;
                 txt := strhex(lvar);
                 while length(txt) < 4 do txt := '0' + txt;
                 if ivar <> 0 then writebuf(':');
                 writebuf(txt);
-                inc(ivar); inc(lofs, 2);
+                inc(ivar); inc(loader.readp, 2);
 
                 // Make sure there's room in the jump list, and add this.
                 if jumpcount + 16 >= dword(length(jumplist)) then setlength(jumplist, length(jumplist) shl 1);
                 jumplist[jumpcount] := lvar; inc(jumpcount);
 
-               until (lofs >= loadersize);
+               until (loader.readp >= loader.endp);
                writebufln('"');
                writebufln('');
               end;
          $38: begin // same as 36?
-               txt := strhex(word((loader + lofs)^));
+               txt := strhex(loader.ReadWordFrom(loader.ofs));
 
                // Make sure there's room in the jump list, and add this.
                if jumpcount + 16 >= dword(length(jumplist)) then setlength(jumplist, length(jumplist) shl 1);
-               jumplist[jumpcount] := word((loader + lofs)^); inc(jumpcount);
-               inc(lofs, 2);
+               jumplist[jumpcount] := loader.ReadWord;
+               inc(jumpcount);
 
                while length(txt) < 4 do txt := '0' + txt;
                writebufln('goto ."' + txt + '" // 0B-38');
-               if byte((loader + lofs)^) <> 0 then writebufln('');
+               if loader.ReadByteFrom(loader.ofs) <> 0 then writebufln('');
               end;
          $39: begin
-               inc(lofs, bitness);
-               lvar := word((loader + lofs)^);
-               inc(lofs, 2);
+               inc(loader.readp, bitness);
+               lvar := loader.ReadWord;
                gutan := 0;
                writebuf('casecall $v' + strdec(jvar) + ' ."');
                while lvar <> $FFFF do begin
@@ -2123,10 +2067,10 @@ begin
 
                 // Make sure there's room in the jump list, and add this.
                 if jumpcount + 16 >= dword(length(jumplist)) then setlength(jumplist, length(jumplist) shl 1);
-                jumplist[jumpcount] := lvar; inc(jumpcount);
+                jumplist[jumpcount] := lvar;
+                inc(jumpcount);
 
-                lvar := word((loader + lofs)^);
-                inc(lofs, 2);
+                lvar := loader.ReadWord;
                 inc(gutan);
                end;
                writebufln('" // 0B-39');
@@ -2134,14 +2078,14 @@ begin
          $46, $47: begin
                // Followed by l word addresses pointing to strings; get user
                // choice between them, put result in var j.
-               writebufln('choice.reset // 0B-' + strhex(byte((loader + lofs - 1)^)) + ' immediate choice');
-               inc(lofs, bitness + bitness);
+               writebufln('choice.reset // 0B-' + strhex(loader.ReadByteFrom(loader.ofs - 1)) + ' immediate choice');
+               inc(loader.readp, bitness + bitness);
 
                lvar := lvar shl 16; // stick for loop tracking variable in hiword
                while lvar and $FFFF < lvar shr 16 do begin
-                ivar := word((loader + lofs + (lvar and $FFFF) * 2)^);
+                ivar := loader.ReadWordFrom(loader.ofs + (lvar and $FFFF) * 2);
 
-                txt := GetLoaderString(ivar + 1);
+                txt := loader.ReadStringFrom(ivar + 1);
                 if txt = '' then begin
                  // fetch string from cache
                  for gutan := high(stringcache) downto 0 do
@@ -2152,7 +2096,7 @@ begin
                  for gutan := high(stringcache) downto 0 do if stringcache[gutan] = '' then break;
                  stringcache[gutan] := txt;
                  word((@stringcache[gutan][62])^) := word(ivar);
-                 fillbyte((loader + ivar)^, length(txt) + 2, 0);
+                 fillbyte(loader.PtrAt(ivar)^, length(txt) + 2, 0);
                 end;
 
                 txt := capsize(txt);
@@ -2160,26 +2104,26 @@ begin
                 inc(lvar);
                end;
                lvar := lvar shr 16;
-               inc(lofs, lvar + lvar);
+               inc(loader.readp, lvar + lvar);
                writebufln('$v' + strdec(jvar) + ' := (choice.get)');
               end;
          $49: begin
                // Four variable numbers, followed by l word addresses
                // pointing to strings; get user choice, put result in var j.
-               inc(lofs, dword(bitness * 3));
+               inc(loader.readp, bitness * 3);
                writebufln('choice.reset // 0B-49 bitmasked immediate choice');
                // gutan is already the 3rd variable, but it's always set to 0
                // and is never checked afterward, so ignore it.
                // we grab the 4th var into ptrnil. It's the choice bitmask.
-               if bitness = 1 then ptrnil := byte((loader + lofs)^)
-               else ptrnil := word((loader + lofs)^);
-               inc(lofs, bitness);
+               if bitness = 1
+               then ptrnil := loader.ReadByte
+               else ptrnil := loader.ReadWord;
 
                lvar := lvar shl 16; // stick for loop tracking variable in hiword
                while lvar and $FFFF < lvar shr 16 do begin
-                ivar := word((loader + lofs + (lvar and $FFFF) * 2)^);
+                ivar := loader.ReadWordFrom(loader.ofs + (lvar and $FFFF) * 2);
 
-                txt := GetLoaderString(ivar + 1);
+                txt := loader.ReadStringFrom(ivar + 1);
                 if txt = '' then begin
                  // fetch string from cache
                  for gutan := high(stringcache) downto 0 do
@@ -2190,7 +2134,7 @@ begin
                  for gutan := high(stringcache) downto 0 do if stringcache[gutan] = '' then break;
                  stringcache[gutan] := txt;
                  word((@stringcache[gutan][62])^) := word(ivar);
-                 fillbyte((loader + ivar)^, length(txt) + 2, 0);
+                 fillbyte(loader.PtrAt(ivar)^, length(txt) + 2, 0);
                 end;
 
                 txt := capsize(txt);
@@ -2200,16 +2144,16 @@ begin
                 inc(lvar);
                end;
                lvar := lvar shr 16;
-               inc(lofs, lvar + lvar);
+               inc(loader.readp, lvar + lvar);
                writebufln('$v' + strdec(jvar) + ' := (choice.get)');
               end;
 
          $4B: begin // followed by yy pairs of word addresses
-               inc(lofs, bitness);
+               inc(loader.readp, bitness);
                writebufln('choice.reset // 0B-4B immediate choice');
                while jvar <> 0 do begin
-                lvar := word((loader + lofs)^); inc(lofs, 2);
-                txt := GetLoaderString(lvar + 1);
+                lvar := loader.ReadWord;
+                txt := loader.ReadStringFrom(lvar + 1);
                 if txt = '' then begin
                  // fetch string from cache
                  for gutan := high(stringcache) downto 0 do
@@ -2220,10 +2164,10 @@ begin
                  for gutan := high(stringcache) downto 0 do if stringcache[gutan] = '' then break;
                  stringcache[gutan] := txt;
                  word((@stringcache[gutan][62])^) := word(lvar);
-                 fillbyte((loader + lvar)^, length(txt) + 2, 0);
+                 fillbyte(loader.PtrAt(lvar)^, length(txt) + 2, 0);
                 end;
                 txt := capsize(txt);
-                lvar := word((loader + lofs)^); inc(lofs, 2);
+                lvar := loader.ReadWord;
                 writebuf('choice.set "' + txt + '" ."');
                 txt := strhex(lvar);
                 while length(txt) < 4 do txt := '0' + txt;
@@ -2231,40 +2175,34 @@ begin
 
                 // Make sure there's room in the jump list, and add this.
                 if jumpcount + 16 >= dword(length(jumplist)) then setlength(jumplist, length(jumplist) shl 1);
-                jumplist[jumpcount] := lvar; inc(jumpcount);
+                jumplist[jumpcount] := lvar;
+                inc(jumpcount);
 
                 dec(jvar);
                end;
-               //if byte((loader + lofs)^) <> 0 then begin
+               //if loader.ReadByteFrom(loader.ofs) <> 0 then begin
                 writebufln('choice.go');
                //end;
               end;
-         else begin
-          Decomp_JastOvl := 'Unknown $B subcode $' + strhex(byte((loader + lofs - 1)^)) + ' @ $' + strhex(lofs - 2);
-          exit;
-         end;
+         else
+          raise Exception.Create('Unknown $B subcode $' + strhex(loader.ReadByteFrom(loader.ofs - 1)) + ' @ $' + strhex(loader.ofs - 2));
         end;
        end;
 
    // 0C - Global variable functions
    $C: begin
-        case byte((loader + lofs)^) of
+        case loader.ReadByte of
          1: begin
-             writebuf('$v' + strdec(byte((loader + lofs + 1)^)) + ' := $v' + strdec(byte((loader + lofs + 2)^) + 256));
-             inc(lofs, 3);
+             writebuf('$v' + strdec(loader.ReadByte) + ' := $v' + strdec(loader.ReadByte + 256));
             end;
          2: begin
-             writebuf('$v' + strdec(byte((loader + lofs + 1)^) + 256) + ' := $v' + strdec(byte((loader + lofs + 2)^)));
-             inc(lofs, 3);
+             writebuf('$v' + strdec(loader.ReadByte + 256) + ' := $v' + strdec(loader.ReadByte));
             end;
          3: begin
-             writebuf('$v' + strdec(byte((loader + lofs + 1)^) + 256) + ' := ' + strdec(byte((loader + lofs + 2)^)));
-             inc(lofs, 3);
+             writebuf('$v' + strdec(loader.ReadByte + 256) + ' := ' + strdec(loader.ReadByte));
             end;
-         else begin
-          Decomp_JastOvl := 'Unknown $C subcode $' + strhex(byte((loader + lofs)^)) + ' @ $' + strhex(lofs);
-          exit;
-         end;
+         else
+          raise Exception.Create('Unknown $C subcode $' + strhex(loader.ReadByte) + ' @ $' + strhex(loader.ofs - 1));
         end;
         writebufln('');
        end;
@@ -2274,104 +2212,88 @@ begin
          gid_DEEP: begin
           writebuf('//dummy 0D');
           for jvar := 2 downto 0 do begin
-           writebuf('-$' + strhex(byte((loader + lofs)^)));
-           inc(lofs);
+           writebuf('-$' + strhex(loader.ReadByte));
           end;
           writebufln('');
          end;
 
          gid_PARFAIT: begin
-          inc(lofs);
-          case byte((loader + lofs - 1)^) of // xx
+          case loader.ReadByte of // xx
            $02: begin
                  writebuf('//dummy 0D-02 // data words');
                  for jvar := 3 downto 0 do begin
-                  txt := strhex(word((loader + lofs)^));
+                  txt := strhex(loader.ReadWord);
                   while length(txt) < 4 do txt := '0' + txt;
                   writebuf(' $' + txt);
-                  inc(lofs, 2);
                  end;
                  writebufln('');
                 end;
            $09: begin
-                 writebuf('//dummy 0D-09 // gfx.transition? $' + strhex(byte((loader + lofs)^)));
-                 inc(lofs);
+                 writebuf('//dummy 0D-09 // gfx.transition? $' + strhex(loader.ReadByte));
                  writebufln('');
                 end;
            $0A: begin
-                 txt := GetLoaderString(lofs);
-                 inc(lofs, dword(length(txt) + 1));
-                 gutan := word((loader + lofs)^); inc(lofs, 2); // unk
-                 jvar := word((loader + lofs)^); inc(lofs, 2); // locx
-                 lvar := word((loader + lofs)^); inc(lofs, 2); // locy
+                 txt := loader.ReadString;
+                 gutan := loader.ReadWord; // unk
+                 jvar := loader.ReadWord; // locx
+                 lvar := loader.ReadWord; // locy
                  writebuf('gfx.show type anim');
                  if jvar <> 0 then writebuf(' ofsx ' + strdec(jvar));
                  if lvar <> 0 then writebuf(' ofsy ' + strdec(lvar));
                  writebuf(' ' + txt + ' // unk word $' + strhex(gutan));
-                 inc(lofs, 4);
+                 inc(loader.readp, 4);
                  repeat
-                  jvar := word((loader + lofs)^); inc(lofs, 2);
+                  jvar := loader.ReadWord;
                  until jvar = $FFFF;
                  writebufln('');
                 end;
            $0B: writebufln('//dummy 0D-0B // gfx.clearkids?');
-           else begin
-            Decomp_JastOvl := 'Unknown $D subcode $' + strhex(byte((loader + lofs - 1)^)) + ' @ $' + strhex(lofs - 2);
-            exit;
-           end;
+           else
+            raise Exception.Create('Unknown $D subcode $' + strhex(loader.ReadByteFrom(loader.ofs - 1)) + ' @ $' + strhex(loader.ofs - 2));
           end;
          end;
-         else begin
-          Decomp_JastOvl := 'Unknown code $0D @ $' + strhex(lofs - 1);
-          exit;
-         end;
+         else
+          raise Exception.Create('Unknown code $0D @ $' + strhex(loader.ofs - 1));
         end;
    $0E: case game of // graphic panning
 
          gid_ANGELSCOLLECTION1, gid_ANGELSCOLLECTION2, gid_TRANSFER98:
          begin
-          jvar := byte((loader + lofs)^);
-          inc(lofs);
+          jvar := loader.ReadByte;
           writebufln('// fx.move $' + strhex(jvar));
          end;
 
          gid_MAJOKKO: begin
-          jvar := byte((loader + lofs)^);
-          inc(lofs);
+          jvar := loader.ReadByte;
           writebufln('// slidegob!');
          end;
 
          gid_DEEP: begin
-          jvar := byte((loader + lofs)^);
-          inc(lofs);
+          jvar := loader.ReadByte;
           writebufln('//dummy $0E ' + strhex(jvar) + ' // pan image?');
          end;
 
          gid_PARFAIT: begin
-          jvar := word((loader + lofs)^);
-          inc(lofs, 2);
+          jvar := loader.ReadWord;
           writebufln('//dummy $0E ' + strhex(jvar) + ' // transition? pan?');
          end;
 
-         else begin
-          Decomp_JastOvl := 'Unknown code $0E @ $' + strhex(lofs);
-          exit;
-         end;
+         else
+          raise Exception.Create('Unknown code $0E @ $' + strhex(loader.ofs));
         end;
    // 0F xx - happy ending!
    $0F: case game of
          gid_SAKURA, gid_SAKURA98, gid_MAJOKKO,
          gid_ANGELSCOLLECTION2, gid_EDEN:
          begin
-          jvar := byte((loader + lofs)^);
-          if jvar <> 0 then inc(lofs);
+          jvar := loader.ReadByte;
+          if jvar = 0 then dec(loader.readp);
           writebufln('$v512 := ' + strdec(jvar));
           writebufln('call ENDINGS.');
          end;
 
          gid_FROMH: begin
-          txt := GetLoaderString(lofs);
-          inc(lofs, dword(length(txt) + 1));
+          txt := loader.ReadString;
           writebufln('gfx.clearkids');
           writebufln('gfx.show ' + txt + ' bkg');
           writebufln('gfx.transition 4');
@@ -2389,7 +2311,7 @@ begin
          gid_TASOGARE: begin // ending credits sequence
           writebufln('$v900 := 2000');
           repeat
-           jvar := byte((loader + lofs)^); inc(lofs);
+           jvar := loader.ReadByte;
            writebufln('gfx.clearkids');
            case jvar of
             1: writebuf('gfx.show type bkg ');
@@ -2397,25 +2319,22 @@ begin
             4: continue;
             else break;
            end;
-           txt := GetLoaderString(lofs);
-           inc(lofs, dword(length(txt) + 1));
+           txt := loader.ReadString;
            writebufln(txt);
            writebufln('gfx.transition 4');
            writebufln('sleep 7000');
-          until lofs >= loadersize;
+          until loader.readp >= loader.endp;
          end;
 
-         else begin
-          Decomp_JastOvl := 'Unknown code $0F @ $' + strhex(lofs);
-          exit;
-         end;
+         else
+          raise Exception.Create('Unknown code $0F @ $' + strhex(loader.ofs));
         end;
 
    // 10 - unhappy ending!
    $10: begin
          writebufln('$v512 := 255');
          writebufln('call ENDINGS.');
-         if lofs + 1 < loadersize then writebufln('');
+         if loader.ofs + 1 < loader.size then writebufln('');
         end;
 
    // 11 xx - lots of commands
@@ -2423,14 +2342,14 @@ begin
          writebufln('//dummy $11');
         end else
         begin
-         jvar := byte((loader + lofs)^); inc(lofs);
+         jvar := loader.ReadByte;
          case jvar of
           $02: case game of
                 gid_3SIS, gid_3SIS98, gid_RUNAWAY, gid_RUNAWAY98:
                 begin
                  if implicitwaitkey = 0 then inc(implicitwaitkey);
                  if persistence = FALSE then writebufln('gfx.clearkids');
-                 lvar := byte((loader + lofs)^); inc(lofs);
+                 lvar := loader.ReadByte;
                  if (gfxlist[lvar].data2 = $50) and (gfxlist[lvar].data1 <> 0)
                  and (gfxlist[lvar].gfxname <> 'TB_000') and (blackedout = FALSE)
                  then begin
@@ -2462,38 +2381,30 @@ begin
                  persistence := TRUE;
                 end;
                 gid_VANISH: begin
-                 lvar := byte((loader + lofs)^); inc(lofs);
+                 lvar := loader.ReadByte;
                  writebufln('// battle? #' + strdec(lvar));
                 end;
-                else begin
-                 Decomp_JastOvl := 'Unknown code $11-02 @ $' + strhex(lofs);
-                 exit;
-                end;
+                else
+                 raise Exception.Create('Unknown code $11-02 @ $' + strhex(loader.ofs));
                end;
           $03: case game of
                 gid_VANISH: begin
-                 writebuf('//dummy $11-03 ' + strhex(byte((loader + lofs)^)));
-                 inc(lofs);
+                 writebuf('//dummy $11-03 ' + strhex(loader.ReadByte));
                  writebufln('');
                 end;
-                else begin
-                 Decomp_JastOvl := 'Unknown code $11-03 @ $' + strhex(lofs);
-                 exit;
-                end;
+                else
+                 raise Exception.Create('Unknown code $11-03 @ $' + strhex(loader.ofs));
                end;
           $04: case game of
                 gid_TASOGARE: begin
                  writebufln('// sys.savegame');
                 end;
                 gid_VANISH: begin
-                 writebuf('//dummy $11-04: var ' + strdec(byte((loader + lofs)^)) + ' with value ' + strdec(byte((loader + lofs + 1)^)) + '?');
-                 inc(lofs, 2);
+                 writebuf('//dummy $11-04: var ' + strdec(loader.ReadByte) + ' with value ' + strdec(loader.ReadByte) + '?');
                  writebufln('');
                 end;
-                else begin
-                 Decomp_JastOvl := 'Unknown code $11-04 @ $' + strhex(lofs);
-                 exit;
-                end;
+                else
+                 raise Exception.Create('Unknown code $11-04 @ $' + strhex(loader.ofs));
                end;
           // Name entry
           $05: case game of
@@ -2503,80 +2414,71 @@ begin
                 gid_VANISH: begin
                  writebufln('sys.quit');
                 end;
-                else begin
-                 Decomp_JastOvl := 'Unknown code $11-05 @ $' + strhex(lofs);
-                 exit;
-                end;
+                else
+                 raise Exception.Create('Unknown code $11-05 @ $' + strhex(loader.ofs));
                end;
           $06: case game of
                 gid_EDEN: begin
-                 writebufln('$v600 := ' + strdec(byte((loader + lofs)^)));
-                 inc(lofs);
+                 writebufln('$v600 := ' + strdec(loader.ReadByte));
                  writebufln('call NEWMAP.');
                 end;
                 gid_FROMH, gid_TASOGARE: begin
-                 writebuf('// mark graphic ' + strdec(byte((loader + lofs)^)) + ' as seen');
-                 inc(lofs);
+                 writebuf('// mark graphic ' + strdec(loader.ReadByte) + ' as seen');
                  writebufln('');
                 end;
-                else begin
-                 Decomp_JastOvl := 'Unknown code $11-06 @ $' + strhex(lofs);
-                 exit;
-                end;
+                else
+                 raise Exception.Create('Unknown code $11-06 @ $' + strhex(loader.ofs));
                end;
 
           $07: case game of
                 gid_FROMH, gid_TASOGARE: begin
-                 writebuf('// $v' + strdec(byte((loader + lofs)^)) + ' := GraphicSeen(v' + strdec(byte((loader + lofs + 1)^)) + ')');
-                 inc(lofs, 2);
+                 writebuf('// $v' + strdec(loader.ReadByte) + ' := GraphicSeen(v' + strdec(loader.ReadByte) + ')');
                  writebufln('');
                 end;
-                else begin
-                 Decomp_JastOvl := 'Unknown code $11-07 @ $' + strhex(lofs);
-                 exit;
-                end;
+                else
+                 raise Exception.Create('Unknown code $11-07 @ $' + strhex(loader.ofs));
                end;
 
           $08: case game of
                 gid_TASOGARE: begin
-                 lvar := byte((loader + lofs)^); inc(lofs);
+                 lvar := loader.ReadByte;
                  writebufln('// fade to black and back over ' + strdec(lvar) + ' desisecs');
                 end;
-                else begin
-                 Decomp_JastOvl := 'Unknown code $11-08 @ $' + strhex(lofs);
-                 exit;
-                end;
+                else
+                 raise Exception.Create('Unknown code $11-08 @ $' + strhex(loader.ofs));
                end;
 
           $09: case game of // clickable map!
                 gid_FROMH: begin
-                 lvar := byte((loader + lofs)^); inc(lofs);
+                 lvar := loader.ReadByte;
                  writebufln('// 11-09 data=' + strdec(lvar));
                  for gutan := 0 to 11 do begin
                   writebuf('$v' + strdec(601 + gutan) + ' := ');
-                  lvar := word((loader + lofs + gutan * 2)^);
+                  lvar := loader.ReadWordFrom(loader.ofs + gutan + gutan);
                   if lvar = 0 then writebufln('0')
                   else begin
                    writebufln('1');
-                   writebufln('$s' + strdec(11 + gutan) + ' := ~"' + GetLoaderString(lvar) + '"');
+                   writebufln('$s' + strdec(11 + gutan) + ' := ~"' + loader.ReadStringFrom(lvar) + '"');
                   end;
                  end;
                  writebufln('call NEWMAP.');
                  writebuf('case $v600; ."');
                  for gutan := 0 to 11 do begin
-                  lvar := word((loader + lofs)^);
+                  lvar := loader.ReadWordFrom(loader.ofs);
                   if lvar = 0 then lvar := ptrscript else begin
-                   while (lvar < loadersize) and (byte((loader + lvar)^) <> 0) do begin
-                    byte((loader + lvar)^) := 0; inc(lvar);
+                   while (lvar < loader.size) and (loader.ReadByteFrom(lvar) <> 0) do begin
+                    byte(loader.PtrAt(lvar)^) := 0; inc(lvar);
                    end;
                    inc(lvar);
                   end;
 
                   // Make sure there's room in the jump list, and add this.
                   if jumpcount + 16 >= dword(length(jumplist)) then setlength(jumplist, length(jumplist) shl 1);
-                  jumplist[jumpcount] := lvar; inc(jumpcount);
+                  jumplist[jumpcount] := lvar;
+                  inc(jumpcount);
 
-                  txt := strhex(lvar); inc(lofs, 2);
+                  txt := strhex(lvar);
+                  inc(loader.readp, 2);
                   while length(txt) < 4 do txt := '0' + txt;
                   if gutan <> 0 then writebuf(':');
                   writebuf(txt);
@@ -2588,93 +2490,88 @@ begin
                  writebufln('// 11-09 map');
                  for gutan := 0 to 12 do begin
                   writebuf('$v' + strdec(601 + gutan) + ' := ');
-                  lvar := word((loader + lofs + gutan * 2)^);
-                  if byte((loader + lvar)^) = $FF then writebufln('0')
+                  lvar := loader.ReadWordFrom(loader.ofs + gutan + gutan);
+                  if loader.ReadByteFrom(lvar) = $FF then writebufln('0')
                   else begin
                    writebufln('1');
-                   writebufln('$s' + strdec(11 + gutan) + ' := ~"' + GetLoaderString(lvar + 1) + '"');
+                   writebufln('$s' + strdec(11 + gutan) + ' := ~"' + loader.ReadStringFrom(lvar + 1) + '"');
                   end;
                  end;
                  writebufln('@mapentry: call NEWMAP.');
                  writebuf('case $v600; ."');
                  for gutan := 0 to 12 do begin
-                  lvar := word((loader + lofs)^); jvar := $FFFF;
-                  if byte((loader + lvar)^) = $FF then jvar := ptrscript;
-                  byte((loader + lvar)^) := 0; inc(lvar);
-                  while (lvar < loadersize) and (byte((loader + lvar)^) <> 0) do begin
-                   byte((loader + lvar)^) := 0; inc(lvar);
+                  lvar := loader.ReadWordFrom(loader.ofs);
+                  jvar := $FFFF;
+                  if loader.ReadByteFrom(lvar) = $FF then jvar := ptrscript;
+                  byte(loader.PtrAt(lvar)^) := 0;
+                  inc(lvar);
+
+                  while (lvar < loader.size) and (loader.ReadByteFrom(lvar) <> 0) do begin
+                   byte(loader.PtrAt(lvar)^) := 0;
+                   inc(lvar);
                   end;
                   inc(lvar);
                   if jvar <> $FFFF then lvar := jvar;
 
                   // Make sure there's room in the jump list, and add this.
                   if jumpcount + 16 >= dword(length(jumplist)) then setlength(jumplist, length(jumplist) shl 1);
-                  jumplist[jumpcount] := lvar; inc(jumpcount);
+                  jumplist[jumpcount] := lvar;
+                  inc(jumpcount);
 
-                  txt := strhex(lvar); inc(lofs, 2);
+                  txt := strhex(lvar);
+                  inc(loader.readp, 2);
                   while length(txt) < 4 do txt := '0' + txt;
                   if gutan <> 0 then writebuf(':');
                   writebuf(txt);
                  end;
                  writebufln('"');
                 end;
-                else begin
-                 Decomp_JastOvl := 'Unknown code $11-09 @ $' + strhex(lofs);
-                 exit;
-                end;
+                else
+                 raise Exception.Create('Unknown code $11-09 @ $' + strhex(loader.ofs));
                end;
 
           $0B: case game of
                 gid_TASOGARE: begin
                  writebufln('gfx.clearkids // 11-0B');
                 end;
-                else begin
-                 Decomp_JastOvl := 'Unknown code $11-0B @ $' + strhex(lofs);
-                 exit;
-                end;
+                else
+                 raise Exception.Create('Unknown code $11-0B @ $' + strhex(loader.ofs));
                end;
 
           $0C: case game of
                 gid_TASOGARE: begin
                  writebufln('//dummy $11-0C // push player one square backward');
                 end;
-                else begin
-                 Decomp_JastOvl := 'Unknown code $11-0C @ $' + strhex(lofs);
-                 exit;
-                end;
+                else
+                 raise Exception.Create('Unknown code $11-0C @ $' + strhex(loader.ofs));
                end;
 
           $0E: case game of
                 gid_HOHOEMI: begin
-                 writebuf('// mark graphic ' + strdec(byte((loader + lofs)^)) + ' as seen');
-                 inc(lofs);
+                 writebuf('// mark graphic ' + strdec(loader.ReadByte) + ' as seen');
                  writebufln('');
                 end;
-                else begin
-                 Decomp_JastOvl := 'Unknown code $11-0E @ $' + strhex(lofs);
-                 exit;
-                end;
+                else
+                 raise Exception.Create('Unknown code $11-0E @ $' + strhex(loader.ofs));
                end;
 
           $10: case game of
                 gid_TASOGARE: begin
-                 writebuf('//dummy $11-10 // change cell ' + strdec(byte((loader + lofs + 1)^)) + ',' + strdec(byte((loader + lofs)^)) + ' to $' + strhex(byte((loader + lofs + 2)^)));
-                 inc(lofs, 3);
+                 lvar := loader.ReadByte;
+                 jvar := loader.ReadByte;
+                 writebuf('//dummy $11-10 // change cell ' + strdec(jvar) + ',' + strdec(lvar) + ' to $' + strhex(loader.ReadByte));
                  writebufln('');
                 end;
-                else begin
-                 Decomp_JastOvl := 'Unknown code $11-10 @ $' + strhex(lofs);
-                 exit;
-                end;
+                else
+                 raise Exception.Create('Unknown code $11-10 @ $' + strhex(loader.ofs));
                end;
 
           $11,$12: case game of
                 gid_TASOGARE: begin
-                 gutan := byte((loader + lofs)^); inc(lofs);
-                 lvar := byte((loader + lofs)^); inc(lofs);
+                 gutan := loader.ReadByte;
+                 lvar := loader.ReadByte;
                  writebufln('// 11-' + strhex(jvar) + ', data bytes: $' + strhex(gutan) + ', ' + strhex(lvar));
-                 txt := upcase(GetLoaderString(lofs));
-                 inc(lofs, dword(length(txt) + 1));
+                 txt := upcase(loader.ReadString);
                  if txt[length(txt)] = 'X' then begin
                   txt := copy(txt, 1, length(txt) - 2);
                   writebufln('gfx.show type sprite ' + txt);
@@ -2682,53 +2579,44 @@ begin
                  end;
                  writebufln('gfx.show type sprite ' + txt);
                 end;
-                else begin
-                 Decomp_JastOvl := 'Unknown code $11-' + strhex(jvar) + ' @ $' + strhex(lofs);
-                 exit;
-                end;
+                else
+                 raise Exception.Create('Unknown code $11-' + strhex(jvar) + ' @ $' + strhex(loader.ofs));
                end;
-          else begin
-           Decomp_JastOvl := 'Unknown code $11-' + strhex(jvar) + ' @ $' + strhex(lofs);
-           exit;
-          end;
+          else
+           raise Exception.Create('Unknown code $11-' + strhex(jvar) + ' @ $' + strhex(loader.ofs));
          end;
 
         end;
 
    // 12 xx - Option functions - at script init all options default to ON
    $12: begin
-         jvar := byte((loader + lofs + 1)^);
-         lvar := byte((loader + lofs + 2)^);
-         if jvar > dword(high(optionlist)) then begin
-          Decomp_JastOvl := '$12 requested text outside optionlist! @ $' + strhex(lofs);
-          exit;
-         end;
-         if optionlist[jvar].verbtext = '' then begin
-          writebuf('// no such choice: $' + strhex(jvar) + ' // ');
-          Decomp_JastOvl := 'Choice verb not defined @ $' + strhex(lofs);
-          exit;
-         end;
-         case byte((loader + lofs)^) of
+         jvar := loader.ReadByteFrom(loader.ofs + 1);
+         lvar := loader.ReadByteFrom(loader.ofs + 2);
+         if jvar > dword(high(optionlist)) then
+          raise Exception.Create('$12 requested text outside optionlist! @ $' + strhex(loader.ofs));
+
+         if optionlist[jvar].verbtext = '' then
+          raise Exception.Create('Choice verb $' + strhex(jvar) + ' not defined @ $' + strhex(loader.ofs));
+
+         case loader.ReadByteFrom(loader.ofs) of
           1: begin
-              inc(lofs, 2);
+              inc(loader.readp, 2);
               writebufln('choice.off "' + optionlist[jvar].verbtext + '"');
              end;
           2: begin
-              inc(lofs, 2);
+              inc(loader.readp, 2);
               writebufln('choice.on "' + optionlist[jvar].verbtext + '"');
              end;
           4: begin
-              inc(lofs, 3);
+              inc(loader.readp, 3);
               writebufln('choice.off "' + optionlist[jvar].verbtext + ':' + optionlist[jvar].subjecttext[lvar] + '"');
              end;
           5: begin
-              inc(lofs, 3);
+              inc(loader.readp, 3);
               writebufln('choice.on "' + optionlist[jvar].verbtext + ':' + optionlist[jvar].subjecttext[lvar] + '"');
              end;
-          else begin
-           Decomp_JastOvl := 'Unknown code $12 ' + strhex(byte((loader + lofs)^)) + ' @ $' + strhex(lofs);
-           exit;
-          end;
+          else
+           raise Exception.Create('Unknown code $12 ' + strhex(loader.ReadByte) + ' @ $' + strhex(loader.ofs));
          end;
         end;
 
@@ -2748,26 +2636,19 @@ begin
           nextgra.transition := $FF;
           // Parse the 13 xxxxx string
           repeat
-           jvar := byte((loader + lofs)^);
-           inc(lofs);
+           jvar := loader.ReadByte;
            case jvar of
             $01..$04: nextgra.style := nextgra.style or (1 shl jvar);
             $11: nextgra.style := nextgra.style or $8000;
             $00, $05..$0A, $14: ;
             $0B,$0C: writebufln('// 13 has ' + strhex(jvar));
-            $0D: begin
-                  nextgra.ofsx := word((loader + lofs)^) * 8;
-                  inc(lofs, 2);
-                 end;
+            $0D: nextgra.ofsx := loader.ReadWord * 8;
             $0E: begin
-                  nextgra.transition := byte((loader + lofs)^);
-                  inc(lofs);
+                  nextgra.transition := loader.ReadByte;
                   if nextgra.transition >= $32 then dec(nextgra.transition, $32)
                   else if nextgra.transition = 0 then nextgra.transition := 10
-                  else begin
-                   Decomp_JastOvl := 'Encountered transition $' + strhex(nextgra.transition) + ' @ $' + strhex(lofs);
-                   exit;
-                  end;
+                  else
+                   raise Exception.Create('Encountered transition $' + strhex(nextgra.transition) + ' @ $' + strhex(loader.ofs));
                  end;
             $0F: begin
                   if stashactive then writebuf('gfx.clearkids TB_008')
@@ -2784,10 +2665,8 @@ begin
                   inc(byte(txt[0]));
                   txt[byte(txt[0])] := chr(jvar);
                  end;
-            else begin
-                  Decomp_JastOvl := 'Unknown code $13 ' + strhex(jvar) + ' @ $' + strhex(lofs);
-                  exit;
-                 end;
+            else
+             raise Exception.Create('Unknown code $13 ' + strhex(jvar) + ' @ $' + strhex(loader.ofs));
            end;
           until jvar in [$00, $0F, $10];
           // Draw a background with no name = pop state
@@ -2823,10 +2702,8 @@ begin
            if nextgra.style and 2 <> 0 then writebuf(' name ' + txt + '..') else
            if nextgra.style and 8 <> 0 then writebuf(' sprite') else
            if nextgra.style and 16 <> 0 then writebuf(' bkg') else
-           begin
-            Decomp_JastOvl := 'Draw graphic without style @ $' + strhex(lofs);
-            exit;
-           end;
+            raise Exception.Create('Draw graphic without style @ $' + strhex(loader.ofs));
+
            if nextgra.ofsx <> 0 then begin
             jvar := BaseResX;
             gutan := seekpng(txt, FALSE);
@@ -2860,19 +2737,19 @@ begin
          // weird graphics thing
          gid_PARFAIT: begin
           writebuf('//dummy $13');
-          while lofs < loadersize do begin
-           jvar := byte((loader + lofs)^);
+          while loader.ofs < loader.size do begin
+           jvar := loader.ReadByteFrom(loader.ofs);
            if jvar > $20 then begin
-                       writebuf(' ');
-                       repeat
-                        jvar := byte((loader + lofs)^); inc(lofs);
-                        if jvar = 0 then break;
-                        writebuf(chr(jvar));
-                       until lofs >= loadersize;
+            writebuf(' ');
+            repeat
+             jvar := loader.ReadByte;
+             if jvar = 0 then break;
+             writebuf(chr(jvar));
+            until loader.readp >= loader.endp;
            end else begin
-            writebuf(' $' + strhex(jvar)); inc(lofs);
+            writebuf(' $' + strhex(jvar)); inc(loader.readp);
             case jvar of
-             0,1,$10: lvar := 1;
+             0, 1, $10: lvar := 1;
              2: lvar := 2;
              9: lvar := 0;
              $B: lvar := 4;
@@ -2882,10 +2759,10 @@ begin
              else lvar := 0;
             end;
             while lvar <> 0 do begin
-             txt := strhex(byte((loader + lofs)^));
+             txt := strhex(loader.ReadByte);
              if length(txt) = 1 then txt := '0' + txt;
              writebuf(' ' + txt);
-             inc(lofs); dec(lvar);
+             dec(lvar);
             end;
            end;
            if jvar in [0,1,$10,$33..$7F] then break;
@@ -2896,7 +2773,7 @@ begin
          // Smash/Flash, always combined in these older games
          gid_3SIS, gid_3SIS98, gid_RUNAWAY, gid_RUNAWAY98:
          begin
-          jvar := byte((loader + lofs)^); inc(lofs);
+          jvar := loader.ReadByte;
           writebufln('gfx.flash ' + strdec(jvar) + ' 1');
           lvar := 2; while lvar * lvar < jvar do inc(lvar);
           lvar := (lvar - 1) shr 1;
@@ -2913,10 +2790,8 @@ begin
           end;
          end;
 
-         else begin
-          Decomp_JastOvl := 'Unknown code $13 ' + strhex(byte((loader + lofs + 1)^)) + ' @ $' + strhex(lofs);
-          exit;
-         end;
+         else
+          raise Exception.Create('Unknown code $13 ' + strhex(loader.ReadByteFrom(loader.ofs + 1)) + ' @ $' + strhex(loader.ofs));
         end;
 
    // 14 - Variable reset; or, kill the overlay, restore the background
@@ -2924,52 +2799,45 @@ begin
          gid_HOHOEMI, gid_EDEN, gid_FROMH, gid_MAJOKKO,
          gid_SAKURA, gid_SAKURA98, gid_TASOGARE:
          begin
-          inc(lofs);
-          case byte((loader + lofs - 1)^) of
+          case loader.ReadByte of
            // Reset global variables
            1: begin
-               jvar := byte((loader + lofs)^); inc(lofs);
+               jvar := loader.ReadByte;
                while jvar <> 0 do begin
-                writebufln('$v' + strdec(byte((loader + lofs)^) + 256) + ' := 0');
-                inc(lofs); dec(jvar);
+                writebufln('$v' + strdec(loader.ReadByte + 256) + ' := 0');
+                dec(jvar);
                end;
                writebufln('');
               end;
            // Black out screen for a bit
            3: begin
                writebufln('gfx.show TB_000');
-               jvar := byte((loader + lofs)^); inc(lofs);
+               jvar := loader.ReadByte;
                case jvar of // some black-out transitions are not standard
-                $32,$3B: jvar := 0;
+                $32, $3B: jvar := 0;
                 $39: jvar := 1;
                 $3D: jvar := 2;
-                $36,$37,$38,$3A,$3C: jvar := 3;
-                else begin
-                 Decomp_JastOvl := 'Encountered transition $' + strhex(jvar) + ' @ $' + strhex(lofs);
-                 exit;
-                end;
+                $36, $37, $38, $3A, $3C: jvar := 3;
+                else
+                 raise Exception.Create('Encountered transition $' + strhex(jvar) + ' @ $' + strhex(loader.ofs));
                end;
                writebufln('gfx.transition ' + strdec(jvar));
                writebufln('sleep');
                blackedout := TRUE; nextgra.unswiped := 0;
               end;
-           else begin
-            Decomp_JastOvl := 'Unknown code $14 ' + strhex(byte((loader + lofs)^)) + ' @ $' + strhex(lofs);
-            exit;
-           end;
+           else
+            raise Exception.Create('Unknown code $14 ' + strhex(loader.ReadByte) + ' @ $' + strhex(loader.ofs));
           end;
          end;
 
          gid_3SIS, gid_3SIS98, gid_RUNAWAY, gid_RUNAWAY98:
          begin
-          jvar := byte((loader + lofs)^); inc(lofs);
+          jvar := loader.ReadByte;
           writebufln('sleep ' + strdec(jvar * 100));
          end;
 
-         else begin
-          Decomp_JastOvl := 'Unknown code $14 @ $' + strhex(lofs);
-          exit;
-         end;
+         else
+          raise Exception.Create('Unknown code $14 @ $' + strhex(loader.ofs));
         end;
 
    // 15 xx - Handle animations
@@ -2977,25 +2845,23 @@ begin
          gid_EDEN, gid_FROMH, gid_HOHOEMI, gid_MAJOKKO,
          gid_PARFAIT, gid_SAKURA, gid_SAKURA98, gid_TASOGARE:
          begin
-          jvar := byte((loader + lofs)^);
-          inc(lofs);
+          jvar := loader.ReadByte;
           case jvar of
            // 01 - Read anim into slot yy, with an offset
            // 02 - Read anim into slot yy, without offset
            $01, $02: begin
-               lvar := byte((loader + lofs)^) mod length(animslot);
-               inc(lofs);
+               lvar := loader.ReadByte mod length(animslot);
                if animslot[lvar].displayed then begin
                 writebufln('gfx.remove ' + animslot[lvar].namu + ' // old slot ' + strdec(lvar));
                 //if game <> gid_MAJOKKO then writebufln('gfx.transition 0');
                end;
                animslot[lvar].ofsx := 0;
-               if byte((loader + lofs)^) = $0D then begin
-                animslot[lvar].ofsx := word((loader + lofs + 1)^) * 8;
-                inc(lofs, 3);
+               if loader.ReadByteFrom(loader.ofs) = $0D then begin
+                inc(loader.readp);
+                animslot[lvar].ofsx := loader.ReadWord * 8;
                end;
-               animslot[lvar].namu := GetLoaderString(lofs);
-               inc(lofs, dword(length(animslot[lvar].namu) + 1));
+
+               animslot[lvar].namu := loader.ReadString;
                // clean the animname string of illegal chars
                for jvar := length(animslot[lvar].namu) downto 1 do
                 if animslot[lvar].namu[jvar] in ['!'..'z'] = FALSE then
@@ -3023,12 +2889,10 @@ begin
               end;
            // 03 - Display animation from slot yy
            3: begin
-               lvar := byte((loader + lofs)^) mod length(animslot);
-               inc(lofs);
-               if animslot[lvar].namu = '' then begin
-                Decomp_JastOvl := 'Animslot ' + strdec(lvar) + ' used while undefined @ $' + strhex(lofs - 3);
-                exit;
-               end;
+               lvar := loader.ReadByte mod length(animslot);
+               if animslot[lvar].namu = '' then
+                raise Exception.Create('Animslot ' + strdec(lvar) + ' used while undefined @ $' + strhex(loader.ofs - 3));
+
                writebuf('gfx.show ' + animslot[lvar].namu + ' anim');
                if animslot[lvar].ofsx <> 0 then begin
                 gutan := seekpng(animslot[lvar].namu, FALSE);
@@ -3044,17 +2908,13 @@ begin
                  writebufln('gfx.removeanims // code 15 0' + strdec(jvar));
                  for lvar := 0 to high(animslot) do animslot[lvar].displayed := FALSE;
                 end;
-           else begin
-            Decomp_JastOvl := 'Unknown code $15 ' + strhex(byte((loader + lofs + 1)^)) + ' @ $' + strhex(lofs);
-            exit;
-           end;
+           else
+            raise Exception.Create('Unknown code $15 ' + strhex(loader.ReadByteFrom(loader.ofs + 1)) + ' @ $' + strhex(loader.ofs));
           end;
          end;
 
-         else begin
-          Decomp_JastOvl := 'Unknown code $15 @ $' + strhex(lofs);
-          exit;
-         end;
+         else
+          raise Exception.Create('Unknown code $15 @ $' + strhex(loader.ofs));
         end;
 
    // 16 xx - Screen flashes xx times
@@ -3062,47 +2922,42 @@ begin
          gid_HOHOEMI, gid_EDEN, gid_FROMH, gid_MAJOKKO,
          gid_SAKURA, gid_SAKURA98, gid_TASOGARE:
          begin
-          jvar := byte((loader + lofs)^); inc(lofs);
+          jvar := loader.ReadByte;
           {$ifdef enable_hacks}
           case jvar of
            // reduce flashing, it's overdone at points
            2: jvar := 1;
-           3,4: dec(jvar);
-           5,6: jvar := 3;
+           3, 4: dec(jvar);
+           5, 6: jvar := 3;
           end;
           {$endif enable_hacks}
           writebufln('gfx.flash ' + strdec(jvar) + ' 1');
           // In case of CS304, an implicit delay is expected after each flash
-          if (scriptname = 'CS304') and (lofs > $1D00)
+          if (scriptname = 'CS304') and (loader.ofs > $1D00)
           then writebufln('sleep 400');
          end;
 
          gid_PARFAIT: begin // some kinda graphics command?
-          jvar := byte((loader + lofs)^); inc(lofs);
-          if jvar <> $A then begin
-           Decomp_JastOvl := 'Unknown $16 subcode @ $' + strhex(lofs);
-           exit;
-          end;
+          jvar := loader.ReadByte;
+          if jvar <> $A then
+           raise Exception.Create('Unknown $16 subcode @ $' + strhex(loader.ofs));
+
           writebuf('//dummy $16 0A //');
           for lvar := 3 downto 0 do begin
-           txt := strhex(word((loader + lofs)^));
+           txt := strhex(loader.ReadWord);
            while length(txt) < 4 do txt := '0' + txt;
-           inc(lofs, 2);
            writebuf(' $' + txt);
           end;
           for lvar := 4 downto 0 do begin
-           txt := strhex(byte((loader + lofs)^));
+           txt := strhex(loader.ReadByte);
            if length(txt) = 1 then txt := '0' + txt;
-           inc(lofs);
            writebuf(' $' + txt);
           end;
           writebufln('');
          end;
 
-         else begin
-          Decomp_JastOvl := 'Unknown code $16 @ $' + strhex(lofs);
-          exit;
-         end;
+         else
+          raise Exception.Create('Unknown code $16 @ $' + strhex(loader.ofs));
         end;
 
    // 17 xx - Pause for xx desisecs (or until an impatient key pressed)
@@ -3110,13 +2965,12 @@ begin
          gid_HOHOEMI, gid_EDEN, gid_FROMH, gid_MAJOKKO,
          gid_SAKURA, gid_SAKURA98, gid_TASOGARE:
          begin
-          jvar := byte((loader + lofs)^); inc(lofs);
+          jvar := loader.ReadByte;
           writebufln('sleep ' + strdec(jvar * 100));
          end;
-         else begin
-          Decomp_JastOvl := 'Unknown code $17 @ $' + strhex(lofs);
-          exit;
-         end;
+
+         else
+          raise Exception.Create('Unknown code $17 @ $' + strhex(loader.ofs));
         end;
 
    // 18 xx - Screen shakes vertically xx times
@@ -3124,17 +2978,16 @@ begin
          gid_EDEN, gid_FROMH, gid_MAJOKKO, gid_SAKURA, gid_SAKURA98,
          gid_TASOGARE:
          begin
-          jvar := byte((loader + lofs)^); inc(lofs);
+          jvar := loader.ReadByte;
           lvar := 1; while lvar * lvar < jvar do inc(lvar);
           lvar := (lvar - 1) shr 1;
           if (scriptname = 'CSA09')
           or (scriptname = 'CS507_D')
           then WriteBash(1) else WriteThwomp(lvar);
          end;
-         else begin
-          Decomp_JastOvl := 'Unknown code $18 @ $' + strhex(lofs);
-          exit;
-         end;
+
+         else
+          raise Exception.Create('Unknown code $18 @ $' + strhex(loader.ofs));
         end;
 
    // 19 - Clear textbox immediately
@@ -3150,44 +3003,38 @@ begin
           writebufln('//dummy $19');
          end;
 
-         else begin
-          Decomp_JastOvl := 'Unknown code $19 @ $' + strhex(lofs);
-          exit;
-         end;
+         else
+          raise Exception.Create('Unknown code $19 @ $' + strhex(loader.ofs));
         end;
 
    // 1E xx - unknown
    $1E: case game of
          gid_DEEP: begin
-          jvar := byte((loader + lofs)^); inc(lofs);
+          jvar := loader.ReadByte;
           writebufln('//dummy $1E v' + strdec(jvar));
          end;
-         else begin
-          Decomp_JastOvl := 'Unknown code $1E @ $' + strhex(lofs);
-          exit;
-         end;
+
+         else
+          raise Exception.Create('Unknown code $1E @ $' + strhex(loader.ofs));
         end;
 
    // F3 xx - unknown
    $F3: case game of
          gid_DEEP: begin
-          jvar := byte((loader + lofs)^); inc(lofs);
+          jvar := loader.ReadByte;
           writebufln('//dummy $F3-$' + strhex(jvar));
          end;
-         else begin
-          Decomp_JastOvl := 'Unknown code $F3 @ $' + strhex(lofs);
-          exit;
-         end;
+
+         else
+          raise Exception.Create('Unknown code $F3 @ $' + strhex(loader.ofs));
         end;
 
    // ASCII/Shift-JIS text output
    $0A, $20..$EF: DoTextOutput;
 
    // exceptions
-   else begin
-    Decomp_JastOvl := 'Unknown code $' + strhex(ivar) + ' @ $' + strhex(lofs - 1);
-    exit;
-   end;
+   else
+    raise Exception.Create('Unknown code $' + strhex(ivar) + ' @ $' + strhex(loader.ofs - 1));
   end;
 
  end;
@@ -3257,7 +3104,7 @@ begin
  end;
 
  // Save the built script.
- Decomp_JastOvl := SaveFile(outputfile, outbuf.buffy, outbuf.bufsize);
+ SaveFile(outputfile, outbuf.buffy, outbuf.bufsize);
 
  // clean up
  freemem(outbuf.buffy); outbuf.buffy := NIL;
