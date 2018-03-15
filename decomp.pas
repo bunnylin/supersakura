@@ -100,11 +100,13 @@ var errorcount : dword;
     decomp_param : record
       sourcedir : UTF8string; // the input resources are read from here
       outputdir : UTF8string;
+      filetypeoverride : dword;
       outputoverride : boolean;
       gidoverride : boolean;
       dobeautify : boolean;
       docomposite : boolean;
       listgames : boolean;
+      listtypes : boolean;
     end;
 
     PNGcount, newgfxcount : dword;
@@ -1056,94 +1058,111 @@ end;
 
 function DoParams : boolean;
 // Processes the recomp commandline. Returns FALSE in case of errors etc.
-var txt : UTF8string;
-    ivar, jvar : longint;
+var txt, switch : UTF8string;
+    i, j : longint;
 begin
  DoParams := TRUE;
  with decomp_param do begin
   sourcedir := '';
   outputdir := 'data' + DirectorySeparator + 'unknown' + DirectorySeparator;
+  filetypeoverride := 0;
   outputoverride := FALSE;
   gidoverride := FALSE;
   dobeautify := FALSE;
   docomposite := TRUE;
   listgames := FALSE;
+  listtypes := FALSE;
  end;
 
- ivar := 0;
- while ivar < paramcount do begin
-  inc(ivar);
-  txt := paramstr(ivar);
-  if (txt = '?') or (txt = '/?') then DoParams := FALSE else
+ i := 0;
+ while i < paramcount do begin
+  inc(i);
+  txt := paramstr(i);
+  if (i = 1) and ((txt = '?') or (txt = '/?')) then DoParams := FALSE else
 
   if txt[1] = '-' then begin
-   jvar := 2;
+   j := 2;
    // handle double-dash prefix
-   if txt[2] = '-' then inc(jvar);
+   if txt[2] = '-' then inc(j);
+
+   switch := lowercase(copy(txt, j, length(txt)));
+
    // help: -? -h -H -help
-   if ((length(txt) = jvar) and (txt[jvar] in ['?','h','H']))
-   or ((length(txt) = jvar + 3) and (lowercase(copy(txt, jvar, 4)) = 'help'))
+   if ((length(txt) = j) and (txt[j] in ['?','h','H'])) or (switch = 'help')
    then DoParams := FALSE
 
-   else if (lowercase(copy(txt, jvar, length(txt))) = 'b')
-   or (lowercase(copy(txt, jvar, length(txt))) = 'beautify')
-     then decomp_param.dobeautify := TRUE
+   else if (switch = 'b') or (switch = 'beautify')
+    then decomp_param.dobeautify := TRUE
 
-   else if (lowercase(copy(txt, jvar, length(txt))) = 'l')
-   or (lowercase(copy(txt, jvar, length(txt))) = 'list')
-     then decomp_param.listgames := TRUE
+   else if (switch = 'l') or (switch = 'list') or (switch = 'listgames')
+    then decomp_param.listgames := TRUE
 
-   else if (lowercase(copy(txt, jvar, length(txt))) = 'nocomp')
-     then decomp_param.docomposite := FALSE
+   else if (switch = 'listtypes')
+    then decomp_param.listtypes := TRUE
 
-   else if (lowercase(copy(txt, jvar, 3)) = 'id=') then begin
-     txt := lowercase(copy(txt, jvar + 3, length(txt)));
-     game := gid_UNKNOWN;
-     for jvar := high(CRCID) downto 1 do
-      if (txt = lowercase(CRCID[jvar].namu)) or (txt = strdec(CRCID[jvar].gidnum))
-      then begin game := jvar; break; end;
-     if game <> gid_UNKNOWN then decomp_param.gidoverride := TRUE
-     else writeln('Unrecognised ID. Use either project name or gid number from -list.');
+   else if (switch = 'nocomp')
+    then decomp_param.docomposite := FALSE
+
+   else if (copy(switch, 1, 3) = 'id=') then begin
+    txt := copy(switch, 4, length(switch));
+    game := gid_UNKNOWN;
+    for j := high(CRCID) downto 1 do
+     if (txt = lowercase(CRCID[j].namu)) or (txt = strdec(CRCID[j].gidnum))
+     then begin game := j; break; end;
+    if game <> gid_UNKNOWN then decomp_param.gidoverride := TRUE
+    else begin
+     writeln('Unrecognised ID. Use either project name or gid number from -list.');
+     DoParams := FALSE; exit;
+    end;
    end
 
-   else if (lowercase(copy(txt, jvar, 4)) = 'out=') then begin
-     decomp_param.outputdir := ExpandFileName(copy(txt, jvar + 4, length(txt)));
-     decomp_param.outputoverride := TRUE;
+   else if (copy(switch, 1, 5) = 'type=') then begin
+    decomp_param.filetypeoverride := valx(copy(switch, 6, length(switch)));
+   end
+
+   else if (copy(switch, 1, 4) = 'out=') then begin
+    decomp_param.outputdir := ExpandFileName(copy(txt, j + 4, length(txt)));
+    decomp_param.outputoverride := TRUE;
    end
 
    else begin
-    writeln('Unrecognised option: ', paramstr(ivar));
+    writeln('Unrecognised option: ', paramstr(i));
     DoParams := FALSE; exit;
    end;
   end
 
   else begin
-   if decomp_param.sourcedir = '' then decomp_param.sourcedir := paramstr(ivar)
+   if decomp_param.sourcedir = '' then decomp_param.sourcedir := paramstr(i)
    else begin
-    writeln('Unrecognised parameter: ', paramstr(ivar));
+    writeln('Unrecognised parameter: ', paramstr(i));
     DoParams := FALSE; exit;
    end;
   end;
+ end;
+
+ // Print the supported file type list if requested.
+ if decomp_param.listtypes then begin
+  DoParams := FALSE; exit;
  end;
 
  // Print the supported game list if requested.
  if decomp_param.listgames then begin
   writeln;
   writeln('Supported games:');
-  for ivar := 1 to high(CRCID) do begin
-   case CRCID[ivar].level of
-    0: write('      ');
-    1: write('[*]   ');
-    2: write('[**]  ');
-    3: write('[***] ');
-    4: write('[###] ');
-    else write('[?]   ');
+  for i := 1 to high(CRCID) do begin
+   case CRCID[i].level of
+     0: write('      ');
+     1: write('[*]   ');
+     2: write('[**]  ');
+     3: write('[***] ');
+     4: write('[###] ');
+     else write('[?]   ');
    end;
-   writeln(CRCID[ivar].gidnum:2, ' ', CRCID[ivar].desc);
+   writeln(CRCID[i].gidnum:2, ' ', CRCID[i].desc);
   end;
   writeln('[ ] none  [*] resources only  [**] playable  [***] completable  [###] polished');
   writeln;
-  if DoParams then exit;
+  DoParams := FALSE; exit;
  end;
 
  // If no parameters are present or no source files were specified, then
@@ -1171,8 +1190,10 @@ begin
  writeln('directory under "ssakura".');
  writeln;
  writeln('Options:');
- writeln('-out=directory     Override the output directory');
- writeln('-id=game           Override game identification');
+ writeln('-out=<directory>   Override the output directory');
+ writeln('-id=<game>         Override game identification');
+ writeln('-type=<type>       Override the input file type auto-detection');
+ writeln('-listtypes         Print convertable file type list');
  writeln('-b                 Beautify input graphics while converting');
  writeln('-nocomp            Don''t composite multipart graphics, save them unmodified');
  writeln('-list              Print game compatibility list');
