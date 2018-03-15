@@ -694,13 +694,13 @@ begin
  if decomp_param.outputoverride = FALSE then begin
   decomp_param.outputdir := 'data' + DirectorySeparator + CRCID[newnum].namu;
   if DirectoryExists(decomp_param.outputdir) = FALSE then begin
-   writeln(stdout, 'mkdir ', decomp_param.outputdir);
+   writeln(stdout, 'mkdir ' + decomp_param.outputdir);
    mkdir(decomp_param.outputdir);
    ivar := IOresult;
    if ivar = 5 then begin
     // access denied? Try putting the output under the user's profile...
     decomp_param.outputdir := GetAppConfigDir(FALSE) + decomp_param.outputdir;
-    writeln(stdout, 'access denied, so mkdir ', decomp_param.outputdir);
+    writeln(stdout, 'access denied, so mkdir ' + decomp_param.outputdir);
     mkdir(decomp_param.outputdir);
    end;
   end;
@@ -712,13 +712,6 @@ begin
 
  writeln('Output directory: ', decomp_param.outputdir);
  writeln(stdout, 'Output directory: ', decomp_param.outputdir);
-
- mkdir(decomp_param.outputdir + 'gfx');
- while IOresult <> 0 do;
- mkdir(decomp_param.outputdir + 'aud');
- while IOresult <> 0 do;
- mkdir(decomp_param.outputdir + 'scr');
- while IOresult <> 0 do;
 
  // Read the metadata file, if it exists.
  ProcessMetaData(decomp_param.outputdir + 'data.txt');
