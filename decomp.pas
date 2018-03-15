@@ -291,155 +291,6 @@ begin
  end;
 end;
 
-procedure CropVoidBorders(PNGindex : dword; xparency : byte);
-// If an image has plenty of totally transparent space on any side, it can be
-// cropped out, but for a single-pixel wide transparent border.
-var clipleft, clipright, cliptop, clipbottom : dword;
-    ivar : dword;
-    srcp, endp : pointer;
-begin
- clipleft := 0; clipright := 0; cliptop := 0; clipbottom := 0;
- with PNGlist[PNGindex] do begin
-
-  endp := bitmap + origsizexp * origsizeyp - 1;
-  // Bottom: check for transparent rows, by scanning pixels from the end of
-  // the image until a non-transparent is found.
-  srcp := endp;
-  while (srcp > bitmap) and (byte(srcp^) = xparency) do dec(srcp);
-  // Calculate the total transparent pixels.
-  ivar := endp - srcp;
-  // Calculate the total full rows of transparent pixels.
-  clipbottom := ivar div origsizexp;
-
-  // Top: check for transparent rows, by scanning pixels from the start of
-  // the image until a non-transparent is found.
-  srcp := bitmap;
-  while (srcp < endp) and (byte(srcp^) = xparency) do inc(srcp);
-  // Calculate the total transparent pixels.
-  ivar := srcp - bitmap;
-  // Calculate the total full rows of transparent pixels.
-  cliptop := ivar div origsizexp;
-
-  // Check if there's anything left of the image.
-  if cliptop + clipbottom >= origsizeyp then begin
-   origsizexp := 1; origsizeyp := 1;
-   framewidth := 1; frameheight := 1;
-   exit;
-  end;
-
-  // Left: check for transparent columns...
-  ivar := 0;
-  repeat
-   if ivar = 0 then begin // new column
-    srcp := bitmap + cliptop * origsizexp + clipleft;
-    ivar := origsizeyp - cliptop - clipbottom;
-    inc(clipleft);
-   end;
-   dec(ivar);
-   if srcp >= endp then break;
-   if byte(srcp^) <> xparency then break;
-   inc(srcp, origsizexp);
-  until FALSE;
-  dec(clipleft);
-
-  // Right: check for transparent columns...
-  ivar := 0;
-  repeat
-   if ivar = 0 then begin // new column
-    srcp := endp - clipbottom * origsizexp - clipright;
-    ivar := origsizeyp - cliptop - clipbottom;
-    inc(clipright);
-   end;
-   dec(ivar);
-   if srcp <= bitmap then break;
-   if byte(srcp^) <> xparency then break;
-   dec(srcp, origsizexp);
-  until FALSE;
-  dec(clipright);
-
-  // Leave single-pixel transparent borders even if cropping the rest.
-  if clipleft > 0 then dec(clipleft);
-  if clipright > 0 then dec(clipright);
-  if cliptop > 0 then dec(cliptop);
-  if clipbottom > 0 then dec(clipbottom);
-  writeln(stdout, 'Clipped from ',origsizexp,'x',origsizeyp,'@',origofsxp,',',origofsyp,' by L:',clipleft,' R:',clipright,' T:',cliptop,' B:',clipbottom);
-
-  // Put the new size in the frame dimensions.
-  framewidth := origsizexp - clipleft - clipright;
-  frameheight := origsizeyp - cliptop - clipbottom;
-
-  // Copy the image data without resizing the buffer or anything.
-  endp := bitmap;
-  srcp := bitmap + cliptop * origsizexp + clipleft;
-  for ivar := frameheight - 1 downto 0 do begin
-   // (must use memcopy instead of FPC's move since if clipping is minimal
-   // then srcp and endp may cause an overlapping transfer.)
-   memcopy(srcp, endp, framewidth);
-   inc(endp, framewidth);
-   inc(srcp, origsizexp);
-  end;
-
-  // Save the new dimensions and top left offset.
-  inc(origofsxp, longint(clipleft));
-  inc(origofsyp, longint(cliptop));
-  origsizexp := framewidth;
-  origsizeyp := frameheight;
- end;
-end;
-
-procedure RearrangeFrames(PNGindex : dword);
-// Rearranges an animation frame grid so that frames are stacked vertically.
-// All frames must be the exact same dimensions. The image must be 8bpp.
-var poku, srcp, destp : pointer;
-    scanline, x, y, hframes, vframes : dword;
-begin
- with PNGlist[PNGindex] do begin
-  if (framewidth = 0) or (frameheight = 0)
-  or (framewidth > origsizexp) or (frameheight > origsizeyp) then begin
-   PrintError('bad frame size');
-   exit;
-  end;
-
-  framecount := 0;
-  hframes := origsizexp div framewidth;
-  vframes := origsizeyp div frameheight;
-  getmem(poku, origsizexp * origsizeyp);
-  destp := poku;
-  for x := 0 to hframes - 1 do begin
-   for y := 0 to vframes - 1 do begin
-    srcp := bitmap + y * frameheight * origsizexp + x * framewidth;
-    for scanline := frameheight - 1 downto 0 do begin
-     move(srcp^, destp^, framewidth);
-     inc(srcp, origsizexp);
-     inc(destp, framewidth);
-    end;
-    inc(framecount);
-   end;
-  end;
-  freemem(bitmap); bitmap := poku; poku := NIL;
-  origsizexp := framewidth;
-  origsizeyp := frameheight * hframes * vframes;
- end;
-end;
-
-// ------------------------------------------------------------------
-
-// Decompiling functions for specific input file types.
-{$include inc/decomp_jastovl.pas}
-{$include inc/decomp_excellents.pas}
-{$include inc/decomp_makichan.pas}
-{$include inc/decomp_pi.pas}
-{$include inc/decomp_excellentg.pas}
-{$include inc/decomp_music.pas}
-
-// Forward declaration of DispatchFile, so bundle decompile functions can
-// redispatch bundle contents.
-function DispatchFile(srcfile : UTF8string) : dword; forward;
-
-{$include inc/decomp_bundles.pas}
-
-// ------------------------------------------------------------------
-
 procedure WriteMetaData;
 // Writes data.txt.
 var metafile : text;
@@ -507,6 +358,27 @@ begin
   close(metafile);
  end;
 end;
+
+// ------------------------------------------------------------------
+
+// Image compositing/beautifying functions. Call PostProcess to do all.
+{$include inc/decomp_postproc.pas}
+
+// Decompiling functions for specific input file types.
+{$include inc/decomp_jastovl.pas}
+{$include inc/decomp_excellents.pas}
+{$include inc/decomp_makichan.pas}
+{$include inc/decomp_pi.pas}
+{$include inc/decomp_excellentg.pas}
+{$include inc/decomp_music.pas}
+
+// Forward declaration of DispatchFile, so bundle decompile functions can
+// redispatch bundle contents.
+function DispatchFile(srcfile : UTF8string) : dword; forward;
+
+{$include inc/decomp_bundles.pas}
+
+// ------------------------------------------------------------------
 
 procedure ProcessMetaData(const srcfilu : UTF8string);
 // Reads data.txt. This is mostly identical to the same procedure in Recomp.
@@ -673,9 +545,6 @@ begin
 end;
 
 // ------------------------------------------------------------------
-
-// Image compositing/beautifying functions. Call PostProcess to do all.
-{$include inc/decomp_postproc.pas}
 
 procedure SelectGame(newnum : dword);
 var ivar : dword;
