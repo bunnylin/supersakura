@@ -135,13 +135,13 @@ end;
 // ------------------------------------------------------------------
 
 procedure ResetMemResources;
-var ivar : dword;
+var i : dword;
 begin
  PNGcount := 0;
  if length(PNGlist) <> 0 then
-  for ivar := length(PNGlist) - 1 downto 0 do
-   if PNGlist[ivar].bitmap <> NIL then begin
-    freemem(PNGlist[ivar].bitmap); PNGlist[ivar].bitmap := NIL;
+  for i := length(PNGlist) - 1 downto 0 do with PNGlist[i] do
+   if bitmap <> NIL then begin
+    freemem(bitmap); bitmap := NIL;
    end;
  setlength(PNGlist, 0);
  setlength(PNGlist, 1);
@@ -155,16 +155,16 @@ end;
 
 function ChibiCRC(const filename : UTF8string) : dword;
 // Calculates a Chibi-CRC for the given file.
-var ivar, ofs, crcfilesize : dword;
+var i, ofs, crcfilesize : dword;
     crcfile : file;
 begin
  write(stdout, '[ChibiCRC] ' + filename + ': ');
- ChibiCRC := 0; ivar := 0;
+ ChibiCRC := 0; i := 0;
  assign(crcfile, filename);
  filemode := 0; reset(crcfile, 1); // read-only
- ivar := IOresult;
- if ivar <> 0 then begin
-  PrintError(errortxt(ivar) + ' trying to read ' + filename);
+ i := IOresult;
+ if i <> 0 then begin
+  PrintError(errortxt(i) + ' trying to read ' + filename);
   exit;
  end;
  crcfilesize := filesize(crcfile);
@@ -173,8 +173,8 @@ begin
  ofs := $100;
  while ofs + 4 < crcfilesize do begin
   seek(crcfile, ofs);
-  blockread(crcfile, ivar, 4);
-  ChibiCRC := rordword(ChibiCRC xor ivar, 3);
+  blockread(crcfile, i, 4);
+  ChibiCRC := rordword(ChibiCRC xor i, 3);
   inc(ofs, ofs shr 2);
  end;
 
@@ -296,21 +296,26 @@ end;
 procedure WriteMetaData;
 // Writes data.txt.
 var metafile : text;
-    ivar, jvar : dword;
-    txt : string;
+    i, j : dword;
+    metafilename, txt : UTF8string;
 begin
- assign(metafile, decomp_param.outputdir + 'data.txt');
+ metafilename := decomp_param.outputdir + 'data.txt';
+ assign(metafile, metafilename);
  filemode := 1; rewrite(metafile); // write-only
- ivar := IOresult;
- if ivar <> 0 then PrintError(errortxt(ivar) + ' trying to write ' + decomp_param.outputdir + 'data.txt')
+ i := IOresult;
+ if i <> 0 then
+  PrintError(errortxt(i) + ' trying to write ' + metafilename)
  else begin
-  writeln(stdout, 'Writing ', decomp_param.outputdir, 'data.txt');
+  writeln(stdout, 'Writing ', metafilename);
+
   writeln(metafile, '// Graphic details and animation data');
   writeln(metafile, 'baseres ', strdec(baseresx), 'x', strdec(baseresy));
+
   if game <> gid_UNKNOWN then
    writeln(metafile, 'desc ', CRCid[crctableid].desc);
+
   if PNGcount <> 0 then begin
-   for ivar := 1 to PNGcount do with PNGlist[ivar] do
+   for i := 1 to PNGcount do with PNGlist[i] do
    if ((origofsxp or origofsyp or longint(seqlen)) <> 0)
    or (framecount > 1)
    or (origresx or origresy <> 0)
@@ -328,25 +333,26 @@ begin
 
      // Print the unpacked animation sequence
      txt := 'sequence';
-     for jvar := 0 to seqlen - 1 do begin
+     for j := 0 to seqlen - 1 do begin
       if length(txt) >= 70 then begin
-       writeln(metafile, txt); txt := 'sequence';
+       writeln(metafile, txt);
+       txt := 'sequence';
       end;
       // index
-      txt := txt + ' ' + strdec(jvar) + ':';
-      if sequence[jvar] and $80000000 <> 0 then txt := txt + 'jump ';
+      txt := txt + ' ' + strdec(j) + ':';
+      if sequence[j] and $80000000 <> 0 then txt := txt + 'jump ';
       // frame
-      if sequence[jvar] and $40000000 <> 0 then txt := txt + 'r';
-      if sequence[jvar] and $20000000 <> 0 then txt := txt + 'v';
-      txt := txt + strdec((sequence[jvar] shr 16) and $1FFF);
+      if sequence[j] and $40000000 <> 0 then txt := txt + 'r';
+      if sequence[j] and $20000000 <> 0 then txt := txt + 'v';
+      txt := txt + strdec((sequence[j] shr 16) and $1FFF);
       // delay
-      if sequence[jvar] and $80000000 = 0 then begin
+      if sequence[j] and $80000000 = 0 then begin
        txt := txt + ',';
-       case (sequence[jvar] and $FFFF) of
-        $8000..$BFFF: txt := txt + 'r'+ strdec(sequence[jvar] and $3FFF);
-        $C000..$FFFE: txt := txt + 'v'+ strdec(sequence[jvar] and $3FFF);
+       case (sequence[j] and $FFFF) of
+        $8000..$BFFF: txt := txt + 'r'+ strdec(sequence[j] and $3FFF);
+        $C000..$FFFE: txt := txt + 'v'+ strdec(sequence[j] and $3FFF);
         $FFFF: txt := txt + 'stop';
-        else txt := txt + strdec(sequence[jvar] and $7FFF);
+        else txt := txt + strdec(sequence[j] and $7FFF);
        end;
       end;
       txt := txt + ';';
@@ -384,68 +390,62 @@ function DispatchFile(srcfile : UTF8string) : dword; forward;
 
 procedure ProcessMetaData(const srcfilu : UTF8string);
 // Reads data.txt. This is mostly identical to the same procedure in Recomp.
-var ivar, jvar : dword;
-    ffilu : text;
+var ffilu : text;
     line : UTF8string;
-    lvar : longint;
+    i, j : dword;
+    l : longint;
     PNGindex : dword;
     linenumber, lineofs : dword;
 
-  procedure Error(const quack : string);
+  procedure Error(const quack : UTF8string);
   begin
    PrintError(srcfilu + ' (' + strdec(linenumber) + '): ' + quack);
   end;
 
 begin
- // for error reporting
- linenumber := 0;
- // init default values
+ // Init default values...
  PNGindex := 0;
  assign(ffilu, srcfilu);
  filemode := 0; reset(ffilu); // read-only access
- ivar := IOresult;
- if ivar = 2 then begin
+ i := IOresult;
+ if i = 2 then begin
   writeln(stdout, srcfilu + ' doesn''t exist yet.');
   exit;
  end;
- if ivar <> 0 then begin
-  PrintError(errortxt(ivar) + ' reading ' + srcfilu);
+ if i <> 0 then begin
+  PrintError(errortxt(i) + ' reading ' + srcfilu);
   exit;
  end;
  writeln(stdout, 'Reading ', srcfilu);
+ linenumber := 0;
 
- // Parse the file
+ // Parse the file...
  while eof(ffilu) = FALSE do begin
 
-  // Get the new line
+  // Get the new line.
   readln(ffilu, line);
   inc(linenumber);
 
-  // Line comments using //
-  ivar := pos('//', line);
-  if ivar <> 0 then setlength(line, ivar - 1);
-  // Line comments using #
-  ivar := pos('#', line);
-  if ivar <> 0 then setlength(line, ivar - 1);
-
-  // Remove trailing spaces
-  while (length(line) <> 0) and (ord(line[length(line)]) <= 32) do setlength(line, length(line) - 1);
-  // Skip preceding spaces
-  lineofs := 1;
-  while (lineofs <= dword(length(line))) and (ord(line[lineofs]) <= 32) do inc(lineofs);
-  // If the leftover is an empty string, skip to next line
-  if lineofs > dword(length(line)) then continue;
-
-  // Transform to all lowercase
+  // Drop line comments using //
+  i := pos('//', line);
+  if i <> 0 then setlength(line, i - 1);
+  // Drop line comments using #
+  i := pos('#', line);
+  if i <> 0 then setlength(line, i - 1);
+  // Trim whitespace.
+  line := trim(line);
+  if line = '' then continue;
+  // Transform to all lowercase.
   line := lowercase(line);
+  lineofs := 1;
 
   // Line specifies a filename that following lines apply to?
   if MatchString(line, 'file ', lineofs) then begin
    // safeties
-   ivar := pos('.', line);
-   if ivar <> 0 then begin
+   i := pos('.', line);
+   if i <> 0 then begin
     Error('Dots not allowed in filenames');
-    setlength(line, ivar - 1);
+    setlength(line, i - 1);
    end;
    if length(line) - lineofs + 1 > 31 then begin
     Error('Filename too long (max 31 bytes)');
@@ -457,79 +457,81 @@ begin
    continue;
   end;
 
-  // Offset for an image's top left corner
+  // Offset for an image's top left corner.
   if MatchString(line, 'ofs ', lineofs) then begin
    PNGlist[PNGindex].origofsxp := CutNumberFromString(line, lineofs);
    PNGlist[PNGindex].origofsyp := CutNumberFromString(line, lineofs);
    continue;
   end;
 
-  // Intended image resolution
+  // Intended image resolution.
   if MatchString(line, 'res ', lineofs) then begin
    PNGlist[PNGindex].origresx := CutNumberFromString(line, lineofs);
    PNGlist[PNGindex].origresy := CutNumberFromString(line, lineofs);
    continue;
   end;
 
-  // Number of frames in the image
+  // Number of frames in the image.
   if MatchString(line, 'framecount ', lineofs) then begin
    PNGlist[PNGindex].framecount := CutNumberFromString(line, lineofs);
    if PNGlist[PNGindex].framecount = 0 then inc(PNGlist[PNGindex].framecount);
    continue;
   end;
 
-  // Animation frame sequence, pairs of FRAME:DELAY
+  // Animation frame sequence, pairs of FRAME:DELAY.
   if MatchString(line, 'sequence ', lineofs) then begin
-   // Parse the sequence string
+   // Parse the sequence string...
    while lineofs <= dword(length(line)) do begin
     // sequence index
-    ivar := abs(CutNumberFromString(line, lineofs));
-    if ivar > 8191 then ivar := 8191;
-    if ivar >= dword(length(PNGlist[PNGindex].sequence)) then setlength(PNGlist[PNGindex].sequence, (ivar + 16) and $FFF0);
-    if ivar >= PNGlist[PNGindex].seqlen then PNGlist[PNGindex].seqlen := ivar + 1;
+    i := abs(CutNumberFromString(line, lineofs));
+    if i > 8191 then i := 8191;
+    if i >= dword(length(PNGlist[PNGindex].sequence)) then setlength(PNGlist[PNGindex].sequence, (i + 16) and $FFF0);
+    if i >= PNGlist[PNGindex].seqlen then PNGlist[PNGindex].seqlen := i + 1;
     // frame number to display or jump command
-    jvar := 0;
+    j := 0;
     while (lineofs <= dword(length(line))) and (line[lineofs] in ['0'..'9','j','r','v'] = FALSE) do inc(lineofs);
     if line[lineofs] = 'j' then begin
-     jvar := $80000000; // jump
+     j := $80000000; // jump
      inc(lineofs);
     end;
     while (lineofs <= dword(length(line))) and (line[lineofs] in ['0'..'9','j','r','v'] = FALSE) do inc(lineofs);
     case line[lineofs] of
-     'r': jvar := jvar or $40000000; // random
-     'v': jvar := jvar or $20000000; // variable
+     'r': j := j or $40000000; // random
+     'v': j := j or $20000000; // variable
     end;
     while (lineofs <= dword(length(line))) and (line[lineofs] in ['0'..'9','+','-'] = FALSE) do inc(lineofs);
-    if (jvar = $80000000) and (line[lineofs] in ['+','-'])
-    then lvar := ivar + dword(CutNumberFromString(line, lineofs)) // relative jump
-    else lvar := abs(CutNumberFromString(line, lineofs)); // non-relative
-    jvar := jvar or dword((lvar and $1FFF) shl 16);
-    if jvar and $80000000 = 0 then begin
+    if (j = $80000000) and (line[lineofs] in ['+','-'])
+    then l := i + dword(CutNumberFromString(line, lineofs)) // relative jump
+    else l := abs(CutNumberFromString(line, lineofs)); // non-relative
+    j := j or dword((l and $1FFF) shl 16);
+    if j and $80000000 = 0 then begin
      // delay value
      while (lineofs <= dword(length(line))) and (line[lineofs] in ['0'..'9','s','r','v'] = FALSE) do inc(lineofs);
      case line[lineofs] of
       // stop at this frame
-      's': jvar := jvar or $FFFF;
+      's': j := j or $FFFF;
       // random delay, top bits 10
-      'r': jvar := jvar or $8000 or dword(CutNumberFromString(line, lineofs) and $3FFF);
+      'r': j := j or $8000 or dword(CutNumberFromString(line, lineofs) and $3FFF);
       // delay from variable, top bits 11
-      'v': jvar := jvar or $C000 or dword(CutNumberFromString(line, lineofs) and $3FFF);
+      'v': j := j or $C000 or dword(CutNumberFromString(line, lineofs) and $3FFF);
       // absolute delay value, top bit 0
-      else jvar := jvar or dword(CutNumberFromString(line, lineofs) and $7FFF);
+      else j := j or dword(CutNumberFromString(line, lineofs) and $7FFF);
      end;
     end;
-    // Save the packed action:frame:delay into sequence[]
-    PNGlist[PNGindex].sequence[ivar] := jvar;
-    // Skip ahead until the next entry on the line
+    // Save the packed action:frame:delay into sequence[].
+    PNGlist[PNGindex].sequence[i] := j;
+    // Skip ahead until the next entry on the line.
     while (lineofs <= dword(length(line))) and (line[lineofs] in ['0'..'9'] = FALSE) do inc(lineofs);
    end;
    continue;
   end;
+
   // Integer-scaling flag
   if MatchString(line, 'integerscaling', lineofs) then begin
    PNGlist[PNGindex].bitflag := PNGlist[PNGindex].bitflag or 1;
    continue;
   end;
+
   // Forbid resizing flag
   if MatchString(line, 'dontresize', lineofs) then begin
    PNGlist[PNGindex].bitflag := PNGlist[PNGindex].bitflag or 4;
@@ -549,7 +551,7 @@ end;
 // ------------------------------------------------------------------
 
 procedure SelectGame(newnum : dword);
-var ivar : dword;
+var i : dword;
 begin
  // New recognised game, do a general state reset.
  ResetMemResources;
@@ -567,8 +569,8 @@ begin
   if DirectoryExists(decomp_param.outputdir) = FALSE then begin
    writeln(stdout, 'mkdir ' + decomp_param.outputdir);
    mkdir(decomp_param.outputdir);
-   ivar := IOresult;
-   if ivar = 5 then begin
+   i := IOresult;
+   if i = 5 then begin
     // access denied? Try putting the output under the user's profile...
     decomp_param.outputdir := GetAppConfigDir(FALSE) + decomp_param.outputdir;
     writeln(stdout, 'access denied, so mkdir ' + decomp_param.outputdir);
@@ -596,38 +598,38 @@ var loader : TFileLoader;
     poku : pointer;
     txt : UTF8string;
     songnamu : string[15];
-    ivar, jvar : dword;
+    i, j : dword;
     songlistofs, animdataofs : dword;
 begin
  loader := TFileLoader.Open(exefilename);
 
  try
- // Extract constant data from the EXE
+ // Extract constant data from the EXE.
  songlistofs := 0; animdataofs := 0;
  songnamu := '';
  setlength(songlist, 0);
  case game of
-  gid_3SIS: begin setlength(songlist, 24); animdataofs := $15AD0; end;
-  gid_3SIS98: begin setlength(songlist, 24); animdataofs := $146B0; end;
-  gid_ANGELSCOLLECTION1: begin setlength(songlist, 30); end;
-  gid_ANGELSCOLLECTION2: begin songlistofs := $137E8; setlength(songlist, 30); end;
-  gid_DEEP: begin songlistofs := $1EB43; setlength(songlist, 47); end;
-  gid_EDEN: begin setlength(songlist, 20); end;
-  gid_FROMH: begin setlength(songlist, 28); end;
-  gid_HOHOEMI: begin songlistofs := $1A2BC; setlength(songlist, 30); end;
-  gid_MAJOKKO: begin songlistofs := $182E8; setlength(songlist, 30); end;
-  gid_MARIRIN: begin setlength(songlist, 26); end;
-  gid_RUNAWAY: begin setlength(songlist, 22); animdataofs := $162B0; end;
-  gid_RUNAWAY98: begin setlength(songlist, 22); animdataofs := $15030; end;
-  gid_SAKURA: begin setlength(songlist, 33); end;
-  gid_SAKURA98: begin setlength(songlist, 33); end;
-  gid_SETSUJUU: begin songlistofs := $1466F; setlength(songlist, 22); animdataofs := $15816; end;
-  gid_TASOGARE: begin songlistofs := $1B3AA; setlength(songlist, 27); end;
-  gid_TRANSFER98: begin setlength(songlist, 40); animdataofs := $159CC; end;
-  gid_VANISH: begin {songlistofs := $19CDC;} setlength(songlist, 15); end;
+   gid_3SIS: begin setlength(songlist, 24); animdataofs := $15AD0; end;
+   gid_3SIS98: begin setlength(songlist, 24); animdataofs := $146B0; end;
+   gid_ANGELSCOLLECTION1: begin setlength(songlist, 30); end;
+   gid_ANGELSCOLLECTION2: begin songlistofs := $137E8; setlength(songlist, 30); end;
+   gid_DEEP: begin songlistofs := $1EB43; setlength(songlist, 47); end;
+   gid_EDEN: begin setlength(songlist, 20); end;
+   gid_FROMH: begin setlength(songlist, 28); end;
+   gid_HOHOEMI: begin songlistofs := $1A2BC; setlength(songlist, 30); end;
+   gid_MAJOKKO: begin songlistofs := $182E8; setlength(songlist, 30); end;
+   gid_MARIRIN: begin setlength(songlist, 26); end;
+   gid_RUNAWAY: begin setlength(songlist, 22); animdataofs := $162B0; end;
+   gid_RUNAWAY98: begin setlength(songlist, 22); animdataofs := $15030; end;
+   gid_SAKURA: begin setlength(songlist, 33); end;
+   gid_SAKURA98: begin setlength(songlist, 33); end;
+   gid_SETSUJUU: begin songlistofs := $1466F; setlength(songlist, 22); animdataofs := $15816; end;
+   gid_TASOGARE: begin songlistofs := $1B3AA; setlength(songlist, 27); end;
+   gid_TRANSFER98: begin setlength(songlist, 40); animdataofs := $159CC; end;
+   gid_VANISH: begin {songlistofs := $19CDC;} setlength(songlist, 15); end;
  end;
 
- // Enumerate songs
+ // Enumerate songs.
  case game of
   gid_3SIS, gid_3SIS98: songnamu := 'SS_';
   gid_ANGELSCOLLECTION1: songnamu := 'T';
@@ -640,29 +642,30 @@ begin
   gid_VANISH: songnamu := 'VP0';
  end;
  if (length(songlist) <> 0) and (songlistofs = 0) then
-  for ivar := high(songlist) downto 0 do
-  if ivar < 9 then songlist[ivar] := songnamu + '0' + strdec(ivar + 1)
-  else songlist[ivar] := songnamu + strdec(ivar + 1);
+  for i := high(songlist) downto 0 do
+  if i < 9 then songlist[i] := songnamu + '0' + strdec(i + 1)
+  else songlist[i] := songnamu + strdec(i + 1);
  //if game = gid_TRANSFER98 then songlist[39] := 'TRAIN';
 
- // Extract songs, if applicable
+ // Extract songs, if applicable.
  if songlistofs <> 0 then begin
-  for ivar := high(songlist) downto 0 do byte(songlist[ivar][0]) := 0;
-  ivar := 0;
-  while ivar < dword(length(songlist)) do begin
+  for i := high(songlist) downto 0 do byte(songlist[i][0]) := 0;
+  i := 0;
+  while i < dword(length(songlist)) do begin
    if loader.ReadByteFrom(songlistofs) = 0 then begin
     // crop out the extension
-    while (length(songlist[ivar]) <> 0)
-    and (songlist[ivar][length(songlist[ivar])] <> '.')
-    do dec(byte(songlist[ivar][0]));
-    dec(byte(songlist[ivar][0]));
-    inc(ivar);
+    while (length(songlist[i]) <> 0)
+    and (songlist[i][length(songlist[i])] <> '.')
+    do dec(byte(songlist[i][0]));
+    dec(byte(songlist[i][0]));
+    inc(i);
    end else
-    songlist[ivar] := songlist[ivar] + char(loader.ReadByteFrom(songlistofs));
+    songlist[i] := songlist[i] + char(loader.ReadByteFrom(songlistofs));
    inc(songlistofs);
   end;
+
   writeln(stdout, 'Extracted songlist, ' + strdec(length(songlist)) + ' entries.');
-  for ivar := 0 to high(songlist) do writeln(stdout, ivar,':',songlist[ivar]);
+  for i := 0 to high(songlist) do writeln(stdout, i, ':', songlist[i]);
  end;
 
  // Extract animation data.
@@ -672,11 +675,13 @@ begin
 
   // Snowcat and Tenkousei use a modified format.
   if game in [gid_SETSUJUU, gid_TRANSFER98] then begin
-   jvar := 0;
-   case game of // baseline address for name strings
-    gid_SETSUJUU: jvar := $14340;
-    gid_TRANSFER98: jvar := $13E50;
+   j := 0;
+   case game of
+    // baseline address for name strings.
+    gid_SETSUJUU: j := $14340;
+    gid_TRANSFER98: j := $13E50;
    end;
+
    repeat
     // read the animation sequence length (word) + 32 more words.
     move(loader.readp^, poku^, 66);
@@ -687,43 +692,43 @@ begin
     move(loader.readp^, (poku + 38)^, 140);
     inc(loader.readp, 140);
     // read the animation file name.
-    move(loader.PtrAt(jvar + word((poku + 2)^))^, songnamu[1], 9);
+    move(loader.PtrAt(j + word((poku + 2)^))^, songnamu[1], 9);
     // find the null to determine string length.
-    for ivar := 1 to 9 do
-     if songnamu[ivar] = chr(0) then begin
-      byte(songnamu[0]) := ivar - 1;
+    for i := 1 to 9 do
+     if songnamu[i] = chr(0) then begin
+      byte(songnamu[0]) := i - 1;
       break;
      end;
     // an empty animation name means we're done.
     if songnamu = '' then break;
     // find the PNGlist[] entry for this, or create one.
     songnamu := upcase(songnamu);
-    ivar := seekpng(songnamu, TRUE);
+    i := seekpng(songnamu, TRUE);
     // convert and save the animation data into PNGlist[].
-    if byte((poku + 2)^) <> 0 then ChewAnimations(poku, ivar);
+    if byte((poku + 2)^) <> 0 then ChewAnimations(poku, i);
    until FALSE;
   end
 
-  // Other games use a more common format
+  // Other games use a more common format.
   else begin
    repeat
     move(loader.readp^, poku^, 178);
     inc(loader.readp, 178);
-    // 0 seqlen or 0 name? We're done
+    // 0 seqlen or 0 name? We're done.
     if (word(poku^) = 0) or (word((poku + 2)^) = 0) then break;
     // grab the animation name.
     move((poku + 2)^, songnamu[1], 9);
     // find the null to determine string length.
-    for ivar := 1 to 9 do
-     if songnamu[ivar] = chr(0) then begin
-      byte(songnamu[0]) := ivar - 1;
+    for i := 1 to 9 do
+     if songnamu[i] = chr(0) then begin
+      byte(songnamu[0]) := i - 1;
       break;
      end;
     // find the PNGlist[] entry for this, or create one.
     songnamu := upcase(songnamu);
-    ivar := seekpng(songnamu, TRUE);
+    i := seekpng(songnamu, TRUE);
     // convert and save the animation data into PNGlist[].
-    ChewAnimations(poku, ivar);
+    ChewAnimations(poku, i);
    until FALSE;
   end;
 
@@ -750,13 +755,13 @@ function ScanEXE(const exenamu : UTF8string) : dword;
 // list in CRCID[]. Returns a CRCID[] index if match found, otherwise FFFF.
 // While at it, if the EXE is recognised, this also scans it for song name
 // enumerations and animation data.
-var ivar, jvar : dword;
+var execrc, i : dword;
 begin
- ivar := ChibiCRC(exenamu);
+ execrc := ChibiCRC(exenamu);
  ScanEXE := $FFFF;
- for jvar := length(CRCID) - 1 downto 0 do
-  if CRCID[jvar].CRC = ivar then begin
-   ScanEXE := jvar; break;
+ for i := length(CRCID) - 1 downto 0 do
+  if CRCID[i].CRC = execrc then begin
+   ScanEXE := i; break;
   end;
  if ScanEXE = $FFFF then exit;
 
@@ -866,10 +871,10 @@ begin
   end;
 end;
 
-procedure ProcessFiles(srcdir : UTF8string);
+procedure ScanFiles(srcdir : UTF8string);
 var filuhits : dword;
 
-  procedure ProcessDir(const currentsearch : UTF8string; onlyexes : boolean);
+  procedure ScanDir(const currentsearch : UTF8string; onlyexes : boolean);
   var filusr : TSearchRec;
       exelist, dirlist, filulist : array of UTF8string;
       execount, dircount, filucount : dword;
@@ -927,7 +932,7 @@ var filuhits : dword;
    // check the current directory specifically for executables.
    if (filucount <> 0) and (game = gid_UNKNOWN) and (execount = 0) then begin
     writeln(stdout, 'Checking current directory for game exe');
-    ProcessDir(curdir + '*', TRUE);
+    ScanDir(curdir + '*', TRUE);
    end;
 
    // If there are potentially convertable files, but we haven't identified
@@ -938,7 +943,7 @@ var filuhits : dword;
     or (lowercase(copy(curdir, length(curdir) - 4, 5)) = DirectorySeparator + 'ovl' + DirectorySeparator)
     then begin
      writeln(stdout, 'Checking parent directory for game exe');
-     ProcessDir(copy(curdir, 1, length(curdir) - 4) + '*', TRUE);
+     ScanDir(copy(curdir, 1, length(curdir) - 4) + '*', TRUE);
     end;
    end;
 
@@ -951,7 +956,7 @@ var filuhits : dword;
    // Scan subdirectories, if any.
    while dircount <> 0 do begin
     dec(dircount);
-    ProcessDir(curdir + dirlist[dircount] + DirectorySeparator + '*', FALSE);
+    ScanDir(curdir + dirlist[dircount] + DirectorySeparator + '*', FALSE);
    end;
 
    writeln(stdout, '----------------------------------------------------------------------');
@@ -966,7 +971,7 @@ begin
 
  // Find and process input resources.
  filuhits := 0;
- ProcessDir(ExpandFileName(srcdir), FALSE);
+ ScanDir(ExpandFileName(srcdir), FALSE);
  if filuhits = 0 then PrintError('No input files found.')
  else begin
   writeln('Total input files: ', filuhits);
@@ -982,7 +987,7 @@ end;
 function DoInits : boolean;
 // Sets up a logging file, an output data file, etc preparations.
 // Returns true if all good, or false if anything went wrong.
-var ivar : dword;
+var i : dword;
     txt : UTF8string;
 begin
  DoInits := FALSE;
@@ -995,21 +1000,21 @@ begin
  // Try the current working directory first.
  assign(stdout, 'decomp.log');
  filemode := 1; rewrite(stdout); // write-only
- ivar := IOresult;
- if not ivar in [0,5] then begin
-  writeln(errortxt(ivar) + ' trying to write decomp.log in current directory');
+ i := IOresult;
+ if not i in [0,5] then begin
+  writeln(errortxt(i) + ' trying to write decomp.log in current directory');
   exit;
  end;
- if ivar = 5 then begin
+ if i = 5 then begin
   // Access denied: fall back to the user's profile directory.
   txt := GetAppConfigDir(FALSE); // false means user-specific, not global
   mkdir(txt);
   while IOresult <> 0 do ; // flush
   assign(stdout, txt + 'decomp.log');
   filemode := 1; rewrite(stdout); // write-only
-  ivar := IOresult;
-  if ivar <> 0 then begin
-   writeln(errortxt(ivar) + ' trying to write decomp.log under profile at ' + txt);
+  i := IOresult;
+  if i <> 0 then begin
+   writeln(errortxt(i) + ' trying to write decomp.log under profile at ' + txt);
    exit;
   end;
  end;
@@ -1037,8 +1042,8 @@ begin
 end;
 
 procedure DoCleanup;
-var ivar : dword;
-    txt : string;
+var i : dword;
+    txt : UTF8string;
 begin
  // Give the user a summary of what happened
  if errorcount = 0 then txt := 'Finished, no errors.'
@@ -1047,9 +1052,9 @@ begin
 
  // Make sure memory is freed.
  if length(PNGlist) <> 0 then
-  for ivar := length(PNGlist) - 1 downto 0 do
-   if PNGlist[ivar].bitmap <> NIL then begin
-    freemem(PNGlist[ivar].bitmap); PNGlist[ivar].bitmap := NIL;
+  for i := length(PNGlist) - 1 downto 0 do with PNGlist[i] do
+   if bitmap <> NIL then begin
+    freemem(bitmap); bitmap := NIL;
    end;
 
  // Close the log file and get ready to quit.
@@ -1203,8 +1208,8 @@ begin
  if DoParams = FALSE then exit;
  if DoInits = FALSE then exit;
 
- // Find and process source files
- ProcessFiles(decomp_param.sourcedir);
+ // Find and process source files.
+ ScanFiles(decomp_param.sourcedir);
 
  DoCleanup;
 end.

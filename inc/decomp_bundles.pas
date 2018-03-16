@@ -17,7 +17,7 @@
 { along with SuperSakura.  If not, see <https://www.gnu.org/licenses/>.     }
 {                                                                           }
 
-function Decomp_ExcellentDAT(const loader : TFileLoader; const listfilename, outputdir : UTF8string) : UTF8string;
+procedure Decomp_ExcellentDAT(const loader : TFileLoader; const listfilename, outputdir : UTF8string);
 // Unpacks files from an Excellents .DAT file, using the accompanying .LST
 // file, and saves them in outputdir/temp/. The unpacked files are then
 // further forwarded to conversion functions.
@@ -32,7 +32,6 @@ begin
  //and (word(loader^) = 2)
  then begin
   write(stdout, 'this has no resources! ');
-  Decomp_ExcellentDAT := 'skip';
   exit;
  end;
 
