@@ -95,7 +95,13 @@ type PNGtype = record
        // 128 - if set, 32-bit RGBA, else 32-bit RGBx
      end;
 
-var errorcount : dword;
+var PNGcount, newgfxcount : dword;
+    // PNGlist[] has image metadata from data.txt and newdata.txt.
+    PNGlist : array of PNGtype; // index [0] is a null entry
+    // newgfxlist[] has the filename of each image converted this session.
+    newgfxlist : array of UTF8string;
+    baseresx, baseresy : word;
+    songlist : array of string[12];
 
     decomp_param : record
       sourcedir : UTF8string; // the input resources are read from here
@@ -109,18 +115,11 @@ var errorcount : dword;
       listtypes : boolean;
     end;
 
-    PNGcount, newgfxcount : dword;
-    // PNGlist[] has image metadata from data.txt and newdata.txt.
-    PNGlist : array of PNGtype; // index [0] is a null entry
-    // newgfxlist[] has the filename of each image converted this session.
-    newgfxlist : array of UTF8string;
-    baseresx, baseresy : word;
-    songlist : array of string[12];
-
 {$include inc/gidtable.inc} // game ID table with CRC numbers
 var game, crctableid : dword;
 
-    filu : file;
+    errorcount : dword;
+    filu : file; // used by decomp_music, todo: replace with SaveFile()
 
 procedure PrintError(const wak : UTF8string);
 // Unified method of informing the user of errors during Recompile.
@@ -293,6 +292,8 @@ begin
  end;
 end;
 
+// ------------------------------------------------------------------
+
 procedure WriteMetaData;
 // Writes data.txt.
 var metafile : text;
@@ -366,25 +367,6 @@ begin
   close(metafile);
  end;
 end;
-
-// ------------------------------------------------------------------
-
-// Image compositing/beautifying functions. Call PostProcess to do all.
-{$include inc/decomp_postproc.pas}
-
-// Decompiling functions for specific input file types.
-{$include inc/decomp_jastovl.pas}
-{$include inc/decomp_excellents.pas}
-{$include inc/decomp_makichan.pas}
-{$include inc/decomp_pi.pas}
-{$include inc/decomp_excellentg.pas}
-{$include inc/decomp_music.pas}
-
-// Forward declaration of DispatchFile, so bundle decompile functions can
-// redispatch bundle contents.
-function DispatchFile(srcfile : UTF8string) : dword; forward;
-
-{$include inc/decomp_bundles.pas}
 
 // ------------------------------------------------------------------
 
@@ -550,9 +532,141 @@ end;
 
 // ------------------------------------------------------------------
 
+// Image compositing/beautifying functions. Call PostProcess to do all.
+{$include inc/decomp_postproc.pas}
+
+// Decompiling functions for specific input file types.
+{$include inc/decomp_jastovl.pas}
+{$include inc/decomp_excellents.pas}
+{$include inc/decomp_makichan.pas}
+{$include inc/decomp_pi.pas}
+{$include inc/decomp_excellentg.pas}
+{$include inc/decomp_music.pas}
+{$include inc/decomp_exe.pas}
+
+// Forward declaration of DispatchFile, so bundle decompile functions can
+// redispatch bundle contents.
+function DispatchFile(const srcfile : UTF8string) : dword; forward;
+
+{$include inc/decomp_bundles.pas}
+
+// ------------------------------------------------------------------
+
+function DispatchFile(const srcfile : UTF8string) : dword;
+// Forwards the given file to an appropriate conversion routine. File type
+// identification depends on the currently identified game ID and file
+// suffix.
+// Returns 1 if attempted to convert the file, 0 if skipped file.
+var loader : TFileLoader;
+    basename, suffix : UTF8string;
+    isagraphic : boolean;
+begin
+ DispatchFile := 0;
+ write(stdout, srcfile, ': ');
+
+ suffix := lowercase(ExtractFileExt(srcfile));
+ basename := ExtractFileName(srcfile);
+ basename := upcase(copy(basename, 1, length(basename) - length(suffix)));
+ isagraphic := FALSE;
+
+ try
+ loader := TFileLoader.Open(srcfile);
+
+ case suffix of
+   // === Executables ===
+   '.exe':
+   Decomp_Exe(loader);
+
+   // === Scripts ===
+   '.ovl':
+   case game of
+     gid_ANGELSCOLLECTION1, gid_ANGELSCOLLECTION2, gid_MARIRIN, gid_DEEP,
+     gid_SETSUJUU, gid_TRANSFER98, gid_3SIS, gid_3SIS98, gid_EDEN, gid_FROMH,
+     gid_HOHOEMI, gid_VANISH, gid_RUNAWAY, gid_RUNAWAY98, gid_SAKURA,
+     gid_SAKURA98, gid_MAJOKKO, gid_TASOGARE, gid_PARFAIT:
+     Decomp_JastOvl(loader, decomp_param.outputdir + 'scr' + DirectorySeparator + basename + '.txt');
+   end;
+
+   '.s':
+   case game of
+     gid_MAYCLUB, gid_MAYCLUB98, gid_NOCTURNE, gid_NOCTURNE98:
+     Decomp_ExcellentS(loader, decomp_param.outputdir + 'scr' + DirectorySeparator + basename + '.txt');
+   end;
+
+   // === Graphics ===
+   '.gra':
+   case game of
+     gid_ANGELSCOLLECTION1, gid_ANGELSCOLLECTION2, gid_MARIRIN, gid_DEEP,
+     gid_SETSUJUU, gid_TRANSFER98, gid_3SIS, gid_3SIS98, gid_EDEN, gid_FROMH,
+     gid_HOHOEMI, gid_VANISH, gid_RUNAWAY, gid_RUNAWAY98, gid_SAKURA,
+     gid_SAKURA98, gid_MAJOKKO, gid_TASOGARE:
+     begin
+      Decomp_Pi(loader, decomp_param.outputdir + 'gfx' + DirectorySeparator + basename + '.png');
+      isagraphic := TRUE;
+     end;
+   end;
+
+   '.mki', '.mag', '.max':
+   begin
+    Decomp_Makichan(loader, decomp_param.outputdir + 'gfx' + DirectorySeparator + basename + '.png');
+    isagraphic := TRUE;
+   end;
+
+   '.g':
+   case game of
+     gid_NOCTURNE, gid_NOCTURNE98, gid_MAYCLUB, gid_MAYCLUB98:
+     begin
+      Decomp_ExcellentG(loader, decomp_param.outputdir + 'gfx' + DirectorySeparator + basename + '.png');
+      isagraphic := TRUE;
+     end;
+   end;
+
+   // === Music ===
+   '.m':
+   Decomp_dotM(loader, decomp_param.outputdir + 'aud' + DirectorySeparator + basename + '.mid');
+
+   '.sc5':
+   Decomp_SC5(loader, decomp_param.outputdir + 'aud' + DirectorySeparator + basename + '.mid');
+
+   // === Bundles ===
+   '.dat':
+   case game of
+     gid_NOCTURNE, gid_MAYCLUB:
+     // must be accompanied by a .lst file
+     Decomp_ExcellentDAT(loader, copy(srcfile, 1, length(srcfile) - 3) + 'lst', decomp_param.outputdir);
+   end;
+
+   '.lib':
+   case game of
+     gid_NOCTURNE98, gid_MAYCLUB98:
+     // must be accompanied by a .cat file
+     Decomp_ExcellentLib(loader, copy(srcfile, 1, length(srcfile) - 3) + 'cat', decomp_param.outputdir);
+   end;
+ end;
+
+ // Present the file dispatch result.
+ writeln(stdout, 'ok');
+ if isagraphic then begin
+  if newgfxcount >= dword(length(newgfxlist)) then setlength(newgfxlist, length(newgfxlist) shl 1 + 64);
+  newgfxlist[newgfxcount] := basename;
+  inc(newgfxcount);
+ end;
+
+ finally
+  if loader <> NIL then loader.free;
+  loader := NIL;
+ end;
+end;
+
+// ------------------------------------------------------------------
+
 procedure SelectGame(newnum : dword);
 var i : dword;
 begin
+ // Dump metadata and tweak graphics, if starting to work on a new recognised
+ // game after a previous recognised game.
+ if game <> gid_UNKNOWN then PostProcess;
+
  // New recognised game, do a general state reset.
  ResetMemResources;
  game := CRCID[newnum].gidnum;
@@ -590,289 +704,27 @@ begin
  ProcessMetaData(decomp_param.outputdir + 'data.txt');
 end;
 
-procedure GetStuffFromExe(const exefilename : UTF8string);
-// Reads an executable file and extracts useful data, like animation frames
-// or music file lists.
-// The executable's game ID must be known before calling.
-var loader : TFileLoader;
-    poku : pointer;
-    txt : UTF8string;
-    songnamu : string[15];
-    i, j : dword;
-    songlistofs, animdataofs : dword;
-begin
- loader := TFileLoader.Open(exefilename);
-
- try
- // Extract constant data from the EXE.
- songlistofs := 0; animdataofs := 0;
- songnamu := '';
- setlength(songlist, 0);
- case game of
-   gid_3SIS: begin setlength(songlist, 24); animdataofs := $15AD0; end;
-   gid_3SIS98: begin setlength(songlist, 24); animdataofs := $146B0; end;
-   gid_ANGELSCOLLECTION1: begin setlength(songlist, 30); end;
-   gid_ANGELSCOLLECTION2: begin songlistofs := $137E8; setlength(songlist, 30); end;
-   gid_DEEP: begin songlistofs := $1EB43; setlength(songlist, 47); end;
-   gid_EDEN: begin setlength(songlist, 20); end;
-   gid_FROMH: begin setlength(songlist, 28); end;
-   gid_HOHOEMI: begin songlistofs := $1A2BC; setlength(songlist, 30); end;
-   gid_MAJOKKO: begin songlistofs := $182E8; setlength(songlist, 30); end;
-   gid_MARIRIN: begin setlength(songlist, 26); end;
-   gid_RUNAWAY: begin setlength(songlist, 22); animdataofs := $162B0; end;
-   gid_RUNAWAY98: begin setlength(songlist, 22); animdataofs := $15030; end;
-   gid_SAKURA: begin setlength(songlist, 33); end;
-   gid_SAKURA98: begin setlength(songlist, 33); end;
-   gid_SETSUJUU: begin songlistofs := $1466F; setlength(songlist, 22); animdataofs := $15816; end;
-   gid_TASOGARE: begin songlistofs := $1B3AA; setlength(songlist, 27); end;
-   gid_TRANSFER98: begin setlength(songlist, 40); animdataofs := $159CC; end;
-   gid_VANISH: begin {songlistofs := $19CDC;} setlength(songlist, 15); end;
- end;
-
- // Enumerate songs.
- case game of
-  gid_3SIS, gid_3SIS98: songnamu := 'SS_';
-  gid_ANGELSCOLLECTION1: songnamu := 'T';
-  gid_EDEN: songnamu := 'EK_';
-  gid_FROMH: songnamu := '';
-  gid_MARIRIN: songnamu := 'MR_';
-  gid_RUNAWAY, gid_RUNAWAY98: songnamu := 'MT_';
-  gid_SAKURA, gid_SAKURA98: songnamu := 'SK_';
-  gid_TRANSFER98: songnamu := 'TEN0';
-  gid_VANISH: songnamu := 'VP0';
- end;
- if (length(songlist) <> 0) and (songlistofs = 0) then
-  for i := high(songlist) downto 0 do
-  if i < 9 then songlist[i] := songnamu + '0' + strdec(i + 1)
-  else songlist[i] := songnamu + strdec(i + 1);
- //if game = gid_TRANSFER98 then songlist[39] := 'TRAIN';
-
- // Extract songs, if applicable.
- if songlistofs <> 0 then begin
-  for i := high(songlist) downto 0 do byte(songlist[i][0]) := 0;
-  i := 0;
-  while i < dword(length(songlist)) do begin
-   if loader.ReadByteFrom(songlistofs) = 0 then begin
-    // crop out the extension
-    while (length(songlist[i]) <> 0)
-    and (songlist[i][length(songlist[i])] <> '.')
-    do dec(byte(songlist[i][0]));
-    dec(byte(songlist[i][0]));
-    inc(i);
-   end else
-    songlist[i] := songlist[i] + char(loader.ReadByteFrom(songlistofs));
-   inc(songlistofs);
-  end;
-
-  writeln(stdout, 'Extracted songlist, ' + strdec(length(songlist)) + ' entries.');
-  for i := 0 to high(songlist) do writeln(stdout, i, ':', songlist[i]);
- end;
-
- // Extract animation data.
- if animdataofs <> 0 then begin
-  loader.ofs := animdataofs;
-  getmem(poku, 178);
-
-  // Snowcat and Tenkousei use a modified format.
-  if game in [gid_SETSUJUU, gid_TRANSFER98] then begin
-   j := 0;
-   case game of
-    // baseline address for name strings.
-    gid_SETSUJUU: j := $14340;
-    gid_TRANSFER98: j := $13E50;
-   end;
-
-   repeat
-    // read the animation sequence length (word) + 32 more words.
-    move(loader.readp^, poku^, 66);
-    inc(loader.readp, 66);
-    // invalid sequence length means we're done.
-    if (word(poku^) > $FF) or (dword(poku^) = 0) then break;
-    // read the rest of the animation record.
-    move(loader.readp^, (poku + 38)^, 140);
-    inc(loader.readp, 140);
-    // read the animation file name.
-    move(loader.PtrAt(j + word((poku + 2)^))^, songnamu[1], 9);
-    // find the null to determine string length.
-    for i := 1 to 9 do
-     if songnamu[i] = chr(0) then begin
-      byte(songnamu[0]) := i - 1;
-      break;
-     end;
-    // an empty animation name means we're done.
-    if songnamu = '' then break;
-    // find the PNGlist[] entry for this, or create one.
-    songnamu := upcase(songnamu);
-    i := seekpng(songnamu, TRUE);
-    // convert and save the animation data into PNGlist[].
-    if byte((poku + 2)^) <> 0 then ChewAnimations(poku, i);
-   until FALSE;
-  end
-
-  // Other games use a more common format.
-  else begin
-   repeat
-    move(loader.readp^, poku^, 178);
-    inc(loader.readp, 178);
-    // 0 seqlen or 0 name? We're done.
-    if (word(poku^) = 0) or (word((poku + 2)^) = 0) then break;
-    // grab the animation name.
-    move((poku + 2)^, songnamu[1], 9);
-    // find the null to determine string length.
-    for i := 1 to 9 do
-     if songnamu[i] = chr(0) then begin
-      byte(songnamu[0]) := i - 1;
-      break;
-     end;
-    // find the PNGlist[] entry for this, or create one.
-    songnamu := upcase(songnamu);
-    i := seekpng(songnamu, TRUE);
-    // convert and save the animation data into PNGlist[].
-    ChewAnimations(poku, i);
-   until FALSE;
-  end;
-
-  freemem(poku); poku := NIL;
- end;
-
- // Tenkousei has some scripts embedded in the executable...
- if game = gid_TRANSFER98 then begin
-  txt := 'Extracting bytecode from TK.EXE...';
-  writeln(txt); writeln(stdout, txt);
-  loader.ofs := $14FC6;
-  loader.size := $14FC6 + $9A5; // up to excluding $1596B
-  Decomp_JastOvl(loader, decomp_param.outputdir + 'scr' + DirectorySeparator + 'tkexe.txt');
- end;
-
- finally
-  if loader <> NIL then loader.free;
-  loader := NIL;
- end;
-end;
-
-function ScanEXE(const exenamu : UTF8string) : dword;
-// Compares the Chibi-CRC of the file by the given path+name to the known
-// list in CRCID[]. Returns a CRCID[] index if match found, otherwise FFFF.
-// While at it, if the EXE is recognised, this also scans it for song name
-// enumerations and animation data.
-var execrc, i : dword;
-begin
- execrc := ChibiCRC(exenamu);
- ScanEXE := $FFFF;
- for i := length(CRCID) - 1 downto 0 do
-  if CRCID[i].CRC = execrc then begin
-   ScanEXE := i; break;
-  end;
- if ScanEXE = $FFFF then exit;
-
- if (decomp_param.gidoverride = FALSE)
- and (game <> CRCID[ScanEXE].gidnum) then begin
-  // Dump metadata and tweak graphics, if we've found a new recognised game
-  // after a previous one.
-  if game <> gid_UNKNOWN then PostProcess;
-  SelectGame(ScanEXE);
- end;
-
- GetStuffFromExe(exenamu);
-end;
-
 // ------------------------------------------------------------------
-
-function DispatchFile(srcfile : UTF8string) : dword;
-// Forwards the given file to an appropriate conversion routine. File type
-// identification depends on the currently identified game ID and file
-// suffix.
-// Returns 1 if attempted to convert the file, 0 if skipped file.
-var basename, suffix : UTF8string;
-    isagraphic : boolean;
-begin
- DispatchFile := 0;
- write(stdout, srcfile, ': ');
-
- suffix := lowercase(ExtractFileExt(srcfile));
- basename := ExtractFileName(srcfile);
- basename := upcase(copy(basename, 1, length(basename) - length(suffix)));
- isagraphic := FALSE;
-
- case suffix of
-   // === Scripts ===
-   '.ovl':
-   case game of
-     gid_ANGELSCOLLECTION1, gid_ANGELSCOLLECTION2, gid_MARIRIN, gid_DEEP,
-     gid_SETSUJUU, gid_TRANSFER98, gid_3SIS, gid_3SIS98, gid_EDEN, gid_FROMH,
-     gid_HOHOEMI, gid_VANISH, gid_RUNAWAY, gid_RUNAWAY98, gid_SAKURA,
-     gid_SAKURA98, gid_MAJOKKO, gid_TASOGARE, gid_PARFAIT:
-     Decomp_JastOvl(TFileLoader.Open(srcfile), decomp_param.outputdir + 'scr' + DirectorySeparator + basename + '.txt');
-   end;
-
-   '.s':
-   case game of
-     gid_MAYCLUB, gid_MAYCLUB98, gid_NOCTURNE, gid_NOCTURNE98:
-     Decomp_ExcellentS(TFileLoader.Open(srcfile), decomp_param.outputdir + 'scr' + DirectorySeparator + basename + '.txt');
-   end;
-
-   // === Graphics ===
-   '.gra':
-   case game of
-     gid_ANGELSCOLLECTION1, gid_ANGELSCOLLECTION2, gid_MARIRIN, gid_DEEP,
-     gid_SETSUJUU, gid_TRANSFER98, gid_3SIS, gid_3SIS98, gid_EDEN, gid_FROMH,
-     gid_HOHOEMI, gid_VANISH, gid_RUNAWAY, gid_RUNAWAY98, gid_SAKURA,
-     gid_SAKURA98, gid_MAJOKKO, gid_TASOGARE:
-     begin
-      Decomp_Pi(TFileLoader.Open(srcfile), decomp_param.outputdir + 'gfx' + DirectorySeparator + basename + '.png');
-      isagraphic := TRUE;
-     end;
-   end;
-
-   '.mki', '.mag', '.max':
-   begin
-    Decomp_Makichan(TFileLoader.Open(srcfile), decomp_param.outputdir + 'gfx' + DirectorySeparator + basename + '.png');
-    isagraphic := TRUE;
-   end;
-
-   '.g':
-   case game of
-     gid_NOCTURNE, gid_NOCTURNE98, gid_MAYCLUB, gid_MAYCLUB98:
-     begin
-      Decomp_ExcellentG(TFileLoader.Open(srcfile), decomp_param.outputdir + 'gfx' + DirectorySeparator + basename + '.png');
-      isagraphic := TRUE;
-     end;
-   end;
-
-   // === Music ===
-   '.m':
-   Decomp_dotM(TFileLoader.Open(srcfile), decomp_param.outputdir + 'aud' + DirectorySeparator + basename + '.mid');
-
-   '.sc5':
-   Decomp_SC5(TFileLoader.Open(srcfile), decomp_param.outputdir + 'aud' + DirectorySeparator + basename + '.mid');
-
-   // === Bundles ===
-   '.dat':
-   case game of
-     gid_NOCTURNE, gid_MAYCLUB:
-     // must be accompanied by a .lst file
-     Decomp_ExcellentDAT(TFileLoader.Open(srcfile), copy(srcfile, 1, length(srcfile) - 3) + 'lst', decomp_param.outputdir);
-   end;
-
-   '.lib':
-   case game of
-     gid_NOCTURNE98, gid_MAYCLUB98:
-     // must be accompanied by a .cat file
-     Decomp_ExcellentLib(TFileLoader.Open(srcfile), copy(srcfile, 1, length(srcfile) - 3) + 'cat', decomp_param.outputdir);
-   end;
- end;
-
- // Present the file dispatch result.
-  writeln(stdout, 'ok');
-  if isagraphic then begin
-   if newgfxcount >= dword(length(newgfxlist)) then setlength(newgfxlist, length(newgfxlist) shl 1 + 64);
-   newgfxlist[newgfxcount] := basename;
-   inc(newgfxcount);
-  end;
-end;
 
 procedure ScanFiles(srcdir : UTF8string);
 var filuhits : dword;
+
+  procedure ScanExe(const exenamu : UTF8string);
+  // Compares the given exe file's Chibi-CRC to the known list in CRCID[].
+  // If the exe is recognised, sends it to the dispatcher.
+  var execrc, i : dword;
+  begin
+   execrc := ChibiCRC(exenamu);
+   for i := length(CRCID) - 1 downto 0 do
+    if CRCID[i].CRC = execrc then begin
+     // Match found!
+     if (decomp_param.gidoverride = FALSE) and (game <> CRCID[i].gidnum)
+     then SelectGame(i);
+     // Dispatch the executable for extraction.
+     DispatchFile(exenamu);
+     exit;
+    end;
+  end;
 
   procedure ScanDir(const currentsearch : UTF8string; onlyexes : boolean);
   var filusr : TSearchRec;
@@ -1208,8 +1060,7 @@ begin
  if DoParams = FALSE then exit;
  if DoInits = FALSE then exit;
 
+ AddExitProc(@DoCleanup);
  // Find and process source files.
  ScanFiles(decomp_param.sourcedir);
-
- DoCleanup;
 end.
