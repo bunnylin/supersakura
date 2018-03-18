@@ -115,10 +115,16 @@ var PNGcount, newgfxcount : dword;
       listtypes : boolean;
     end;
 
+    decomp_stats : record
+      numfiles : dword;
+      numconverted : dword;
+      numskipped : dword;
+      numerrors : dword;
+    end;
+
 {$include inc/gidtable.inc} // game ID table with CRC numbers
 var game, crctableid : dword;
 
-    errorcount : dword;
     filu : file; // used by decomp_music, todo: replace with SaveFile()
 
 procedure PrintError(const wak : UTF8string);
@@ -128,7 +134,7 @@ procedure PrintError(const wak : UTF8string);
 begin
  writeln(wak);
  writeln(stdout, wak);
- inc(errorcount);
+ inc(decomp_stats.numerrors);
 end;
 
 // ------------------------------------------------------------------
@@ -532,6 +538,9 @@ end;
 
 // ------------------------------------------------------------------
 
+// Decompilers may need to redispatch bundle contents etc.
+procedure DispatchFile(const srcfile : UTF8string); forward;
+
 // Image compositing/beautifying functions. Call PostProcess to do all.
 {$include inc/decomp_postproc.pas}
 
@@ -543,25 +552,19 @@ end;
 {$include inc/decomp_excellentg.pas}
 {$include inc/decomp_music.pas}
 {$include inc/decomp_exe.pas}
-
-// Forward declaration of DispatchFile, so bundle decompile functions can
-// redispatch bundle contents.
-function DispatchFile(const srcfile : UTF8string) : dword; forward;
-
 {$include inc/decomp_bundles.pas}
 
 // ------------------------------------------------------------------
 
-function DispatchFile(const srcfile : UTF8string) : dword;
+procedure DispatchFile(const srcfile : UTF8string);
 // Forwards the given file to an appropriate conversion routine. File type
 // identification depends on the currently identified game ID and file
 // suffix.
-// Returns 1 if attempted to convert the file, 0 if skipped file.
 var loader : TFileLoader;
     basename, suffix : UTF8string;
     isagraphic : boolean;
 begin
- DispatchFile := 0;
+ inc(decomp_stats.numfiles);
  write(stdout, srcfile, ': ');
 
  suffix := lowercase(ExtractFileExt(srcfile));
@@ -652,10 +655,14 @@ begin
   inc(newgfxcount);
  end;
 
- finally
-  if loader <> NIL then loader.free;
-  loader := NIL;
+ inc(decomp_stats.numconverted);
+
+ except
+  inc(decomp_stats.numerrors);
  end;
+
+ if loader <> NIL then loader.free;
+ loader := NIL;
 end;
 
 // ------------------------------------------------------------------
@@ -707,7 +714,6 @@ end;
 // ------------------------------------------------------------------
 
 procedure ScanFiles(srcdir : UTF8string);
-var filuhits : dword;
 
   procedure ScanExe(const exenamu : UTF8string);
   // Compares the given exe file's Chibi-CRC to the known list in CRCID[].
@@ -802,7 +808,7 @@ var filuhits : dword;
    // Examine the individual files for convertables.
    while filucount <> 0 do begin
     dec(filucount);
-    inc(filuhits, DispatchFile(curdir + filulist[filucount]));
+    DispatchFile(curdir + filulist[filucount]);
    end;
 
    // Scan subdirectories, if any.
@@ -815,23 +821,13 @@ var filuhits : dword;
   end;
 
 begin
- if srcdir = '' then begin
-  writeln('Nothing to do.');
-  writeln(stdout, 'Nothing to do.');
-  exit;
- end;
+ if srcdir = '' then exit;
 
  // Find and process input resources.
- filuhits := 0;
  ScanDir(ExpandFileName(srcdir), FALSE);
- if filuhits = 0 then PrintError('No input files found.')
- else begin
-  writeln('Total input files: ', filuhits);
-  writeln(stdout, 'Total input files: ', filuhits);
- end;
 
  // Dump metadata, composite and beautify graphics, etc.
- if (game <> gid_UNKNOWN) then PostProcess;
+ PostProcess;
 end;
 
 // ------------------------------------------------------------------
@@ -883,6 +879,8 @@ begin
  end;
  while IOresult <> 0 do ; // flush
 
+ fillbyte(decomp_stats, sizeof(decomp_stats), 0);
+
  if decomp_param.sourcedir <> '' then begin
   writeln('Input files: ', decomp_param.sourcedir);
   writeln(stdout, 'Input files: ', decomp_param.sourcedir);
@@ -898,9 +896,19 @@ var i : dword;
     txt : UTF8string;
 begin
  // Give the user a summary of what happened
- if errorcount = 0 then txt := 'Finished, no errors.'
- else txt := 'Finished, ' + strdec(errorcount) + ' errors! See decomp.log.';
- writeln(txt); writeln(stdout, txt);
+ if decomp_stats.numconverted + decomp_stats.numerrors = 0 then
+  PrintError('No convertable files found.')
+ else begin
+  txt := 'Files found: ' + strdec(decomp_stats.numfiles);
+  writeln(txt); writeln(stdout, txt);
+  txt := 'Files converted: ' + strdec(decomp_stats.numconverted);
+  writeln(txt); writeln(stdout, txt);
+  txt := 'Files skipped: ' + strdec(decomp_stats.numskipped);
+  writeln(txt); writeln(stdout, txt);
+  if decomp_stats.numerrors = 0 then txt := 'No errors.'
+  else txt := strdec(decomp_stats.numerrors) + ' errors! See decomp.log.';
+  writeln(txt); writeln(stdout, txt);
+ end;
 
  // Make sure memory is freed.
  if length(PNGlist) <> 0 then
