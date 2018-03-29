@@ -17,13 +17,10 @@
 { along with SuperSakura.  If not, see <https://www.gnu.org/licenses/>.     }
 {                                                                           }
 
-// SuperSakura_GRAMOVL_Decompiler
-// Decomp --- Graphics conversion code
-
 procedure ChewAnimations(animp : pointer; PNGindex : dword);
 // Takes a pointer to a single unit of JAST/Tiare animation data, processes
 // it into useful data in PNGlist[]. This does not release animp.
-var ivar, jvar : dword;
+var i, j : dword;
 begin
  {$ifdef enable_hacks}
  case game of
@@ -52,19 +49,19 @@ begin
  setlength(PNGlist[PNGindex].sequence, 32);
  // Sequence storage format:
  // [n] [xx][frame number 13 bits] [xx][delay 14 bits]
- for ivar := 0 to 31 do begin
-  PNGlist[PNGindex].sequence[ivar] := byte(animp^) shl 16;
+ for i := 0 to 31 do begin
+  PNGlist[PNGindex].sequence[i] := byte(animp^) shl 16;
   inc(animp, 2);
  end;
  // Convert to ~millisecs, shift delays to intuitively correct frames.
- for ivar := 1 to 32 do begin
-  jvar := word((animp + ivar * 2)^) * 11;
-  if jvar = 0 then jvar := 16;
-  PNGlist[PNGindex].sequence[ivar - 1] := PNGlist[PNGindex].sequence[ivar - 1] + jvar;
+ for i := 1 to 32 do begin
+  j := word((animp + i * 2)^) * 11;
+  if j = 0 then j := 16;
+  PNGlist[PNGindex].sequence[i - 1] := PNGlist[PNGindex].sequence[i - 1] + j;
  end;
- ivar := PNGlist[PNGindex].seqlen - 1;
- jvar := dword(word(animp^) * 11);
- PNGlist[PNGindex].sequence[ivar] := (PNGlist[PNGindex].sequence[ivar] and $FFFF0000) + jvar;
+ i := PNGlist[PNGindex].seqlen - 1;
+ j := dword(word(animp^) * 11);
+ PNGlist[PNGindex].sequence[i] := (PNGlist[PNGindex].sequence[i] and $FFFF0000) + j;
  // If sequence length = 1, enforce a stopped animation
  if PNGlist[PNGindex].seqlen = 1 then PNGlist[PNGindex].sequence[0] := PNGlist[PNGindex].sequence[0] or $FFFF;
 
@@ -319,7 +316,7 @@ procedure Decomp_Pi(const loader : TFileLoader; const outputfile : UTF8string);
 // a normal PNG.
 // Throws an exception in case of errors.
 var imunamu : UTF8string;
-    ivar, jvar : dword;
+    i, j : dword;
     PNGindex, xparency, clippedx : dword;
     tempbmp : bitmaptype;
 begin
@@ -341,24 +338,24 @@ begin
   // Read the deranged palette.
   setlength(PNGlist[PNGindex].pal, 16);
   loader.ofs := $100;
-  for ivar := 0 to 15 do with PNGlist[PNGindex].pal[ivar] do begin
+  for i := 0 to 15 do with PNGlist[PNGindex].pal[i] do begin
    r := loader.ReadWordFrom(loader.ofs + 0) and $F0;
    g := loader.ReadWordFrom(loader.ofs + 32) and $F0;
    b := loader.ReadWordFrom(loader.ofs + 64) and $F0;
    inc(loader.readp, 2);
   end;
   // Copy the picture over, while expanding 4bpp indexed --> 8bpp indexed.
-  ivar := PNGlist[PNGindex].origsizexp * PNGlist[PNGindex].origsizeyp;
-  getmem(PNGlist[PNGindex].bitmap, ivar);
-  ivar := ivar shr 1;
+  i := PNGlist[PNGindex].origsizexp * PNGlist[PNGindex].origsizeyp;
+  getmem(PNGlist[PNGindex].bitmap, i);
+  i := i shr 1;
   loader.ofs := $200;
-  jvar := 0;
-  while (ivar <> 0) and (loader.readp < loader.endp) do begin
-   dec(ivar);
-   byte((PNGlist[PNGindex].bitmap + jvar)^) := byte(loader.readp^) and $F;
-   inc(jvar);
-   byte((PNGlist[PNGindex].bitmap + jvar)^) := byte(loader.readp^) shr 4;
-   inc(jvar); inc(loader.readp);
+  j := 0;
+  while (i <> 0) and (loader.readp < loader.endp) do begin
+   dec(i);
+   byte((PNGlist[PNGindex].bitmap + j)^) := byte(loader.readp^) and $F;
+   inc(j);
+   byte((PNGlist[PNGindex].bitmap + j)^) := byte(loader.readp^) shr 4;
+   inc(j); inc(loader.readp);
   end;
  end else
 
@@ -367,12 +364,12 @@ begin
   write(stdout, '[makichan] ');
   // Forward to the appropriate decompressor.
   inc(loader.readp, 4);
-  ivar := loader.ReadDword; // 01A, 01B, or 02
-  case ivar of
+  i := loader.ReadDword; // 01A, 01B, or 02
+  case i of
    $20413130: UnpackMakiGraphic(loader, PNGindex, 1); // 01A
    $20423130: UnpackMakiGraphic(loader, PNGindex, 2); // 01B
    $20203230: UnpackMAG2Graphic(loader, PNGindex); // 02
-   else raise Exception.Create('unknown MAKI subtype $' + strhex(ivar));
+   else raise Exception.Create('unknown MAKI subtype $' + strhex(i));
   end;
  end
 
@@ -387,8 +384,8 @@ begin
   // If the metadata string is $166 bytes long, it contains animation data.
   if loader.ofs = $166 then begin
    // Pack nibbles into bytes
-   for ivar := 1 to 178 do
-    byte(loader.PtrAt(ivar)^) := loader.ReadByteFrom(ivar * 2) or (loader.ReadByteFrom(ivar * 2 + 1) shr 4);
+   for i := 1 to 178 do
+    byte(loader.PtrAt(i)^) := loader.ReadByteFrom(i * 2) or (loader.ReadByteFrom(i * 2 + 1) shr 4);
    // Process the data
    ChewAnimations(loader.PtrAt(1), PNGindex);
   end;
@@ -413,8 +410,8 @@ begin
   // Skip over a 00 byte.
   inc(loader.readp);
   // Now follows what feels like a pascal-string of unknown data.
-  ivar := loader.ReadByte;
-  inc(loader.readp, ivar);
+  i := loader.ReadByte;
+  inc(loader.readp, i);
 
   // Next two words are image width and height.
   PNGlist[PNGindex].origsizexp := (loader.ReadByte shl 8) or loader.ReadByte;
@@ -428,7 +425,7 @@ begin
 
   // Read the palette.
   setlength(PNGlist[PNGindex].pal, 16);
-  for ivar := 0 to 15 do with PNGlist[PNGindex].pal[ivar] do begin
+  for i := 0 to 15 do with PNGlist[PNGindex].pal[i] do begin
    r := loader.ReadByte and $F0;
    g := loader.ReadByte and $F0;
    b := loader.ReadByte and $F0;
@@ -544,30 +541,30 @@ begin
  // resolution. There are also some smaller graphics, such as falling sakura
  // petals, meant to be used in a 640x400 context.
 
- ivar := 0;
+ i := 0;
  if PNGlist[PNGindex].seqlen = 0 then
   if (PNGlist[PNGindex].origsizexp > baseresx)
-  or (PNGlist[PNGindex].origsizeyp > baseresy) then inc(ivar);
+  or (PNGlist[PNGindex].origsizeyp > baseresy) then inc(i);
 
  if (imunamu = 'TIARE_P')
  or (imunamu = 'MARU1') or (imunamu = 'MARU2') or (imunamu = 'MARU3')
- then inc(ivar);
+ then inc(i);
 
  case game of
-  gid_ANGELSCOLLECTION1: if imunamu = 'TENGO_NO' then inc(ivar);
-  gid_FROMH: if (imunamu[1] = 'O') or (imunamu = 'PUSH') then inc(ivar);
-  gid_MAJOKKO: if imunamu = 'JURA' then inc(ivar);
-  gid_MAYCLUB: if imunamu = 'PRS' then inc(ivar);
+  gid_ANGELSCOLLECTION1: if imunamu = 'TENGO_NO' then inc(i);
+  gid_FROMH: if (imunamu[1] = 'O') or (imunamu = 'PUSH') then inc(i);
+  gid_MAJOKKO: if imunamu = 'JURA' then inc(i);
+  gid_MAYCLUB: if imunamu = 'PRS' then inc(i);
   gid_SAKURA, gid_SAKURA98:
     if (imunamu = 'HANKO') or (imunamu = 'SAKURA')
     or (copy(imunamu, 1, 5) = 'AE_19')
-    then inc(ivar);
-  gid_SETSUJUU: if copy(imunamu, 1, 3) = 'SET' then inc(ivar);
-  gid_RUNAWAY, gid_RUNAWAY98: if imunamu = 'OP_013A0' then inc(ivar);
-  gid_TRANSFER98: if imunamu = 'ROGOL2' then inc(ivar);
+    then inc(i);
+  gid_SETSUJUU: if copy(imunamu, 1, 3) = 'SET' then inc(i);
+  gid_RUNAWAY, gid_RUNAWAY98: if imunamu = 'OP_013A0' then inc(i);
+  gid_TRANSFER98: if imunamu = 'ROGOL2' then inc(i);
  end;
 
- if ivar <> 0 then begin
+ if i <> 0 then begin
   PNGlist[PNGindex].origresx := 640;
   PNGlist[PNGindex].origresy := 400;
  end;
@@ -619,7 +616,7 @@ begin
    if imunamu = 'FIN' then with PNGlist[PNGindex] do begin
     framewidth := 152; frameheight := 96;
     seqlen := 16; setlength(sequence, seqlen);
-    for ivar := 0 to 15 do sequence[ivar] := (ivar shl 16) or $50;
+    for i := 0 to 15 do sequence[i] := (i shl 16) or $50;
     sequence[14] := sequence[14] or $200;
     sequence[15] := sequence[15] or $FFFF;
    end;
@@ -630,9 +627,9 @@ begin
     seqlen := 16; setlength(sequence, seqlen);
     sequence[0] := $00000190; // frame 0 for 400 ms
     sequence[1] := $00010190; // frame 1 for 400 ms, rep x2
-    for ivar := 2 to 11 do sequence[ivar] := sequence[ivar and 1];
+    for i := 2 to 11 do sequence[i] := sequence[i and 1];
     // frames 2+3 for 400 ms, rep x3
-    for ivar := 6 to 11 do sequence[ivar] := sequence[ivar] or $20000;
+    for i := 6 to 11 do sequence[i] := sequence[i] or $20000;
     sequence[12] := $00040100; // frame 4 for 256 ms
     sequence[13] := $00050100; // frame 5 for 256 ms
     sequence[14] := $00060100; // frame 6 for 256 ms
@@ -643,7 +640,7 @@ begin
     origofsxp := 544;
     origofsyp := 280;
     seqlen := 11; setlength(sequence, seqlen);
-    for ivar := 0 to 8 do sequence[ivar] := (ivar shl 16) or $100; // 256 ms
+    for i := 0 to 8 do sequence[i] := (i shl 16) or $100; // 256 ms
     sequence[9] := $00097FFF; // frame 9 for 32767 ms
     sequence[10] := $0009BFFF; // frame 9 for random(16383) ms
    end;
@@ -653,18 +650,18 @@ begin
    if imunamu = 'MT01FU' then clippedx := 200;
    // Hack: extrapolate a missing pixel row by copying from one up left
    if imunamu = 'KE_069_1' then begin
-    ivar := PNGlist[PNGindex].origsizexp * PNGlist[PNGindex].origsizeyp;
-    for jvar := (PNGlist[PNGindex].origsizexp shr 2) - 1 downto 0 do begin
-     dec(ivar, 4);
-     dword((PNGlist[PNGindex].bitmap + ivar)^) := dword((PNGlist[PNGindex].bitmap + ivar - PNGlist[PNGindex].origsizexp - 1)^);
+    i := PNGlist[PNGindex].origsizexp * PNGlist[PNGindex].origsizeyp;
+    for j := (PNGlist[PNGindex].origsizexp shr 2) - 1 downto 0 do begin
+     dec(i, 4);
+     dword((PNGlist[PNGindex].bitmap + i)^) := dword((PNGlist[PNGindex].bitmap + i - PNGlist[PNGindex].origsizexp - 1)^);
     end;
     // fix minor remaining discontinuity
-    ivar := PNGlist[PNGindex].origsizexp * (PNGlist[PNGindex].origsizeyp - 1);
-    dword((PNGlist[PNGindex].bitmap + ivar + 203)^) := $0E0D0C00; // lt leg
-    dword((PNGlist[PNGindex].bitmap + ivar + 296)^) := $0F000C0F; // rt leg
-    dword((PNGlist[PNGindex].bitmap + ivar + 362)^) := $0F050404; // rt hand
-    inc(ivar, 247); // inside legs
-    move((PNGlist[PNGindex].bitmap + ivar - PNGlist[PNGindex].origsizexp)^, (PNGlist[PNGindex].bitmap + ivar)^, 9);
+    i := PNGlist[PNGindex].origsizexp * (PNGlist[PNGindex].origsizeyp - 1);
+    dword((PNGlist[PNGindex].bitmap + i + 203)^) := $0E0D0C00; // lt leg
+    dword((PNGlist[PNGindex].bitmap + i + 296)^) := $0F000C0F; // rt leg
+    dword((PNGlist[PNGindex].bitmap + i + 362)^) := $0F050404; // rt hand
+    inc(i, 247); // inside legs
+    move((PNGlist[PNGindex].bitmap + i - PNGlist[PNGindex].origsizexp)^, (PNGlist[PNGindex].bitmap + i)^, 9);
    end;
    // Hack: add missing animation data
    if imunamu = 'JURA' then with PNGlist[PNGindex] do begin
@@ -712,10 +709,10 @@ begin
   gid_SETSUJUU: begin
    // Hack: leftmost pixel column is garbage, set it to transparent
    if imunamu = 'SH_58S' then begin
-    jvar := 0;
-    for ivar := PNGlist[PNGindex].origsizeyp - 1 downto 0 do begin
-     byte((PNGlist[PNGindex].bitmap + jvar)^) := xparency;
-     inc(jvar, PNGlist[PNGindex].origsizexp);
+    j := 0;
+    for i := PNGlist[PNGindex].origsizeyp - 1 downto 0 do begin
+     byte((PNGlist[PNGindex].bitmap + j)^) := xparency;
+     inc(j, PNGlist[PNGindex].origsizexp);
     end;
    end;
    // Hack: cut out garbage pixels
@@ -766,7 +763,7 @@ begin
     origofsyp := 168;
     seqlen := 15; setlength(sequence, seqlen);
     // show each frame for 100 msec
-    for ivar := 0 to 13 do sequence[ivar] := (ivar shl 16) or $64;
+    for i := 0 to 13 do sequence[i] := (i shl 16) or $64;
     sequence[14] := $000EFFFF; // frame 14, stop
    end;
   end;
@@ -779,9 +776,9 @@ begin
  // Clip the right side of the image, if required.
  if clippedx <> PNGlist[PNGindex].origsizexp then begin
   // (row 0 is already in place, can be skipped)
-  for ivar := 1 to PNGlist[PNGindex].origsizeyp - 1 do
-   move((PNGlist[PNGindex].bitmap + ivar * PNGlist[PNGindex].origsizexp)^,
-        (PNGlist[PNGindex].bitmap + ivar * clippedx)^,
+  for i := 1 to PNGlist[PNGindex].origsizeyp - 1 do
+   move((PNGlist[PNGindex].bitmap + i * PNGlist[PNGindex].origsizexp)^,
+        (PNGlist[PNGindex].bitmap + i * clippedx)^,
         clippedx);
   PNGlist[PNGindex].origsizexp := clippedx;
  end;
@@ -816,11 +813,11 @@ begin
  setlength(tempbmp.palette, length(PNGlist[PNGindex].pal));
 
  if length(PNGlist[PNGindex].pal) <> 0 then begin
-  for ivar := high(PNGlist[PNGindex].pal) downto 0 do begin
-   tempbmp.palette[ivar].a := $FF;
-   tempbmp.palette[ivar].b := PNGlist[PNGindex].pal[ivar].b;
-   tempbmp.palette[ivar].g := PNGlist[PNGindex].pal[ivar].g;
-   tempbmp.palette[ivar].r := PNGlist[PNGindex].pal[ivar].r;
+  for i := high(PNGlist[PNGindex].pal) downto 0 do begin
+   tempbmp.palette[i].a := $FF;
+   tempbmp.palette[i].b := PNGlist[PNGindex].pal[i].b;
+   tempbmp.palette[i].g := PNGlist[PNGindex].pal[i].g;
+   tempbmp.palette[i].r := PNGlist[PNGindex].pal[i].r;
   end;
  end
  else begin
@@ -835,17 +832,17 @@ begin
  end;
 
  // Convert bitmaptype(pic^) into a compressed PNG, saved in bitmap^.
- // The PNG byte size goes into jvar.
- ivar := mcg_MemoryToPng(@tempbmp, @PNGlist[PNGindex].bitmap, @jvar);
+ // The PNG byte size goes into j.
+ i := mcg_MemoryToPng(@tempbmp, @PNGlist[PNGindex].bitmap, @j);
  mcg_ForgetImage(@tempbmp);
 
- if ivar <> 0 then begin
+ if i <> 0 then begin
   if PNGlist[PNGindex].bitmap <> NIL then begin
    freemem(PNGlist[PNGindex].bitmap); PNGlist[PNGindex].bitmap := NIL;
   end;
   raise Exception.Create(mcg_errortxt);
  end;
 
- SaveFile(outputfile, PNGlist[PNGindex].bitmap, jvar);
+ SaveFile(outputfile, PNGlist[PNGindex].bitmap, j);
  freemem(PNGlist[PNGindex].bitmap); PNGlist[PNGindex].bitmap := NIL;
 end;
