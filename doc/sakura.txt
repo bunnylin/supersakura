@@ -1288,9 +1288,10 @@ of other images already stored in the advanced format. Why are they included
 at all??
 
 
-Each GRA file starts with a meta-data string, which is terminated with the
-byte $1A. The metadata is mostly junk, except for a possible Maki-chan
-signature, and animation data stored there by the more advanced game engine.
+Each GRA file starts with a two-byte signature, then a meta-data string,
+which terminates with the byte $1A. The metadata is mostly junk, except for
+animation data stored there by the more advanced game engine. The signature
+is either "Pi", or 00 00 in an attempt to mask the filetype.
 
 All animation data in .GRA files only uses the top nibbles of the bytes, to
 avoid accidentally printing $1A. To put together values in the string:
@@ -1306,9 +1307,6 @@ sequence length or file name.
 Even older engines may not have easily accessible animation data anywhere.
 Then the frames must be generated automagically or by hand.
 
-
-Animation data in the metadata string of GRA files starts with a skippable
-extra 0-byte, while animation data in EXE files has no such byte.
 
 Offset Datatype              Description
 ------ --------------------  -----------
@@ -1375,24 +1373,37 @@ The Pi format uses a header like this:
 
 Offset Size  Description
 ------ ----  -----------
-0      byte  Start of header? Always 00.
-1      byte  Machine-dependent code? 00, signifying the image was saved using
-             PC98-specification, or FF, using Hironon-specification.
-2      byte  Machine-dependent flags? Always 00.
-3      byte  Unknown... always 00.
-4      byte  Screen mode; usually 04, a digital 400-scanline 16-color mode
-5      long  A four-character signature, eg. JAST, Magd, PC98 or "MPS "...
-9      byte  Unknown... always 00?
-10     byte  Unknown... almost always 00, except in [Eden] OP_TT and
-             [Snowcat] SH_26A0. If the byte is not 00, it is followed by that
-             many more bytes of unknown data. Both those files have 05.
-
-11     word  Image width, in reversed byte order (MSB first), [01 E0] = 480
-13     word  Image height, in reversed byte order, [01 28] = 296
-15     48    Palette: 16 byte triplets, RGB. The original engines seem to
-             always display the colors with an AND $F0, against spec.
+0      byte  Start of header, always 00.
+1      byte  Mode byte. Almost always 00, but can be FF; ignore.
+2      byte  Screen ratio X, always 00.
+3      byte  Screen ratio Y, always 00.
+4      byte  Bitdepth. Usually 4 or FF for 16 colors, could be 8 for 256.
+5      4     Compressor model, eg. JAST, Magd, PC98 or "MPS "...
+9      2     Length of model-specific data, MSB first. Almost always 0,
+             except in [Eden] OP_TT and [Snowcat] SH_26A0.
+11     2     Image width, MSB first, [01 E0] = 480
+13     2     Image height, MSB first, [01 28] = 296
+15     48    Palette: 16 byte triplets, RGB. See below.
 63           Compressed image data starts here
 ------ ----  -----------
+
+Although the palette is presented as 3 bytes per index, how this is
+interpreted depends on the system. PC98 systems of this era could use
+a palette of 16 colors from 4096 possible, or 4 bits per channel, so only the
+top nibble actually counts. Anex86 confirms this, drawing the graphics in
+each game with the bottom nibble as a copy of the top nibble, xor 1.
+(I don't know what the xor 1 is for, Anex bug?)
+
+The localised ports target VGA graphics or better, where mode 12 can do
+640x400 with 16 colors from 262144 possible, or 6 bits per channel. I think
+the last loaded graphic defines the entire screen's palette, but I haven't
+run into any deliberate instances of this. The relevant Dos and Windows
+engines however screw up the lower nibble, either always zeroing the whole
+nibble or zeroing bits 2 and 3, so what should be FF becomes F0 or F3.
+(Or this could be a Dosbox bug.)
+
+Since the PC98 versions are original, the palette should always be
+interpreted on that basis, with the bottom nibble set equal to the top.
 
 There appears to be no definition of transparency in the .GRA files. Instead,
 graphic loading commands in bytecode specify whether to treat each image as
@@ -1400,7 +1411,8 @@ transparent or not. Transparent images probably need to be named in the
 decoder by hand, assuming the graphics decoder is kept separate from the
 script decompiler.
 
-If transparency is used, it is nearly always mapped to color 8, sometimes 15.
+If transparency is used, in Jast/Tiare games it is nearly always mapped to
+color 8, sometimes 15.
 [Magic] MT05KF appears to have an unremovable solid background. Floodfill?
 However, it is never actually used in the game, so no one ever noticed.
 A pity, she looks so adorable. ^_^;
