@@ -84,7 +84,7 @@ end;
 
 procedure UnpackPiGraphic(loader : TFileLoader; PNGindex : dword);
 var destp, endp, startp : pointer;
-    lcolors : array[0..15] of array[1..16] of byte;
+    lcolors : array[0..15] of array[0..15] of byte;
     i, j : dword;
     lastbyteout, lastreptype : byte;
     doingrepetition : boolean;
@@ -93,7 +93,7 @@ var destp, endp, startp : pointer;
   // Translates a variable-bit-length delta code into a normal number.
   // (Only works for 16-color variant, haven't seen 256-color Pi files...)
   begin
-   translatedeltacode := 16;
+   translatedeltacode := 0;
    // safety
    if loader.readp + 2 >= loader.endp then begin
     loader.readp := loader.endp;
@@ -101,33 +101,33 @@ var destp, endp, startp : pointer;
    end;
 
    if loader.ReadBit then begin // 1x
-    if loader.ReadBit then translatedeltacode := 15;
+    if loader.ReadBit then translatedeltacode := 1;
 
    end else begin // 0.....
     if loader.ReadBit then begin // 01....
      if loader.ReadBit then begin // 011xxx
       if loader.ReadBit then begin // 0111xx
        if loader.ReadBit then begin // 01111x
-        if loader.ReadBit then translatedeltacode := 1 else translatedeltacode := 2;
+        if loader.ReadBit then translatedeltacode := 15 else translatedeltacode := 14;
        end else begin // 01110x
-        if loader.ReadBit then translatedeltacode := 3 else translatedeltacode := 4;
+        if loader.ReadBit then translatedeltacode := 13 else translatedeltacode := 12;
        end;
       end else begin // 0110xx
        if loader.ReadBit then begin // 01101x
-        if loader.ReadBit then translatedeltacode := 5 else translatedeltacode := 6;
+        if loader.ReadBit then translatedeltacode := 11 else translatedeltacode := 10;
        end else begin // 01100x
-        if loader.ReadBit then translatedeltacode := 7 else translatedeltacode := 8;
+        if loader.ReadBit then translatedeltacode := 9 else translatedeltacode := 8;
        end;
       end;
      end else begin // 010xx
       if loader.ReadBit then begin // 0101x
-       if loader.ReadBit then translatedeltacode := 9 else translatedeltacode := 10;
+       if loader.ReadBit then translatedeltacode := 7 else translatedeltacode := 6;
       end else begin // 0100x
-       if loader.ReadBit then translatedeltacode := 11 else translatedeltacode := 12;
+       if loader.ReadBit then translatedeltacode := 5 else translatedeltacode := 4;
       end;
      end;
     end else begin // 00x
-     if loader.ReadBit then translatedeltacode := 13 else translatedeltacode := 14;
+     if loader.ReadBit then translatedeltacode := 3 else translatedeltacode := 2;
     end;
    end;
   end;
@@ -198,13 +198,13 @@ var destp, endp, startp : pointer;
    deltaindex := translatedeltacode();
    // Move the new delta code to the front of its array.
    newdelta := lcolors[lastbyteout][deltaindex];
-   while deltaindex < 16 do begin
-    lcolors[lastbyteout][deltaindex] := lcolors[lastbyteout][deltaindex + 1];
-    inc(deltaindex);
+   while deltaindex <> 0 do begin
+    lcolors[lastbyteout][deltaindex] := lcolors[lastbyteout][deltaindex - 1];
+    dec(deltaindex);
    end;
-   lcolors[lastbyteout][16] := newdelta;
+   lcolors[lastbyteout][0] := newdelta;
    // The next byte out is the last byte plus a delta.
-   lastbyteout := (lastbyteout + newdelta) and 15;
+   lastbyteout := newdelta;
    byte(destp^) := lastbyteout;
    inc(destp);
   end;
@@ -295,7 +295,9 @@ begin
  doingrepetition := TRUE;
 
  // Set up a color delta table.
- for i := 0 to 15 do for j := 1 to 16 do lcolors[i][j] := j;
+ for i := 0 to high(lcolors) do
+  for j := 0 to high(lcolors[i]) do
+   lcolors[i][j] := (16 + i - j) and $F;
 
  // Start with two color codes.
  processcolorcode();
@@ -375,7 +377,10 @@ begin
  // stream with "32 bits of 0", ie. one dword of 0. Not all files respect
  // this: some Deep images end with only 3 zero-bytes, some Tasogare images
  // end with only 2.
- if word((loader.endp - 2)^) <> 0 then
+ // "Sansi" in 3sis ends with 0000 001A, so accept the eof mark.
+ if (word((loader.endp - 2)^) <> 0)
+ and (dword((loader.endp - 4)^) <> $1A000000)
+ then
   raise DecompException.Create('File doesn''t end with 00 00');
 
  // The file may begin with the full Pi header, with optional signature, or
