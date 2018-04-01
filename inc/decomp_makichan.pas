@@ -396,7 +396,7 @@ begin
  // Find the first 0 byte after $1A, where the header starts.
  while (loader.readp + 32 < loader.endp) and (byte(loader.readp^) <> 0) do inc(loader.readp);
  if byte(loader.readp^) <> 0 then
-  raise Exception.Create('Failed to find start of header 1A-00!');
+  raise DecompException.Create('Failed to find start of header 1A-00!');
 
  // Remember the beginning of the header for use below.
  i := loader.ofs; inc(loader.readp);
@@ -420,7 +420,7 @@ begin
  if (header.flagaofs >= loader.size)
  or (header.flagbofs >= loader.size)
  or (header.colorofs >= loader.size) then
-  raise Exception.Create('Section offset out of bounds!');
+  raise DecompException.Create('Section offset out of bounds!');
 
  // Read GRB palette, usually 16, sometimes up to 256 entries.
  // Let's read from current position up to the start of the flag A stream.
@@ -514,7 +514,7 @@ begin
  PNGindex := seekpng(imunamu, TRUE);
 
  // Check the file for a "MAKI" signature.
- if loader.ReadDword <> $494B414D then raise Exception.Create('no MAKI signature');
+ if loader.ReadDword <> $494B414D then raise DecompException.Create('no MAKI signature');
 
  // Call the right decompressor.
  i := loader.ReadDword; // 01A, 01B, or 02
@@ -522,10 +522,10 @@ begin
   $20413130: UnpackMakiGraphic(loader, PNGindex, 1); // 01A
   $20423130: UnpackMakiGraphic(loader, PNGindex, 2); // 01B
   $20203230: UnpackMAG2Graphic(loader, PNGindex); // 02
-  else raise Exception.Create('unknown MAKI subtype $' + strhex(i));
+  else raise DecompException.Create('unknown MAKI subtype $' + strhex(i));
  end;
  if PNGlist[PNGindex].bitmap = NIL then
-  raise Exception.Create('failed to load image');
+  raise DecompException.Create('failed to load image');
 
  // Put the uncompressed image into a bitmaptype for PNG conversion...
  tempbmp.image := PNGlist[PNGindex].bitmap;
@@ -558,7 +558,7 @@ begin
   if PNGlist[PNGindex].bitmap <> NIL then begin
    freemem(PNGlist[PNGindex].bitmap); PNGlist[PNGindex].bitmap := NIL;
   end;
-  raise Exception.Create(mcg_errortxt);
+  raise DecompException.Create(mcg_errortxt);
  end;
 
  SaveFile(outputfile, PNGlist[PNGindex].bitmap, j);

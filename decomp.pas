@@ -77,6 +77,8 @@ begin truename := 'ssakura'; end;
 
 {$include inc/version.inc}
 
+type DecompException = class(Exception);
+
 type PNGtype = record
        // image data, only for processing purposes
        bitmap : pointer;
@@ -572,7 +574,7 @@ begin
  basename := upcase(copy(basename, 1, length(basename) - length(suffix)));
  isagraphic := FALSE;
 
- try
+ try try
  loader := TFileLoader.Open(srcfile);
 
  case suffix of
@@ -658,11 +660,21 @@ begin
  inc(decomp_stats.numconverted);
 
  except
-  inc(decomp_stats.numerrors);
+  on E : DecompException do begin
+   inc(decomp_stats.numerrors);
+   writeln(stdout, E.Message);
+  end;
+  on E : Exception do begin
+   inc(decomp_stats.numerrors);
+   writeln(stdout, 'Error!');
+   raise;
+  end;
  end;
 
- if loader <> NIL then loader.free;
- loader := NIL;
+ finally
+  if loader <> NIL then loader.free;
+  loader := NIL;
+ end;
 end;
 
 // ------------------------------------------------------------------

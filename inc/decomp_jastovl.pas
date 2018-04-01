@@ -1097,7 +1097,7 @@ begin
   ptrpix := loader.ReadWordFrom(4);
   ptrnil := loader.ReadWordFrom(6);
   if ptrresults in [0,6,8] = FALSE then
-   raise Exception.Create('Script header starts with $' + strhex(ptrresults) + '??');
+   raise DecompException.Create('Script header starts with $' + strhex(ptrresults) + '??');
 
   if ptrresults = 6 then begin // alternative tiny header skips first array
    ptrnil := ptrpix; ptrpix := ptrscript; ptrscript := ptrresults;
@@ -1139,7 +1139,7 @@ begin
    inc(ptrnil);
    while (ptrnil < loader.ReadWordFrom(ptrresults + 2)) do begin
     ivar := loader.ReadByteFrom(ptrnil); // jump addresses
-    if ivar = 0 then raise Exception.Create('0!!!');
+    if ivar = 0 then raise DecompException.Create('0!!!');
     dec(ivar); // make it 0-based
     txt := strhex(loader.ReadWordFrom(ptrscript + ivar * 2));
     while length(txt) < 4 do txt := '0' + txt;
@@ -1203,7 +1203,7 @@ begin
    // Read the choice combination records
    repeat
     if combos > high(choicecombo) then
-     raise Exception.Create('Choicecombo overflow @ $' + strhex(loader.ofs));
+     raise DecompException.Create('Choicecombo overflow @ $' + strhex(loader.ofs));
     // verb pointer
     ivar := loader.ReadWord;
     if (ivar <= ptrnil) or (ivar >= ptrscript) then break; // validity check
@@ -1221,7 +1221,7 @@ begin
      ivar := loader.ReadWordFrom(loader.ofs);
      if (ivar < ptrscript) or (loader.ofs >= ptrscript) then break;
      if lvar >= high(choicecombo[1].jumpresult) then
-      raise Exception.Create('Choicecombo jumpresult overflow @ $' + strhex(loader.ofs));
+      raise DecompException.Create('Choicecombo jumpresult overflow @ $' + strhex(loader.ofs));
 
      choicecombo[combos].jumpresult[lvar] := ivar;
      inc(lvar); inc(loader.readp, 2);
@@ -1243,7 +1243,7 @@ begin
     if (ivar <= ptrnil) or (ivar >= ptrscript) then continue; // in data section?
     inc(options);
     if options > high(optionlist) then
-     raise Exception.Create('Optionlist overflow @ $' + strhex(loader.ofs));
+     raise DecompException.Create('Optionlist overflow @ $' + strhex(loader.ofs));
 
     optionlist[options].address := ivar;
    end;
@@ -1271,7 +1271,7 @@ begin
    loader.ofs := ptrpix;
    while loader.ofs < ptrnil do begin
     if pictures > high(gfxlist) then
-     raise Exception.Create('Picture list overflow @ $' + strhex(loader.ofs));
+     raise DecompException.Create('Picture list overflow @ $' + strhex(loader.ofs));
     jvar := loader.ReadWordFrom(loader.ofs);
     writebuf('// Gfx ' + strdec(pictures) + ': style $' + strhex(loader.ReadByteFrom(jvar)));
     case loader.ReadByteFrom(jvar) of
@@ -1300,7 +1300,7 @@ begin
     gfxlist[pictures].gfxname := upcase(loader.ReadStringFrom(jvar));
     writebufln(' ' + gfxlist[pictures].gfxname);
     if gfxlist[pictures].data2 in [$03,$38,$42,$4E,$50] = FALSE then
-     raise Exception.Create('Unknown image type $' + strhex(gfxlist[pictures].data2) + ': ' + gfxlist[pictures].gfxname);
+     raise DecompException.Create('Unknown image type $' + strhex(gfxlist[pictures].data2) + ': ' + gfxlist[pictures].gfxname);
 
     inc(pictures); inc(loader.readp, 2);
    end;
@@ -1627,7 +1627,7 @@ begin
         if loader.ReadByteFrom(loader.ofs) <> 0 then writebufln('');
        end;
        else
-        raise Exception.Create('Unknown code $02 @ $' + strhex(loader.ofs));
+        raise DecompException.Create('Unknown code $02 @ $' + strhex(loader.ofs));
       end;
 
    // 03 - Return to wherever last jumped from
@@ -1694,7 +1694,7 @@ begin
         writebufln('//dummy $05 ' + strhex(jvar));
        end;
        else
-        raise Exception.Create('Unknown code $05 @ $' + strhex(loader.ofs));
+        raise DecompException.Create('Unknown code $05 @ $' + strhex(loader.ofs));
       end;
 
    // 06 - [Sakura] play song xx / [3sis] show graphic xx (no persistence)
@@ -1705,7 +1705,7 @@ begin
         if implicitwaitkey = 0 then inc(implicitwaitkey);
         jvar := loader.ReadByte;
         if jvar >= length(gfxlist) then
-         raise Exception.Create('Graphic draw request out of bounds @ $' + strhex(loader.ofs));
+         raise DecompException.Create('Graphic draw request out of bounds @ $' + strhex(loader.ofs));
         if persistence = FALSE then begin
          writebufln('gfx.clearkids');
          if (gfxlist[jvar].data2 = $50) and (gfxlist[jvar].data1 <> 0)
@@ -1744,7 +1744,7 @@ begin
         if implicitwaitkey = 0 then inc(implicitwaitkey);
         jvar := loader.ReadByte;
         if jvar >= length(gfxlist) then
-         raise Exception.Create('Graphic draw request out of bounds @ $' + strhex(loader.ofs));
+         raise DecompException.Create('Graphic draw request out of bounds @ $' + strhex(loader.ofs));
         if gfxlist[jvar].data2 <> $38 then begin
          writebufln('gfx.clearkids');
          if (gfxlist[jvar].data2 = $50) and (gfxlist[jvar].data1 <> 0)
@@ -1781,7 +1781,7 @@ begin
         jvar := loader.ReadByte;
         if jvar in [0,$FF] then writebufln('mus.stop')
         else if jvar > dword(length(songlist)) then
-         raise Exception.Create('Song outside list @ $' + strhex(loader.ofs))
+         raise DecompException.Create('Song outside list @ $' + strhex(loader.ofs))
         else
          writebufln('mus.play ' + songlist[jvar - 1]);
        end;
@@ -1792,7 +1792,7 @@ begin
         writebufln('//dummy 06 // $' + strhex(jvar) + ' $' + strhex(lvar));
        end;
        else
-        raise Exception.Create('Unknown code $06 @ $' + strhex(loader.ofs));
+        raise DecompException.Create('Unknown code $06 @ $' + strhex(loader.ofs));
       end;
 
    // 07 - 3sis/Runaway play song xx
@@ -1806,7 +1806,7 @@ begin
       begin
        if jvar in [0,$FF] then writebufln('mus.stop')
        else if jvar > dword(length(songlist)) then
-        raise Exception.Create('Song outside list @ $' + strhex(loader.ofs))
+        raise DecompException.Create('Song outside list @ $' + strhex(loader.ofs))
        else
         writebufln('mus.play ' + songlist[jvar - 1]);
       end;
@@ -1850,7 +1850,7 @@ begin
        end;
 
        else
-        raise Exception.Create('Unknown code $08 @ $' + strhex(loader.ofs));
+        raise DecompException.Create('Unknown code $08 @ $' + strhex(loader.ofs));
       end;
    // 09 - Wait for keypress, don't clear message area afterward (or sleep)
    9: case game of
@@ -1877,7 +1877,7 @@ begin
                         writebufln('call TEN_S' + txt + '.');
                        end;
        else
-        raise Exception.Create('Unknown code $09 @ $' + strhex(loader.ofs));
+        raise DecompException.Create('Unknown code $09 @ $' + strhex(loader.ofs));
       end;
    // 0A - Linebreak, handled with other text output
    // 0B - Local variable functions
@@ -2185,7 +2185,7 @@ begin
                //end;
               end;
          else
-          raise Exception.Create('Unknown $B subcode $' + strhex(loader.ReadByteFrom(loader.ofs - 1)) + ' @ $' + strhex(loader.ofs - 2));
+          raise DecompException.Create('Unknown $B subcode $' + strhex(loader.ReadByteFrom(loader.ofs - 1)) + ' @ $' + strhex(loader.ofs - 2));
         end;
        end;
 
@@ -2202,7 +2202,7 @@ begin
              writebuf('$v' + strdec(loader.ReadByte + 256) + ' := ' + strdec(loader.ReadByte));
             end;
          else
-          raise Exception.Create('Unknown $C subcode $' + strhex(loader.ReadByte) + ' @ $' + strhex(loader.ofs - 1));
+          raise DecompException.Create('Unknown $C subcode $' + strhex(loader.ReadByte) + ' @ $' + strhex(loader.ofs - 1));
         end;
         writebufln('');
        end;
@@ -2249,11 +2249,11 @@ begin
                 end;
            $0B: writebufln('//dummy 0D-0B // gfx.clearkids?');
            else
-            raise Exception.Create('Unknown $D subcode $' + strhex(loader.ReadByteFrom(loader.ofs - 1)) + ' @ $' + strhex(loader.ofs - 2));
+            raise DecompException.Create('Unknown $D subcode $' + strhex(loader.ReadByteFrom(loader.ofs - 1)) + ' @ $' + strhex(loader.ofs - 2));
           end;
          end;
          else
-          raise Exception.Create('Unknown code $0D @ $' + strhex(loader.ofs - 1));
+          raise DecompException.Create('Unknown code $0D @ $' + strhex(loader.ofs - 1));
         end;
    $0E: case game of // graphic panning
 
@@ -2279,7 +2279,7 @@ begin
          end;
 
          else
-          raise Exception.Create('Unknown code $0E @ $' + strhex(loader.ofs));
+          raise DecompException.Create('Unknown code $0E @ $' + strhex(loader.ofs));
         end;
    // 0F xx - happy ending!
    $0F: case game of
@@ -2327,7 +2327,7 @@ begin
          end;
 
          else
-          raise Exception.Create('Unknown code $0F @ $' + strhex(loader.ofs));
+          raise DecompException.Create('Unknown code $0F @ $' + strhex(loader.ofs));
         end;
 
    // 10 - unhappy ending!
@@ -2385,7 +2385,7 @@ begin
                  writebufln('// battle? #' + strdec(lvar));
                 end;
                 else
-                 raise Exception.Create('Unknown code $11-02 @ $' + strhex(loader.ofs));
+                 raise DecompException.Create('Unknown code $11-02 @ $' + strhex(loader.ofs));
                end;
           $03: case game of
                 gid_VANISH: begin
@@ -2393,7 +2393,7 @@ begin
                  writebufln('');
                 end;
                 else
-                 raise Exception.Create('Unknown code $11-03 @ $' + strhex(loader.ofs));
+                 raise DecompException.Create('Unknown code $11-03 @ $' + strhex(loader.ofs));
                end;
           $04: case game of
                 gid_TASOGARE: begin
@@ -2404,7 +2404,7 @@ begin
                  writebufln('');
                 end;
                 else
-                 raise Exception.Create('Unknown code $11-04 @ $' + strhex(loader.ofs));
+                 raise DecompException.Create('Unknown code $11-04 @ $' + strhex(loader.ofs));
                end;
           // Name entry
           $05: case game of
@@ -2415,7 +2415,7 @@ begin
                  writebufln('sys.quit');
                 end;
                 else
-                 raise Exception.Create('Unknown code $11-05 @ $' + strhex(loader.ofs));
+                 raise DecompException.Create('Unknown code $11-05 @ $' + strhex(loader.ofs));
                end;
           $06: case game of
                 gid_EDEN: begin
@@ -2427,7 +2427,7 @@ begin
                  writebufln('');
                 end;
                 else
-                 raise Exception.Create('Unknown code $11-06 @ $' + strhex(loader.ofs));
+                 raise DecompException.Create('Unknown code $11-06 @ $' + strhex(loader.ofs));
                end;
 
           $07: case game of
@@ -2436,7 +2436,7 @@ begin
                  writebufln('');
                 end;
                 else
-                 raise Exception.Create('Unknown code $11-07 @ $' + strhex(loader.ofs));
+                 raise DecompException.Create('Unknown code $11-07 @ $' + strhex(loader.ofs));
                end;
 
           $08: case game of
@@ -2445,7 +2445,7 @@ begin
                  writebufln('// fade to black and back over ' + strdec(lvar) + ' desisecs');
                 end;
                 else
-                 raise Exception.Create('Unknown code $11-08 @ $' + strhex(loader.ofs));
+                 raise DecompException.Create('Unknown code $11-08 @ $' + strhex(loader.ofs));
                end;
 
           $09: case game of // clickable map!
@@ -2527,7 +2527,7 @@ begin
                  writebufln('"');
                 end;
                 else
-                 raise Exception.Create('Unknown code $11-09 @ $' + strhex(loader.ofs));
+                 raise DecompException.Create('Unknown code $11-09 @ $' + strhex(loader.ofs));
                end;
 
           $0B: case game of
@@ -2535,7 +2535,7 @@ begin
                  writebufln('gfx.clearkids // 11-0B');
                 end;
                 else
-                 raise Exception.Create('Unknown code $11-0B @ $' + strhex(loader.ofs));
+                 raise DecompException.Create('Unknown code $11-0B @ $' + strhex(loader.ofs));
                end;
 
           $0C: case game of
@@ -2543,7 +2543,7 @@ begin
                  writebufln('//dummy $11-0C // push player one square backward');
                 end;
                 else
-                 raise Exception.Create('Unknown code $11-0C @ $' + strhex(loader.ofs));
+                 raise DecompException.Create('Unknown code $11-0C @ $' + strhex(loader.ofs));
                end;
 
           $0E: case game of
@@ -2552,7 +2552,7 @@ begin
                  writebufln('');
                 end;
                 else
-                 raise Exception.Create('Unknown code $11-0E @ $' + strhex(loader.ofs));
+                 raise DecompException.Create('Unknown code $11-0E @ $' + strhex(loader.ofs));
                end;
 
           $10: case game of
@@ -2563,7 +2563,7 @@ begin
                  writebufln('');
                 end;
                 else
-                 raise Exception.Create('Unknown code $11-10 @ $' + strhex(loader.ofs));
+                 raise DecompException.Create('Unknown code $11-10 @ $' + strhex(loader.ofs));
                end;
 
           $11,$12: case game of
@@ -2580,10 +2580,10 @@ begin
                  writebufln('gfx.show type sprite ' + txt);
                 end;
                 else
-                 raise Exception.Create('Unknown code $11-' + strhex(jvar) + ' @ $' + strhex(loader.ofs));
+                 raise DecompException.Create('Unknown code $11-' + strhex(jvar) + ' @ $' + strhex(loader.ofs));
                end;
           else
-           raise Exception.Create('Unknown code $11-' + strhex(jvar) + ' @ $' + strhex(loader.ofs));
+           raise DecompException.Create('Unknown code $11-' + strhex(jvar) + ' @ $' + strhex(loader.ofs));
          end;
 
         end;
@@ -2593,10 +2593,10 @@ begin
          jvar := loader.ReadByteFrom(loader.ofs + 1);
          lvar := loader.ReadByteFrom(loader.ofs + 2);
          if jvar > dword(high(optionlist)) then
-          raise Exception.Create('$12 requested text outside optionlist! @ $' + strhex(loader.ofs));
+          raise DecompException.Create('$12 requested text outside optionlist! @ $' + strhex(loader.ofs));
 
          if optionlist[jvar].verbtext = '' then
-          raise Exception.Create('Choice verb $' + strhex(jvar) + ' not defined @ $' + strhex(loader.ofs));
+          raise DecompException.Create('Choice verb $' + strhex(jvar) + ' not defined @ $' + strhex(loader.ofs));
 
          case loader.ReadByteFrom(loader.ofs) of
           1: begin
@@ -2616,7 +2616,7 @@ begin
               writebufln('choice.on "' + optionlist[jvar].verbtext + ':' + optionlist[jvar].subjecttext[lvar] + '"');
              end;
           else
-           raise Exception.Create('Unknown code $12 ' + strhex(loader.ReadByte) + ' @ $' + strhex(loader.ofs));
+           raise DecompException.Create('Unknown code $12 ' + strhex(loader.ReadByte) + ' @ $' + strhex(loader.ofs));
          end;
         end;
 
@@ -2648,7 +2648,7 @@ begin
                   if nextgra.transition >= $32 then dec(nextgra.transition, $32)
                   else if nextgra.transition = 0 then nextgra.transition := 10
                   else
-                   raise Exception.Create('Encountered transition $' + strhex(nextgra.transition) + ' @ $' + strhex(loader.ofs));
+                   raise DecompException.Create('Encountered transition $' + strhex(nextgra.transition) + ' @ $' + strhex(loader.ofs));
                  end;
             $0F: begin
                   if stashactive then writebuf('gfx.clearkids TB_008')
@@ -2666,7 +2666,7 @@ begin
                   txt[byte(txt[0])] := chr(jvar);
                  end;
             else
-             raise Exception.Create('Unknown code $13 ' + strhex(jvar) + ' @ $' + strhex(loader.ofs));
+             raise DecompException.Create('Unknown code $13 ' + strhex(jvar) + ' @ $' + strhex(loader.ofs));
            end;
           until jvar in [$00, $0F, $10];
           // Draw a background with no name = pop state
@@ -2702,7 +2702,7 @@ begin
            if nextgra.style and 2 <> 0 then writebuf(' name ' + txt + '..') else
            if nextgra.style and 8 <> 0 then writebuf(' sprite') else
            if nextgra.style and 16 <> 0 then writebuf(' bkg') else
-            raise Exception.Create('Draw graphic without style @ $' + strhex(loader.ofs));
+            raise DecompException.Create('Draw graphic without style @ $' + strhex(loader.ofs));
 
            if nextgra.ofsx <> 0 then begin
             jvar := BaseResX;
@@ -2791,7 +2791,7 @@ begin
          end;
 
          else
-          raise Exception.Create('Unknown code $13 ' + strhex(loader.ReadByteFrom(loader.ofs + 1)) + ' @ $' + strhex(loader.ofs));
+          raise DecompException.Create('Unknown code $13 ' + strhex(loader.ReadByteFrom(loader.ofs + 1)) + ' @ $' + strhex(loader.ofs));
         end;
 
    // 14 - Variable reset; or, kill the overlay, restore the background
@@ -2819,14 +2819,14 @@ begin
                 $3D: jvar := 2;
                 $36, $37, $38, $3A, $3C: jvar := 3;
                 else
-                 raise Exception.Create('Encountered transition $' + strhex(jvar) + ' @ $' + strhex(loader.ofs));
+                 raise DecompException.Create('Encountered transition $' + strhex(jvar) + ' @ $' + strhex(loader.ofs));
                end;
                writebufln('gfx.transition ' + strdec(jvar));
                writebufln('sleep');
                blackedout := TRUE; nextgra.unswiped := 0;
               end;
            else
-            raise Exception.Create('Unknown code $14 ' + strhex(loader.ReadByte) + ' @ $' + strhex(loader.ofs));
+            raise DecompException.Create('Unknown code $14 ' + strhex(loader.ReadByte) + ' @ $' + strhex(loader.ofs));
           end;
          end;
 
@@ -2837,7 +2837,7 @@ begin
          end;
 
          else
-          raise Exception.Create('Unknown code $14 @ $' + strhex(loader.ofs));
+          raise DecompException.Create('Unknown code $14 @ $' + strhex(loader.ofs));
         end;
 
    // 15 xx - Handle animations
@@ -2891,7 +2891,7 @@ begin
            3: begin
                lvar := loader.ReadByte mod length(animslot);
                if animslot[lvar].namu = '' then
-                raise Exception.Create('Animslot ' + strdec(lvar) + ' used while undefined @ $' + strhex(loader.ofs - 3));
+                raise DecompException.Create('Animslot ' + strdec(lvar) + ' used while undefined @ $' + strhex(loader.ofs - 3));
 
                writebuf('gfx.show ' + animslot[lvar].namu + ' anim');
                if animslot[lvar].ofsx <> 0 then begin
@@ -2909,12 +2909,12 @@ begin
                  for lvar := 0 to high(animslot) do animslot[lvar].displayed := FALSE;
                 end;
            else
-            raise Exception.Create('Unknown code $15 ' + strhex(loader.ReadByteFrom(loader.ofs + 1)) + ' @ $' + strhex(loader.ofs));
+            raise DecompException.Create('Unknown code $15 ' + strhex(loader.ReadByteFrom(loader.ofs + 1)) + ' @ $' + strhex(loader.ofs));
           end;
          end;
 
          else
-          raise Exception.Create('Unknown code $15 @ $' + strhex(loader.ofs));
+          raise DecompException.Create('Unknown code $15 @ $' + strhex(loader.ofs));
         end;
 
    // 16 xx - Screen flashes xx times
@@ -2940,7 +2940,7 @@ begin
          gid_PARFAIT: begin // some kinda graphics command?
           jvar := loader.ReadByte;
           if jvar <> $A then
-           raise Exception.Create('Unknown $16 subcode @ $' + strhex(loader.ofs));
+           raise DecompException.Create('Unknown $16 subcode @ $' + strhex(loader.ofs));
 
           writebuf('//dummy $16 0A //');
           for lvar := 3 downto 0 do begin
@@ -2957,7 +2957,7 @@ begin
          end;
 
          else
-          raise Exception.Create('Unknown code $16 @ $' + strhex(loader.ofs));
+          raise DecompException.Create('Unknown code $16 @ $' + strhex(loader.ofs));
         end;
 
    // 17 xx - Pause for xx desisecs (or until an impatient key pressed)
@@ -2970,7 +2970,7 @@ begin
          end;
 
          else
-          raise Exception.Create('Unknown code $17 @ $' + strhex(loader.ofs));
+          raise DecompException.Create('Unknown code $17 @ $' + strhex(loader.ofs));
         end;
 
    // 18 xx - Screen shakes vertically xx times
@@ -2987,7 +2987,7 @@ begin
          end;
 
          else
-          raise Exception.Create('Unknown code $18 @ $' + strhex(loader.ofs));
+          raise DecompException.Create('Unknown code $18 @ $' + strhex(loader.ofs));
         end;
 
    // 19 - Clear textbox immediately
@@ -3004,7 +3004,7 @@ begin
          end;
 
          else
-          raise Exception.Create('Unknown code $19 @ $' + strhex(loader.ofs));
+          raise DecompException.Create('Unknown code $19 @ $' + strhex(loader.ofs));
         end;
 
    // 1E xx - unknown
@@ -3015,7 +3015,7 @@ begin
          end;
 
          else
-          raise Exception.Create('Unknown code $1E @ $' + strhex(loader.ofs));
+          raise DecompException.Create('Unknown code $1E @ $' + strhex(loader.ofs));
         end;
 
    // F3 xx - unknown
@@ -3026,7 +3026,7 @@ begin
          end;
 
          else
-          raise Exception.Create('Unknown code $F3 @ $' + strhex(loader.ofs));
+          raise DecompException.Create('Unknown code $F3 @ $' + strhex(loader.ofs));
         end;
 
    // ASCII/Shift-JIS text output
@@ -3034,7 +3034,7 @@ begin
 
    // exceptions
    else
-    raise Exception.Create('Unknown code $' + strhex(ivar) + ' @ $' + strhex(loader.ofs - 1));
+    raise DecompException.Create('Unknown code $' + strhex(ivar) + ' @ $' + strhex(loader.ofs - 1));
   end;
 
  end;

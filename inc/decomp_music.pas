@@ -193,7 +193,7 @@ var ivar, jvar, lvar : dword;
              delay, rate, stepsize, depth : byte;
             end;
 begin
- raise Exception.Create('.M file support is offline');
+ raise DecompException.Create('.M file support is offline');
  exit;
 
  musname := ExtractFileName(loader.filename);
@@ -204,7 +204,7 @@ begin
  mversion := byte(loader.readp^);
  if (word((loader.readp + 1)^) <> $1A)
  and (word(loader.readp^) <> $1A) then
-  raise Exception.Create('Unfamiliar .M format...');
+  raise DecompException.Create('Unfamiliar .M format...');
 
  // If there's a version byte at the start, add a constant offset
  if word(loader.readp^) = $1A then cofs := 0 else cofs := 1;
@@ -222,7 +222,7 @@ begin
  end;
 
  if numtracks = 0 then
-  raise Exception.Create('No tracks identified!');
+  raise DecompException.Create('No tracks identified!');
  // --Insert instrument auto-detection heuristics here--
 
  // Read hand-picked conversion rules
@@ -481,7 +481,7 @@ begin
     // Reset? DF C0
     $DF: if m = $C0 then inc(loader.readp, 2)
          else
-          raise Exception.Create('$DF subcommand $' + strhex(m) + ' not known! @ $' + strhex(loader.ofs));
+          raise DecompException.Create('$DF subcommand $' + strhex(m) + ' not known! @ $' + strhex(loader.ofs));
     // Unknown...
     $E2,$E3,$E8,$ED,$EE: inc(loader.readp, 2);
     $E6, $EF: inc(loader.readp, 1);
@@ -595,7 +595,7 @@ begin
          end;
 
     else
-     raise Exception.Create('Unrecognized command $' + strhex(lvar) + ' @ $' + strhex(loader.ofs));
+     raise DecompException.Create('Unrecognized command $' + strhex(lvar) + ' @ $' + strhex(loader.ofs));
    end;
 
   until loader.ofs + cofs >= trackptr[ivar + 1];
@@ -700,7 +700,7 @@ var ivar : longint;
     numtracks : byte;
     global_keyadjust : shortint;
 begin
- raise Exception.Create('.SC5 file support is offline');
+ raise DecompException.Create('.SC5 file support is offline');
  exit;
 
  livenotes[0].note := $FF; // just to remove a compiler warning
@@ -710,7 +710,7 @@ begin
  if (dword(loader.readp^) <> $2D4D4352)
  or (dword((loader.readp + 4)^) <> $38394350)
  or (dword((loader.readp + 8)^) <> $302E3256) then
-  raise Exception.Create('Unknown file signature');
+  raise DecompException.Create('Unknown file signature');
 
  //ReadSongInfo(musname + '.sc5');
 
@@ -742,7 +742,7 @@ begin
   tofs[ivar] := 0; tracktime[ivar] := 0; cur_ticks := 0;
   trackloop[ivar] := $FFFFFFFF;
   if loader.readp + $30 > loader.endp then
-   raise Exception.Create('Unexpected end of file!');
+   raise DecompException.Create('Unexpected end of file!');
   // Read the track header
   track.startofs := loader.ofs;
   track.size := word(loader.readp^);
@@ -788,7 +788,7 @@ begin
 
    // Overflow/infinite loop protection
    if tofs[ivar] > 256000 then
-    raise Exception.Create('Midi output overflow on track ' + strdec(ivar) + ' @ $' + strhex(loader.ofs) + ' (jumped from $' + strhex(track.jumpedfrom) + ')');
+    raise DecompException.Create('Midi output overflow on track ' + strdec(ivar) + ' @ $' + strhex(loader.ofs) + ' (jumped from $' + strhex(track.jumpedfrom) + ')');
 
    // Get the entire dword event into j, and point to the next event.
    jvar := loader.ReadDword;
@@ -912,7 +912,7 @@ begin
     // Loop start
     $F9: if track.repenestlevel > high(track.repefromlofs)
          then
-          raise Exception.Create('F9 loop nested too much @ $' + strhex(loader.ofs))
+          raise DecompException.Create('F9 loop nested too much @ $' + strhex(loader.ofs))
          else begin
           // drop a marker
           writedeltatime(ivar, cur_ticks);

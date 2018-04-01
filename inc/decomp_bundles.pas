@@ -49,7 +49,7 @@ begin
   move(listfile.readp^, reslist[0][1], 11);
 
   if reslist[0] <> 'D_Lib -02- ' then
-   raise Exception.Create('bad .lst signature');
+   raise DecompException.Create('bad .lst signature');
 
   // Skip rest of list header.
   listfile.ofs := 16;
@@ -138,7 +138,7 @@ var catp, resp : pointer;
 begin
  // Check lib file signature.
  if loader.ReadDword <> $3062694C then
-  raise Exception.Create('bad .lib signature');
+  raise DecompException.Create('bad .lib signature');
 
  resp := NIL; catp := NIL;
  try
@@ -149,10 +149,10 @@ begin
  try
   // Check cat file signature.
   if catfile.ReadDword <> $31746143 then
-   raise Exception.Create('bad .cat signature');
+   raise DecompException.Create('bad .cat signature');
 
   if loader.ReadWord <> catfile.ReadWord then
-   raise Exception.Create('.cat and .lib have mismatching postsig word');
+   raise DecompException.Create('.cat and .lib have mismatching postsig word');
 
   // Uncompress the Softdisk-style LZ77 stream.
   Decompress_LZ77(catfile.readp, catfile.size - 6, catp, catpsize);
@@ -195,7 +195,7 @@ begin
   comptype := word((catp + catofs)^);
   inc(catofs, 2);
   if comptype > 1 then
-   raise Exception.Create('unknown compression type ' + strdec(comptype));
+   raise DecompException.Create('unknown compression type ' + strdec(comptype));
 
   // Read the resource size and location.
   ressize := dword((catp + catofs)^);
