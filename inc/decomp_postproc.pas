@@ -33,11 +33,11 @@ function Composite(namu1, namu2 : UTF8string; action : byte) : dword;
 // Also, if $80 bit is set, namu2 will not be deleted.
 // Returns PNGlist[] index of namu1 for convenience.
 var loader : TFileLoader;
-    ivar, jvar, kvar, lvar, png1, png2 : dword;
+    i, j, k, l, png1, png2 : dword;
     poku : pointer;
     image1, image2 : bitmaptype;
     txt : UTF8string;
-    bvar : byte;
+    b : byte;
 begin
  mcg_AutoConvert := 1; // don't autoconvert to truecolor
  Composite := $FFFF;
@@ -57,8 +57,8 @@ begin
 
  loader := TFileLoader.Open(decomp_param.outputdir + 'gfx' + DirectorySeparator + namu1 + '.png');
  try
-  ivar := mcg_PNGtoMemory(loader.readp, loader.size, @image1);
-  if ivar <> 0 then begin
+  i := mcg_PNGtoMemory(loader.readp, loader.size, @image1);
+  if i <> 0 then begin
    PrintError(mcg_errortxt); mcg_ForgetImage(@image1); exit;
   end;
  finally
@@ -68,8 +68,8 @@ begin
 
  loader := TFileLoader.Open(decomp_param.outputdir + 'gfx' + DirectorySeparator + namu2 + '.png');
  try
-  ivar := mcg_PNGtoMemory(loader.readp, loader.size, @image2);
-  if ivar <> 0 then begin
+  i := mcg_PNGtoMemory(loader.readp, loader.size, @image2);
+  if i <> 0 then begin
    PrintError(mcg_errortxt);
    mcg_ForgetImage(@image1); mcg_ForgetImage(@image2); exit;
   end;
@@ -78,9 +78,9 @@ begin
   loader := NIL;
  end;
 
- bvar := 0;
- for ivar := high(image1.palette) downto 0 do // grab the transparent index
-  if image1.palette[ivar].a = 0 then bvar := ivar;
+ b := 0;
+ for i := high(image1.palette) downto 0 do // grab the transparent index
+  if image1.palette[i].a = 0 then b := i;
 
  txt := '';
  case action and $3F of
@@ -88,28 +88,28 @@ begin
       // namu1 on top of namu2
       if image1.sizex <> image2.sizex then txt := 'Images not same width'
       else begin
-       ivar := image1.sizex * image1.sizey;
+       i := image1.sizex * image1.sizey;
        inc(image1.sizey, image2.sizey);
        reallocmem(image1.image, image1.sizex * image1.sizey);
-       move(image2.image^, (image1.image + ivar)^, image2.sizex * image2.sizey);
+       move(image2.image^, (image1.image + i)^, image2.sizex * image2.sizey);
       end;
      end;
   1: begin
       // namu1 alpha-blitted over namu2
-      longint(ivar) :=
+      longint(i) :=
         (PNGlist[png1].origofsyp - PNGlist[png2].origofsyp) * image2.sizex
       + (PNGlist[png1].origofsxp - PNGlist[png2].origofsxp);
-      if ivar >= image2.sizex * image2.sizey then ivar := 0; // overflow cap
-      lvar := 0;
-      // ivar = destination offset [image2], lvar = source offset [image1]
+      if i >= image2.sizex * image2.sizey then i := 0; // overflow cap
+      l := 0;
+      // i = destination offset [image2], l = source offset [image1]
 
-      for kvar := image1.sizey - 1 downto 0 do begin
-       for jvar := image1.sizex - 1 downto 0 do begin
-        if byte((image1.image + lvar)^) <> bvar then
-         byte((image2.image + ivar)^) := byte((image1.image + lvar)^);
-        inc(ivar); inc(lvar);
+      for k := image1.sizey - 1 downto 0 do begin
+       for j := image1.sizex - 1 downto 0 do begin
+        if byte((image1.image + l)^) <> b then
+         byte((image2.image + i)^) := byte((image1.image + l)^);
+        inc(i); inc(l);
        end;
-       inc(longint(ivar), image2.sizex - image1.sizex);
+       inc(longint(i), image2.sizex - image1.sizex);
       end;
       freemem(image1.image); image1.image := image2.image; image2.image := NIL;
       image1.sizex := image2.sizex; image1.sizey := image2.sizey;
@@ -121,15 +121,15 @@ begin
       // namu1 on left side of namu2
       if image1.sizey <> image2.sizey then txt := 'Images not same height'
       else begin
-       ivar := image1.sizex;
+       i := image1.sizex;
        inc(image1.sizex, image2.sizex);
-       lvar := image1.sizex * image1.sizey; // dest ofs
-       reallocmem(image1.image, lvar);
-       for jvar := image1.sizey - 1 downto 0 do begin
-        dec(lvar, image2.sizex);
-        move((image2.image + image2.sizex * jvar)^, (image1.image + lvar)^, image2.sizex);
-        dec(lvar, ivar);
-        move((image1.image + ivar * jvar)^, (image1.image + lvar)^, ivar);
+       l := image1.sizex * image1.sizey; // dest ofs
+       reallocmem(image1.image, l);
+       for j := image1.sizey - 1 downto 0 do begin
+        dec(l, image2.sizex);
+        move((image2.image + image2.sizex * j)^, (image1.image + l)^, image2.sizex);
+        dec(l, i);
+        move((image1.image + i * j)^, (image1.image + l)^, i);
        end;
       end;
      end;
@@ -140,10 +140,10 @@ begin
        // set the offset so the bottom half is by default shown first
        PNGlist[png1].origofsyp := -image1.sizey;
        // combine the images
-       ivar := image2.sizex * image2.sizey;
+       i := image2.sizex * image2.sizey;
        inc(image2.sizey, image1.sizey);
        reallocmem(image2.image, image2.sizex * image2.sizey);
-       move(image1.image^, (image2.image + ivar)^, image1.sizex * image1.sizey);
+       move(image1.image^, (image2.image + i)^, image1.sizex * image1.sizey);
        mcg_ForgetImage(@image1); image1 := image2; image2.image := NIL;
       end;
      end;
@@ -160,12 +160,12 @@ begin
  // Save the result over the first original
  Composite := png1;
  poku := NIL;
- jvar := mcg_MemorytoPNG(@image1, @poku, @ivar); // build a PNG in poku^
+ j := mcg_MemorytoPNG(@image1, @poku, @i); // build a PNG in poku^
  mcg_ForgetImage(@image1);
- if jvar <> 0 then begin
+ if j <> 0 then begin
   PrintError(mcg_errortxt); exit;
  end;
- SaveFile(decomp_param.outputdir + 'gfx' + DirectorySeparator + namu1 + '.png', poku, ivar);
+ SaveFile(decomp_param.outputdir + 'gfx' + DirectorySeparator + namu1 + '.png', poku, i);
  freemem(poku); poku := NIL;
  if txt <> '' then begin
   mcg_ForgetImage(@image1);
@@ -407,7 +407,7 @@ procedure CropVoidBorders(PNGindex : dword; xparency : byte);
 // If an image has plenty of totally transparent space on any side, it can be
 // cropped out, but for a single-pixel wide transparent border.
 var clipleft, clipright, cliptop, clipbottom : dword;
-    ivar : dword;
+    i : dword;
     srcp, endp : pointer;
 begin
  clipleft := 0; clipright := 0; cliptop := 0; clipbottom := 0;
@@ -419,18 +419,18 @@ begin
   srcp := endp;
   while (srcp > bitmap) and (byte(srcp^) = xparency) do dec(srcp);
   // Calculate the total transparent pixels.
-  ivar := endp - srcp;
+  i := endp - srcp;
   // Calculate the total full rows of transparent pixels.
-  clipbottom := ivar div origsizexp;
+  clipbottom := i div origsizexp;
 
   // Top: check for transparent rows, by scanning pixels from the start of
   // the image until a non-transparent is found.
   srcp := bitmap;
   while (srcp < endp) and (byte(srcp^) = xparency) do inc(srcp);
   // Calculate the total transparent pixels.
-  ivar := srcp - bitmap;
+  i := srcp - bitmap;
   // Calculate the total full rows of transparent pixels.
-  cliptop := ivar div origsizexp;
+  cliptop := i div origsizexp;
 
   // Check if there's anything left of the image.
   if cliptop + clipbottom >= origsizeyp then begin
@@ -440,14 +440,14 @@ begin
   end;
 
   // Left: check for transparent columns...
-  ivar := 0;
+  i := 0;
   repeat
-   if ivar = 0 then begin // new column
+   if i = 0 then begin // new column
     srcp := bitmap + cliptop * origsizexp + clipleft;
-    ivar := origsizeyp - cliptop - clipbottom;
+    i := origsizeyp - cliptop - clipbottom;
     inc(clipleft);
    end;
-   dec(ivar);
+   dec(i);
    if srcp >= endp then break;
    if byte(srcp^) <> xparency then break;
    inc(srcp, origsizexp);
@@ -455,14 +455,14 @@ begin
   dec(clipleft);
 
   // Right: check for transparent columns...
-  ivar := 0;
+  i := 0;
   repeat
-   if ivar = 0 then begin // new column
+   if i = 0 then begin // new column
     srcp := endp - clipbottom * origsizexp - clipright;
-    ivar := origsizeyp - cliptop - clipbottom;
+    i := origsizeyp - cliptop - clipbottom;
     inc(clipright);
    end;
-   dec(ivar);
+   dec(i);
    if srcp <= bitmap then break;
    if byte(srcp^) <> xparency then break;
    dec(srcp, origsizexp);
@@ -483,7 +483,7 @@ begin
   // Copy the image data without resizing the buffer or anything.
   endp := bitmap;
   srcp := bitmap + cliptop * origsizexp + clipleft;
-  for ivar := frameheight - 1 downto 0 do begin
+  for i := frameheight - 1 downto 0 do begin
    // (must use memcopy instead of FPC's move since if clipping is minimal
    // then srcp and endp may cause an overlapping transfer.)
    memcopy(srcp, endp, framewidth);
@@ -507,10 +507,8 @@ var poku, srcp, destp : pointer;
 begin
  with PNGlist[PNGindex] do begin
   if (framewidth = 0) or (frameheight = 0)
-  or (framewidth > origsizexp) or (frameheight > origsizeyp) then begin
-   PrintError('bad frame size');
-   exit;
-  end;
+  or (framewidth > origsizexp) or (frameheight > origsizeyp) then
+   raise DecompException.Create('bad frame size ' + strdec(framewidth) + 'x' + strdec(frameheight));
 
   framecount := 0;
   hframes := origsizexp div framewidth;
@@ -541,40 +539,42 @@ procedure ApplyFilter(namu : string);
 // creates a default one for it.
 // Then, if images are to be beautified, calls Beautify to auto-process the
 // given graphic file.
+{$ifndef bonk}
+begin end;
+{$else}
 var image : bitmaptype;
-    ivar, jvar, kvar, lvar : dword;
+    i, j, k, l : dword;
     gfxi : word;
 begin
- {$ifdef bonk}
  mcg_AutoConvert := 1; // don't autoconvert to truecolor
  gfxi := seekpng(@namu);
  if gfxi = 0 then exit;
  if LoadFile(projectdir + 'gfx' + DirectorySeparator + namu + '.png') = FALSE then exit;
  fillbyte(image, sizeof(bitmaptype), 0);
- ivar := mcg_PNGtoMemory(loader, @image);
- if ivar <> 0 then begin
+ i := mcg_PNGtoMemory(loader, @image);
+ if i <> 0 then begin
   PrintError(mcg_errortxt); mcg_ForgetImage(@image); exit;
  end;
 
  InitBeautify(namu);
 
  // Adjust default parameters for close-up images, nominated manually
- ivar := 0;
+ i := 0;
  case game of
-  gid_3SIS, gid_3SIS98: if copy(namu, 1, 3) = 'SE_' then inc(ivar);
-  gid_DEEP: if (copy(namu, 1, 4) = 'DH_S') or (copy(namu, 1, 3) = 'DI_') then inc(ivar);
-  gid_EDEN: if copy(namu, 1, 3) = 'EE_' then inc(ivar);
-  gid_FROMH: if (copy(namu, 1, 3) = 'FE_') or (copy(namu, 1, 3) = 'FH_') or (copy(namu, 1, 3) = 'GRO') then inc(ivar);
-  gid_MAJOKKO: if (copy(namu, 1, 3) = 'KE_') or (copy(namu, 1, 2) = 'OP') then inc(ivar);
-  gid_MARIRIN: if copy(namu, 1, 3) = 'BC' then inc(ivar);
-  gid_RUNAWAY, gid_RUNAWAY98: if copy(namu, 1, 3) = 'MH_' then inc(ivar);
-  gid_SAKURA, gid_SAKURA98: if copy(namu, 1, 3) = 'AE_' then inc(ivar);
-  gid_SETSUJUU: if (copy(namu, 1, 3) = 'SH_') or (copy(namu, 1, 3) = 'SI_') then inc(ivar);
-  gid_TRANSFER98: if (copy(namu, 1, 3) = 'TH_') or (copy(namu, 1, 3) = 'TI_') then inc(ivar);
-  gid_TASOGARE: if (copy(namu, 1, 3) = 'YE_') or (copy(namu, 1, 3) = 'YH_') then inc(ivar);
-  gid_VANISH: if (copy(namu, 1, 3) = 'VE_') or (copy(namu, 1, 3) = 'VH_') then inc(ivar);
+  gid_3SIS, gid_3SIS98: if copy(namu, 1, 3) = 'SE_' then inc(i);
+  gid_DEEP: if (copy(namu, 1, 4) = 'DH_S') or (copy(namu, 1, 3) = 'DI_') then inc(i);
+  gid_EDEN: if copy(namu, 1, 3) = 'EE_' then inc(i);
+  gid_FROMH: if (copy(namu, 1, 3) = 'FE_') or (copy(namu, 1, 3) = 'FH_') or (copy(namu, 1, 3) = 'GRO') then inc(i);
+  gid_MAJOKKO: if (copy(namu, 1, 3) = 'KE_') or (copy(namu, 1, 2) = 'OP') then inc(i);
+  gid_MARIRIN: if copy(namu, 1, 3) = 'BC' then inc(i);
+  gid_RUNAWAY, gid_RUNAWAY98: if copy(namu, 1, 3) = 'MH_' then inc(i);
+  gid_SAKURA, gid_SAKURA98: if copy(namu, 1, 3) = 'AE_' then inc(i);
+  gid_SETSUJUU: if (copy(namu, 1, 3) = 'SH_') or (copy(namu, 1, 3) = 'SI_') then inc(i);
+  gid_TRANSFER98: if (copy(namu, 1, 3) = 'TH_') or (copy(namu, 1, 3) = 'TI_') then inc(i);
+  gid_TASOGARE: if (copy(namu, 1, 3) = 'YE_') or (copy(namu, 1, 3) = 'YH_') then inc(i);
+  gid_VANISH: if (copy(namu, 1, 3) = 'VE_') or (copy(namu, 1, 3) = 'VH_') then inc(i);
  end;
- if ivar <> 0 then begin
+ if i <> 0 then begin
   gammacorrect := 113; // closeups generally look better darker
   processHVlines := FALSE; // ... and generally don't have orthogonal lines
  end;
@@ -582,8 +582,8 @@ begin
  // Figure out the transparent color index
  xparency := $FF;
  if image.memformat = 5 then begin
-  for ivar := high(image.palette) downto 0 do
-   if image.palette[ivar].a = 0 then xparency := ivar;
+  for i := high(image.palette) downto 0 do
+   if image.palette[i].a = 0 then xparency := i;
  end;
  // transparent things usually don't have horizontal/vertical lines
  if xparency <> $FF then processHVlines := FALSE;
@@ -594,20 +594,20 @@ begin
   if xparency >= dword(length(PNGlist[gfxi].pal)) then begin
    PrintError('Transparent color must be hardcoded in decomp_g!');
   end else begin
-   ivar := image.sizey + (PNGlist[gfxi].framecount - 1) * 4;
-   getmem(loader, image.sizex * ivar);
-   lvar := image.sizex * PNGlist[gfxi].frameheight;
-   jvar := PNGlist[gfxi].framecount;
-   while jvar <> 0 do begin
-    dec(jvar);
-    move((image.image + jvar * lvar)^,
-         (loader + jvar * image.sizex * (PNGlist[gfxi].frameheight + 4))^,
-         lvar);
-    if jvar + 1 <> PNGlist[gfxi].framecount then
-     fillbyte((loader + jvar * image.sizex * (PNGlist[gfxi].frameheight + 4) + lvar)^, image.sizex * 4, xparency);
+   i := image.sizey + (PNGlist[gfxi].framecount - 1) * 4;
+   getmem(loader, image.sizex * i);
+   l := image.sizex * PNGlist[gfxi].frameheight;
+   j := PNGlist[gfxi].framecount;
+   while j <> 0 do begin
+    dec(j);
+    move((image.image + j * l)^,
+         (loader + j * image.sizex * (PNGlist[gfxi].frameheight + 4))^,
+         l);
+    if j + 1 <> PNGlist[gfxi].framecount then
+     fillbyte((loader + j * image.sizex * (PNGlist[gfxi].frameheight + 4) + l)^, image.sizex * 4, xparency);
    end;
    freemem(image.image); image.image := loader; loader := NIL;
-   image.sizey := ivar;
+   image.sizey := i;
   end;
  end;
 
@@ -616,56 +616,56 @@ begin
 
  // Image frames should be put together again
  if PNGlist[gfxi].framecount > 1 then begin
-  lvar := image.sizex * (3 + image.memformat and 1); // image row byte width
-  ivar := lvar * PNGlist[gfxi].frameheight; // frame byte size
-  jvar := lvar * (PNGlist[gfxi].frameheight + 4); // frame byte size + 4 rows
-  for kvar := 1 to PNGlist[gfxi].framecount - 1 do
-   move((image.image + jvar * kvar)^, (image.image + ivar * kvar)^, ivar);
+  l := image.sizex * (3 + image.memformat and 1); // image row byte width
+  i := l * PNGlist[gfxi].frameheight; // frame byte size
+  j := l * (PNGlist[gfxi].frameheight + 4); // frame byte size + 4 rows
+  for k := 1 to PNGlist[gfxi].framecount - 1 do
+   move((image.image + j * k)^, (image.image + i * k)^, i);
   image.sizey := PNGlist[gfxi].frameheight * PNGlist[gfxi].framecount;
 
   // Make animation frame edges completely transparent to reduce artifacts
   if image.memformat = 1 then
-  for kvar := PNGlist[gfxi].framecount - 1 downto 0 do begin
-   jvar := ivar * kvar; // jvar = offset to frame's top left corner
-   fillbyte((image.image + jvar)^, lvar, 0); // top edge
-   fillbyte((image.image + jvar + ivar - lvar)^, lvar, 0); // bottom edge
+  for k := PNGlist[gfxi].framecount - 1 downto 0 do begin
+   j := i * k; // j = offset to frame's top left corner
+   fillbyte((image.image + j)^, l, 0); // top edge
+   fillbyte((image.image + j + i - l)^, l, 0); // bottom edge
   end;
-  jvar := 0; ivar := (3 + image.memformat and 1);
-  for kvar := image.sizey - 1 downto 0 do begin
-   fillbyte((image.image + jvar)^, ivar, 0); // left edge
-   inc(jvar, lvar);
-   fillbyte((image.image + jvar - ivar)^, ivar, 0);
+  j := 0; i := (3 + image.memformat and 1);
+  for k := image.sizey - 1 downto 0 do begin
+   fillbyte((image.image + j)^, i, 0); // left edge
+   inc(j, l);
+   fillbyte((image.image + j - i)^, i, 0);
   end;
  end;
 
  // Save the result over the original
- jvar := mcg_MemorytoPNG(@image, @loader, @ivar); // build a PNG in loader^
+ j := mcg_MemorytoPNG(@image, @loader, @i); // build a PNG in loader^
  mcg_ForgetImage(@image);
- if jvar <> 0 then begin
+ if j <> 0 then begin
   PrintError(mcg_errortxt); exit;
  end;
  assign(filu, projectdir + 'gfx' + DirectorySeparator + namu + '.png');
  filemode := 1; rewrite(filu, 1); // write-only
- jvar := IOresult;
- if jvar <> 0 then begin
-  PrintError('IO error ' + strdec(jvar) + ' trying to write ' + namu);
+ j := IOresult;
+ if j <> 0 then begin
+  PrintError('IO error ' + strdec(j) + ' trying to write ' + namu);
   exit;
  end;
- blockwrite(filu, loader^, ivar);
+ blockwrite(filu, loader^, i);
  close(filu);
- {$endif}
 end;
+{$endif}
 
 procedure BeautifyGraphics;
 // Converted graphics have been stored under gfx\ as 16-color indexed PNGs.
 // This batch-beautifies them using a reverse-dithering filter.
-var ivar : dword;
+var i : dword;
 begin
  if newgfxcount = 0 then exit;
 
  writeln('Applying reverse-dithering filter on ', newgfxcount, ' images...');
- for ivar := newgfxcount - 1 downto 0 do begin
-  ApplyFilter(newgfxlist[ivar]);
+ for i := newgfxcount - 1 downto 0 do begin
+  ApplyFilter(newgfxlist[i]);
   write('.');
  end;
  writeln;
@@ -681,5 +681,4 @@ begin
   if decomp_param.docomposite then CompositeGraphics;
   if decomp_param.dobeautify then BeautifyGraphics;
  end;
- WriteMetadata;
 end;

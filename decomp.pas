@@ -838,8 +838,10 @@ begin
  // Find and process input resources.
  ScanDir(ExpandFileName(srcdir), FALSE);
 
- // Dump metadata, composite and beautify graphics, etc.
+ // Composite and beautify graphics, etc.
  PostProcess;
+
+ WriteMetadata;
 end;
 
 // ------------------------------------------------------------------
