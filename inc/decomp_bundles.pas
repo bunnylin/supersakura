@@ -22,14 +22,19 @@ procedure Decomp_ExcellentDAT(const loader : TFileLoader; const listfilename, ou
 // file, and saves them in outputdir/temp/. The unpacked files are then
 // further forwarded to conversion functions.
 // Returns an empty string if successful, otherwise returns an error message.
-var ivar : dword;
+var i : dword;
     listfile : TFileLoader;
     reslist : array of UTF8string;
     rescount : dword;
 begin
- // Is it a useless MEMORY.DAT?
- if (lowercase(ExtractFileName(loader.filename)) = 'memory.dat')
+ setlength(reslist, 256);
+ // Is it a useless MEMORY.DAT or SAVEx.DAT?
+ reslist[0] := lowercase(ExtractFileName(loader.filename));
+ if (reslist[0] = 'memory.dat')
  //and (word(loader^) = 2)
+ or (reslist[0] = 'save0.dat')
+ or (reslist[0] = 'save1.dat')
+ or (reslist[0] = 'save2.dat')
  then begin
   write(stdout, 'this has no resources! ');
   exit;
@@ -40,11 +45,15 @@ begin
  while IOresult <> 0 do ; // flush
 
  // Load the list file.
- listfile := TFileLoader.Open(listfilename);
+ try
+  listfile := TFileLoader.Open(listfilename);
+ except
+  on E : Exception do
+   raise DecompException.Create(E.Message);
+ end;
 
  try
   // Check list file signature.
-  setlength(reslist, 256);
   setlength(reslist[0], 11);
   move(listfile.readp^, reslist[0][1], 11);
 
@@ -68,8 +77,8 @@ begin
    move(listfile.readp^, reslist[rescount][1], 12);
    reslist[rescount][13] := chr(0);
    setlength(reslist[rescount], pos(chr(0), reslist[rescount]) - 1);
-   ivar := pos('\', reslist[rescount]); // replace backslashes with underscore
-   if ivar <> 0 then reslist[rescount][ivar] := '_';
+   i := pos('\', reslist[rescount]); // replace backslashes with underscore
+   if i <> 0 then reslist[rescount][i] := '_';
    if reslist[rescount] = '[[End]]     ' then break;
    writeln(stdout, reslist[rescount]);
 
@@ -77,27 +86,27 @@ begin
    inc(listfile.readp, 12);
    loader.ofs := listfile.ReadDword;
 
-   // Read the next data offset to figure out data size.
-   ivar := dword((listfile.readp + 12)^);
+   // Read the next data offset to use as this one's end offset.
+   i := dword((listfile.readp + 12)^);
 
    // Validate the data offsets.
-   if ivar > loader.size then begin
+   if i > loader.size then begin
     PrintError('end offset beyond .dat end!');
-    ivar := loader.size;
+    i := loader.size;
    end;
-   if loader.ofs > ivar then begin
-    PrintError('start offset beyond end offset!');
-    ivar := loader.size;
+   if i < loader.ofs then begin
+    PrintError('end offset before start offset!');
+    i := loader.size;
    end;
 
    // Get the data byte size.
-   dec(ivar, loader.ofs);
+   dec(i, loader.ofs);
 
    // Suffixless files are probably graphics, so give them a .G extension.
-   if (pos('.', reslist[rescount]) = 0) and (ivar > 8) then begin
+   if (pos('.', reslist[rescount]) = 0) and (i > 8) then begin
     // check that the file starts with a graphic signature or correct-looking
     // image size.
-    if (dword(loader.readp^) = $73556950) // PiUser sig
+    if (word(loader.readp^) = $6950) // Pi sig
     or (word(loader.readp^) <> 0)
     and (word((loader.readp + 2)^) <> 0)
     and (byte(loader.readp^) in [0..3]) // valid image widths: 001..3FF
@@ -106,13 +115,15 @@ begin
    end;
 
    // Save the file in /temp/.
-   SaveFile(outputdir + 'temp' + DirectorySeparator + reslist[rescount], loader.readp, ivar);
+   SaveFile(outputdir + 'temp' + DirectorySeparator + reslist[rescount], loader.readp, i);
 
    // next file!
    inc(rescount);
   end;
 
   // Dispatch the extracted files for conversion.
+  writeln('dispatching dat contents...');
+  writeln(stdout, 'dispatching dat contents...');
   while rescount <> 0 do begin
    dec(rescount);
    DispatchFile(outputdir + 'temp' + DirectorySeparator + reslist[rescount]);
