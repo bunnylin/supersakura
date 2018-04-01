@@ -130,27 +130,32 @@ procedure Decomp_ExcellentLib(const loader : TFileLoader; const catfilename, out
 // further forwarded to conversion functions.
 // Returns an empty string if successful, otherwise returns an error message.
 var catp, resp : pointer;
-    catpsize : dword;
+    catofs, catpsize : dword;
     catfile : TFileLoader;
     reslist : array of UTF8string;
     rescount, comptype, ressize, startofs : dword;
     dump : file;
 begin
- // Make a temp directory.
- mkdir(outputdir + 'temp');
- while IOresult <> 0 do ; // flush
+ // Check lib file signature.
+ if loader.ReadDword <> $3062694C then
+  raise Exception.Create('bad .lib signature');
+
+ resp := NIL; catp := NIL;
+ try
 
  // Load the cat file.
  catfile := TFileLoader.Open(catfilename);
 
  try
   // Check cat file signature.
-  if dword(catfile.readp^) <> $31746143 then
+  if catfile.ReadDword <> $31746143 then
    raise Exception.Create('bad .cat signature');
 
+  if loader.ReadWord <> catfile.ReadWord then
+   raise Exception.Create('.cat and .lib have mismatching postsig word');
+
   // Uncompress the Softdisk-style LZ77 stream.
-  resp := NIL; catp := NIL;
-  Decompress_LZ77(catfile.readp + 6, catfile.size - 6, catp, catpsize);
+  Decompress_LZ77(catfile.readp, catfile.size - 6, catp, catpsize);
 
  finally
   if catfile <> NIL then catfile.free;
@@ -162,39 +167,41 @@ begin
  blockwrite(dump, catp^, catpsize);
  close(dump);
 
- // Check lib file signature.
- if dword(loader.readp^) <> $3062694C then
-  raise Exception.Create('bad .lib signature');
+ // Make a temp directory.
+ mkdir(outputdir + 'temp');
+ while IOresult <> 0 do ; // flush
 
  // Start extracting resources from the lib.
  setlength(reslist, 256);
  rescount := 0;
+ catofs := 0;
  writeln('extracting resources...');
  writeln(stdout, 'extracting resources...');
 
- while catfile.readp + 22 <= catfile.endp do begin
+ while catofs + 22 <= catpsize do begin
   // Expand reslist if needed.
   if rescount >= dword(length(reslist)) then setlength(reslist, length(reslist) shl 1);
 
   // Read the resource filename.
   setlength(reslist[rescount], 12);
-  move(catfile.readp^, reslist[rescount][1], 12);
-  inc(catfile.readp, 12);
+  move((catp + catofs)^, reslist[rescount][1], 12);
+  inc(catofs, 12);
 
   // Remove trailing spaces.
-  while (length(reslist[rescount]) <> 0)
-  and (reslist[rescount][length(reslist[rescount])] = ' ')
-  do setlength(reslist[rescount], length(reslist[rescount]) - 1);
+  reslist[rescount] := trim(reslist[rescount]);
   writeln(stdout, reslist[rescount]);
 
   // Read the compression type.
-  comptype := catfile.ReadWord;
+  comptype := word((catp + catofs)^);
+  inc(catofs, 2);
   if comptype > 1 then
    raise Exception.Create('unknown compression type ' + strdec(comptype));
 
   // Read the resource size and location.
-  ressize := catfile.ReadDword;
-  startofs := catfile.ReadDword + 6;
+  ressize := dword((catp + catofs)^);
+  inc(catofs, 4);
+  startofs := dword((catp + catofs)^) + 6;
+  inc(catofs, 4);
 
   // Validate the data offsets.
   if startofs > loader.size then begin
@@ -211,18 +218,22 @@ begin
   // in addition to Pi, probably programmer error. Still works though.)
   if (pos('.', reslist[rescount]) = 0) then reslist[rescount] := reslist[rescount] + '.g';
 
-  // Pi graphic files...
-  if comptype = 0 then begin
-   // Save the file directly from the lib.
-   SaveFile(outputdir + 'temp' + DirectorySeparator + reslist[rescount], loader.PtrAt(startofs), ressize);
-  end
-
-  // LZ77 compressed files...
+  if ressize = 0 then writeln(stdout, 'resource size 0!')
   else begin
-   inc(startofs, 4); dec(ressize, 4); // skip unpacked size dword
-   Decompress_LZ77(loader.PtrAt(startofs), ressize, resp, ressize);
-   SaveFile(outputdir + 'temp' + DirectorySeparator + reslist[rescount], resp, ressize);
-   freemem(resp); resp := NIL;
+
+   // Pi graphic files...
+   if comptype = 0 then begin
+    // Save the file directly from the lib.
+    SaveFile(outputdir + 'temp' + DirectorySeparator + reslist[rescount], loader.PtrAt(startofs), ressize);
+   end
+
+   // LZ77 compressed files...
+   else begin
+    inc(startofs, 4); dec(ressize, 4); // skip unpacked size dword
+    Decompress_LZ77(loader.PtrAt(startofs), ressize, resp, ressize);
+    SaveFile(outputdir + 'temp' + DirectorySeparator + reslist[rescount], resp, ressize);
+    freemem(resp); resp := NIL;
+   end;
   end;
 
   // next file!
@@ -235,5 +246,10 @@ begin
  while rescount <> 0 do begin
   dec(rescount);
   DispatchFile(outputdir + 'temp' + DirectorySeparator + reslist[rescount]);
+ end;
+
+ finally
+  if catp <> NIL then begin freemem(catp); catp := NIL; end;
+  if resp <> NIL then begin freemem(resp); resp := NIL; end;
  end;
 end;
