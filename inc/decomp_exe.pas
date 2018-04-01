@@ -128,7 +128,7 @@ begin
     songnamu := upcase(songnamu);
     i := seekpng(songnamu, TRUE);
     // convert and save the animation data into PNGlist[].
-    if byte((poku + 2)^) <> 0 then ChewAnimations(poku, i);
+    if byte((poku + 2)^) <> 0 then ConvertJastAnimData(poku, i);
    until FALSE;
   end
 
@@ -151,7 +151,7 @@ begin
     songnamu := upcase(songnamu);
     i := seekpng(songnamu, TRUE);
     // convert and save the animation data into PNGlist[].
-    ChewAnimations(poku, i);
+    ConvertJastAnimData(poku, i);
    until FALSE;
   end;
 

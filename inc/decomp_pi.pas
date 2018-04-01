@@ -17,7 +17,7 @@
 { along with SuperSakura.  If not, see <https://www.gnu.org/licenses/>.     }
 {                                                                           }
 
-procedure ChewAnimations(animp : pointer; PNGindex : dword);
+procedure ConvertJastAnimData(animp : pointer; PNGindex : dword);
 // Takes a pointer to a single unit of JAST/Tiare animation data, processes
 // it into useful data in PNGlist[]. This does not release animp.
 var i, j : dword;
@@ -62,7 +62,7 @@ begin
  i := PNGlist[PNGindex].seqlen - 1;
  j := dword(word(animp^) * 11);
  PNGlist[PNGindex].sequence[i] := (PNGlist[PNGindex].sequence[i] and $FFFF0000) + j;
- // If sequence length = 1, enforce a stopped animation
+ // If sequence length = 1, enforce a stopped animation.
  if PNGlist[PNGindex].seqlen = 1 then PNGlist[PNGindex].sequence[0] := PNGlist[PNGindex].sequence[0] or $FFFF;
 
  // Adjust the animation offset depending on the game. 3sis and Runaway,
@@ -83,232 +83,245 @@ begin
 end;
 
 procedure UnpackPiGraphic(loader : TFileLoader; PNGindex : dword);
-var iofs : dword;
+var destp, endp, startp : pointer;
     lcolors : array[0..15] of array[1..16] of byte;
-    lpp, lnp : dword;
-    ltv, llv : word;
-    pair1, pair2, pairx : word;
-    l_firstrep, l_mode : byte;
+    i, j : dword;
+    lastbyteout, lastreptype : byte;
+    doingrepetition : boolean;
 
-  function l_getcolorcode : byte;
-  // Translates a variable-bit-length color code into a normal number.
+  function translatedeltacode : byte; inline;
+  // Translates a variable-bit-length delta code into a normal number.
+  // (Only works for 16-color variant, haven't seen 256-color Pi files...)
   begin
+   translatedeltacode := 16;
+   // safety
+   if loader.readp + 2 >= loader.endp then begin
+    loader.readp := loader.endp;
+    exit;
+   end;
+
    if loader.ReadBit then begin // 1x
-    if loader.ReadBit then l_getcolorcode := 15 else l_getcolorcode := 16;
+    if loader.ReadBit then translatedeltacode := 15;
 
    end else begin // 0.....
     if loader.ReadBit then begin // 01....
      if loader.ReadBit then begin // 011xxx
       if loader.ReadBit then begin // 0111xx
        if loader.ReadBit then begin // 01111x
-        if loader.ReadBit then l_getcolorcode := 1 else l_getcolorcode := 2;
+        if loader.ReadBit then translatedeltacode := 1 else translatedeltacode := 2;
        end else begin // 01110x
-        if loader.ReadBit then l_getcolorcode := 3 else l_getcolorcode := 4;
+        if loader.ReadBit then translatedeltacode := 3 else translatedeltacode := 4;
        end;
       end else begin // 0110xx
        if loader.ReadBit then begin // 01101x
-        if loader.ReadBit then l_getcolorcode := 5 else l_getcolorcode := 6;
+        if loader.ReadBit then translatedeltacode := 5 else translatedeltacode := 6;
        end else begin // 01100x
-        if loader.ReadBit then l_getcolorcode := 7 else l_getcolorcode := 8;
+        if loader.ReadBit then translatedeltacode := 7 else translatedeltacode := 8;
        end;
       end;
      end else begin // 010xx
       if loader.ReadBit then begin // 0101x
-       if loader.ReadBit then l_getcolorcode := 9 else l_getcolorcode := 10;
+       if loader.ReadBit then translatedeltacode := 9 else translatedeltacode := 10;
       end else begin // 0100x
-       if loader.ReadBit then l_getcolorcode := 11 else l_getcolorcode := 12;
+       if loader.ReadBit then translatedeltacode := 11 else translatedeltacode := 12;
       end;
      end;
     end else begin // 00x
-     if loader.ReadBit then l_getcolorcode := 13 else l_getcolorcode := 14;
+     if loader.ReadBit then translatedeltacode := 13 else translatedeltacode := 14;
     end;
    end;
   end;
 
-  function l_getlencode : dword;
+  function getlengthcode : dword; inline;
   // Returns a variable-bit-length number used for repetition lengths.
-  var luxus : word;
+  var bitprefixcount : word;
   begin
-   luxus := 0;
-   while loader.ReadBit do inc(luxus);
-   l_getlencode := 1 shl luxus;
-   while luxus <> 0 do begin
-    dec(luxus);
-    if loader.ReadBit then inc(l_getlencode, dword(1 shl luxus));
+   bitprefixcount := 0;
+   while (loader.readp < loader.endp) and (loader.ReadBit) do
+    inc(bitprefixcount);
+   getlengthcode := 1 shl bitprefixcount;
+   while bitprefixcount <> 0 do begin
+    dec(bitprefixcount);
+    if (loader.readp < loader.endp) and (loader.ReadBit) then
+     getlengthcode := dword(getlengthcode + dword(1 shl bitprefixcount));
+   end;
+   // safety, for unreasonably long repeats
+   if getlengthcode >= $10000000 then getlengthcode := $FFFFFFF;
+  end;
+
+  function getrepetitiontype : byte; inline;
+  // Returns one of five bitpacked repetition type codes.
+  begin
+   getrepetitiontype := 0;
+   // safety
+   if loader.readp + 2 >= loader.endp then begin
+    loader.readp := loader.endp;
+    exit;
+   end;
+
+   if loader.ReadBit then begin
+    if loader.ReadBit then begin
+     if loader.ReadBit then getrepetitiontype := 111
+     else getrepetitiontype := 110;
+    end
+    else getrepetitiontype := 10;
+   end else begin
+    if loader.ReadBit then getrepetitiontype := 1;
+   end;
+  end;
+
+  procedure copybytes(replen, repofs : dword; oobfiller : word); inline;
+  // Copies replen bytes from (destp - repofs)^ to destp^. Where the source
+  // offset is before the start of the image, fill with oobfiller instead.
+  var oobcount : longint;
+  begin
+   oobcount := repofs - (destp - startp);
+   if oobcount > 0 then begin
+    if replen < dword(oobcount) then oobcount := replen;
+    fillword(destp^, oobcount shr 1, oobfiller);
+    inc(destp, oobcount);
+    dec(replen, oobcount);
+    // Handle odd fill lengths.
+    if oobcount and 1 <> 0 then
+     byte((destp - 1)^) := byte(oobfiller);
+   end;
+
+   memcopy(destp - repofs, destp, replen);
+   inc(destp, replen);
+  end;
+
+  procedure processcolorcode;
+  // Reads a color code from the input bit stream, adjusts the delta table,
+  // and outputs a single byte.
+  var deltaindex, newdelta : byte;
+  begin
+   deltaindex := translatedeltacode();
+   // Move the new delta code to the front of its array.
+   newdelta := lcolors[lastbyteout][deltaindex];
+   while deltaindex < 16 do begin
+    lcolors[lastbyteout][deltaindex] := lcolors[lastbyteout][deltaindex + 1];
+    inc(deltaindex);
+   end;
+   lcolors[lastbyteout][16] := newdelta;
+   // The next byte out is the last byte plus a delta.
+   lastbyteout := (lastbyteout + newdelta) and 15;
+   byte(destp^) := lastbyteout;
+   inc(destp);
+  end;
+
+  procedure processrepetitioncode(minusreps : byte);
+  var replength : dword;
+      bytequad : dword;
+      bytepair : word;
+      reptype : byte;
+  begin
+   // If the new repetition type is the same as the last one, stop doing
+   // repeats and expect color codes again.
+   reptype := getrepetitiontype();
+   if lastreptype = reptype then begin
+    doingrepetition := FALSE;
+    lastbyteout := byte((destp - 1)^);
+    exit;
+   end;
+   lastreptype := reptype;
+
+   // Read the number of repetitions required. Subtract minusreps, which is
+   // always 0 except on the first forced repeat where it is 1.
+   // The repetitions are specified as byte pairs in the stream, so multiply
+   // by two to get the byte length.
+   replength := dword(getlengthcode - minusreps) * 2;
+
+   // safety
+   if destp + replength >= endp then replength := endp - destp;
+
+   if replength <> 0 then
+   case reptype of
+     0: begin
+      // Special repeat type, "Location 0" in the spec. Normally this repeats
+      // the last 4 bytes, unless the last two bytes are equal or we're only
+      // two bytes into the image, in which case it repeats the last 2 bytes.
+      bytepair := word((destp - 2)^);
+      if (destp < startp + 4) or (bytepair and $FF = bytepair shr 8)
+      then begin
+       // Repeat last two bytes.
+       fillword(destp^, replength shr 1, bytepair);
+       inc(destp, replength);
+      end
+      else begin
+       // Repeat last four bytes.
+       bytequad := dword((destp - 4)^);
+       filldword(destp^, replength shr 2, bytequad);
+       inc(destp, replength);
+       // Handle odd number of repeats.
+       if replength and 2 <> 0 then
+        word((destp - 2)^) := word(bytequad);
+      end;
+     end;
+
+     // Repeat type "Location 1" in the spec. Copy bytes from exactly one
+     // row above. While out of bounds, copy only the top left word.
+     1: copybytes(replength, PNGlist[PNGindex].origsizexp, word(startp^));
+
+     // Repeat type "Location 2" in the spec. Copy bytes from exactly two
+     // rows above. While out of bounds, copy only the top left word.
+     10: copybytes(replength, PNGlist[PNGindex].origsizexp * 2, word(startp^));
+
+     // Repeat type "Location 3" in the spec. Copy bytes from one row above,
+     // 1 byte ahead. While out of bounds, copy the top left word, reversed.
+     110: copybytes(replength, PNGlist[PNGindex].origsizexp - 1, swap(word(startp^)));
+
+     // Repeat type "Location 4" in the spec. Copy bytes from one row above,
+     // 1 byte back. While out of bounds, copy the top left word, reversed.
+     111: copybytes(replength, PNGlist[PNGindex].origsizexp + 1, swap(word(startp^)));
    end;
   end;
 
 begin
- // best have some room for overflow
- getmem(PNGlist[PNGindex].bitmap, PNGlist[PNGindex].origsizexp * PNGlist[PNGindex].origsizeyp + 32768);
+ // The image will be directly decompressed into an 8bpp buffer, even if the
+ // palette is only 16 colors. The algorithm doesn't care about the actual
+ // palette values or presence/absence of alpha; we're only dealing with
+ // an input bit stream and an output byte stream.
+ i := PNGlist[PNGindex].origsizexp * PNGlist[PNGindex].origsizeyp;
+ getmem(PNGlist[PNGindex].bitmap, i);
+
+ // Set up an access pointer and some important position markers.
+ startp := PNGlist[PNGindex].bitmap;
+ destp := startp;
+ endp := startp + i;
 
  loader.bitindex := 7;
- l_firstrep := 1; l_mode := 1;
- lpp := 0; iofs := 0;
- for llv := 0 to 15 do for ltv := 1 to 16 do lcolors[llv][ltv] := ltv;
+ lastbyteout := 0;
+ lastreptype := 255;
+ doingrepetition := TRUE;
 
- repeat
-  case l_mode of
-   // Two pixels using color delta
-   1: begin
-       ltv := l_getcolorcode;
-       lnp := lcolors[lpp][ltv];
-       llv := ltv;
-       while ltv < 16 do begin
-        lcolors[lpp][ltv] := lcolors[lpp][ltv + 1];
-        inc(ltv);
-       end;
-       lcolors[lpp][16] := lnp;
-       lnp := (lpp + lnp) and 15;
-       lpp := lnp;
-       byte((PNGlist[PNGindex].bitmap + iofs shl 1)^) := lnp;
+ // Set up a color delta table.
+ for i := 0 to 15 do for j := 1 to 16 do lcolors[i][j] := j;
 
-       ltv := l_getcolorcode;
-       lnp := lcolors[lpp][ltv];
-       llv := ltv;
-       while ltv < 16 do begin
-        lcolors[lpp][ltv] := lcolors[lpp][ltv + 1];
-        inc(ltv);
-       end;
-       lcolors[lpp][16] := lnp;
-       lnp := (lpp + lnp) and 15;
-       lpp := lnp;
-       byte((PNGlist[PNGindex].bitmap + (iofs shl 1) + 1)^) := lnp;
-       inc(iofs);
+ // Start with two color codes.
+ processcolorcode();
+ processcolorcode();
+ // Forced repetition, with length reduced by one.
+ processrepetitioncode(1);
 
-       if (l_firstrep <> 0) then l_mode := 2
-       else if loader.ReadBit = false then l_mode := 2;
-      end;
-   // Repetition
-   2: begin
-       if loader.ReadBit then begin
-        if loader.ReadBit then begin
-         if loader.ReadBit then ltv := 111 else ltv := 110;
-        end
-        else ltv := 10;
-       end else begin
-        if loader.ReadBit then ltv := 1 else ltv := 0;
-       end;
-
-       repeat
-        lpp := l_getlencode;
-        if l_firstrep <> 0 then dec(lpp);
-
-        case ltv of
-         0: begin
-             pair1 := word((PNGlist[PNGindex].bitmap + iofs * 2 - 2)^);
-             if (pair1 shr 8 = pair1 and $FF) or (iofs < 2)
-             then begin
-              // repeat previous pair
-              fillword((PNGlist[PNGindex].bitmap + iofs * 2)^, lpp, pair1);
-              inc(iofs, lpp);
-             end else begin
-              // repeat two previous pairs
-              pair2 := word((PNGlist[PNGindex].bitmap + iofs * 2 - 4)^);
-              while lpp > 0 do begin
-               word((PNGlist[PNGindex].bitmap + iofs * 2)^) := pair2;
-               pairx := pair2; pair2 := pair1; pair1 := pairx;
-               inc(iofs);
-               dec(lpp);
-              end;
-             end;
-            end;
-         1: begin
-             // while in topmost row, only copy the top left corner pair
-             if iofs shl 1 < PNGlist[PNGindex].origsizexp then begin
-              if (iofs + lpp) shl 1 <= PNGlist[PNGindex].origsizexp then begin
-               fillword((PNGlist[PNGindex].bitmap + iofs * 2)^, lpp, word(PNGlist[PNGindex].bitmap^));
-               inc(iofs, lpp); lpp := 0;
-              end else begin
-               fillword(((PNGlist[PNGindex].bitmap + iofs * 2)^), word(PNGlist[PNGindex].origsizexp shr 1) - iofs, word(PNGlist[PNGindex].bitmap^));
-               dec(lpp, word(PNGlist[PNGindex].origsizexp shr 1) - iofs); iofs := PNGlist[PNGindex].origsizexp shr 1;
-              end;
-             end;
-
-             // copy pixel sequence directly above
-             memcopy(PNGlist[PNGindex].bitmap + (iofs shl 1) - PNGlist[PNGindex].origsizexp, PNGlist[PNGindex].bitmap + (iofs shl 1), lpp shl 1);
-             inc(iofs, lpp);
-            end;
-         10: begin
-              // if in topmost or second highest row,
-              // repeat the top left corner pair
-              if iofs < PNGlist[PNGindex].origsizexp then begin
-               if iofs + lpp <= PNGlist[PNGindex].origsizexp then begin
-                fillword(((PNGlist[PNGindex].bitmap + iofs * 2)^), lpp, word(PNGlist[PNGindex].bitmap^));
-                inc(iofs, lpp); lpp := 0;
-               end else begin
-                fillword(((PNGlist[PNGindex].bitmap + iofs * 2)^), PNGlist[PNGindex].origsizexp - iofs, word(PNGlist[PNGindex].bitmap^));
-                dec(lpp, PNGlist[PNGindex].origsizexp - iofs); iofs := PNGlist[PNGindex].origsizexp;
-               end;
-              end;
-
-              // otherwise copy pixels running two rows above
-              memcopy(PNGlist[PNGindex].bitmap + (iofs - PNGlist[PNGindex].origsizexp) shl 1, PNGlist[PNGindex].bitmap + (iofs shl 1), lpp shl 1);
-              inc(iofs, lpp);
-             end;
-         110: begin
-               // while in topmost row, only copy the top left corner pair
-               if iofs shl 1 < PNGlist[PNGindex].origsizexp then begin
-                pair1 := (byte(PNGlist[PNGindex].bitmap^) shl 8) or byte((PNGlist[PNGindex].bitmap + 1)^);
-                if (iofs + lpp) shl 1 <= PNGlist[PNGindex].origsizexp then begin
-                 fillword(((PNGlist[PNGindex].bitmap + iofs * 2)^), lpp, pair1);
-                 inc(iofs, lpp); lpp := 0;
-                end else begin
-                 fillword(((PNGlist[PNGindex].bitmap + iofs * 2)^), word(PNGlist[PNGindex].origsizexp shr 1) - iofs, pair1);
-                 dec(lpp, word(PNGlist[PNGindex].origsizexp shr 1) - iofs); iofs := PNGlist[PNGindex].origsizexp shr 1;
-                end;
-               end;
-               // copy pixel sequence directly above and right
-               memcopy(PNGlist[PNGindex].bitmap + (iofs shl 1) - PNGlist[PNGindex].origsizexp + 1, PNGlist[PNGindex].bitmap + (iofs shl 1), lpp shl 1);
-               inc(iofs, lpp);
-              end;
-         111: begin
-               // while in topmost row, only copy the top left corner pair
-               if iofs shl 1 < PNGlist[PNGindex].origsizexp then begin
-                pair1 := (byte(PNGlist[PNGindex].bitmap^) shl 8) + byte((PNGlist[PNGindex].bitmap + 1)^);
-                if (iofs + lpp) shl 1 <= PNGlist[PNGindex].origsizexp then begin
-                 fillword(((PNGlist[PNGindex].bitmap + iofs * 2)^), lpp, pair1);
-                 inc(iofs, lpp); lpp := 0;
-                end else begin
-                 fillword(((PNGlist[PNGindex].bitmap + iofs * 2)^), word(PNGlist[PNGindex].origsizexp shr 1) - iofs, pair1);
-                 dec(lpp, word(PNGlist[PNGindex].origsizexp shr 1) - iofs); iofs := PNGlist[PNGindex].origsizexp shr 1;
-                end;
-               end;
-
-               // exception: first pixel pair of second row
-               if iofs shl 1 = PNGlist[PNGindex].origsizexp then begin
-                byte((PNGlist[PNGindex].bitmap + iofs shl 1)^) := byte((PNGlist[PNGindex].bitmap + 1)^);
-                byte((PNGlist[PNGindex].bitmap + (iofs shl 1) + 1)^) := byte(PNGlist[PNGindex].bitmap^);
-                inc(iofs); dec(lpp);
-               end;
-
-               // copy pixel sequence directly above and left
-               memcopy(PNGlist[PNGindex].bitmap + (iofs shl 1) - PNGlist[PNGindex].origsizexp - 1, PNGlist[PNGindex].bitmap + (iofs shl 1), lpp shl 1);
-               inc(iofs, lpp);
-              end;
-        end;
-
-        lnp := ltv;
-        if loader.ReadBit then begin
-         if loader.ReadBit then begin
-          if loader.ReadBit then ltv := 111 else ltv := 110;
-         end
-         else ltv := 10;
-        end else begin
-         if loader.ReadBit then ltv := 1 else ltv := 0;
-        end;
-
-        l_firstrep := 0;
-       until lnp = ltv;
-       lpp := byte((PNGlist[PNGindex].bitmap + (iofs shl 1) - 1)^);
-       l_mode := 1;
-      end;
+ while destp < endp do begin
+  if doingrepetition then
+   processrepetitioncode(0)
+  else begin
+   processcolorcode();
+   processcolorcode();
+   // If the next bit is not set, we'll do a repetition;
+   // else two more color codes will follow.
+   if loader.ReadBit = FALSE then begin
+    doingrepetition := TRUE;
+    lastreptype := 255;
+   end;
   end;
 
   if loader.readp + 2 > loader.endp then
-   raise Exception.Create('Ran out of datastream before image finished!');
-
- until (iofs shl 1 >= PNGlist[PNGindex].origsizexp * PNGlist[PNGindex].origsizeyp);
+   raise DecompException.Create('Image incomplete, input bit stream too short, output still needs ' + strdec(endp - destp) + ' bytes');
+ end;
+ if loader.readp + 8 < loader.endp then
+  raise DecompException.Create('Image complete, but input bit stream still has ' + strdec(loader.endp - loader.readp) + ' bytes');
 end;
 
 procedure Decomp_Pi(const loader : TFileLoader; const outputfile : UTF8string);
@@ -327,9 +340,7 @@ begin
  imunamu := upcase(copy(imunamu, 1, length(imunamu) - length(ExtractFileExt(imunamu))));
  PNGindex := seekpng(imunamu, TRUE);
 
- if (game = gid_DEEP) and (imunamu = 'DB_05_08') then
-  raise Exception.Create('This image is probably badly corrupted and would crash Decomp.');
-
+ {$ifdef bonk}
  // Check the file for a SADBMP signature.
  if dword(loader.readp^) = $002A4949 then begin
   write(stdout, '[sadbmp] ');
@@ -358,37 +369,59 @@ begin
    inc(j); inc(loader.readp);
   end;
  end else
+ {$endif}
 
- // Check the file for a "MAKI" signature.
- if dword(loader.readp^) = $494B414D then begin
-  write(stdout, '[makichan] ');
-  // Forward to the appropriate decompressor.
-  inc(loader.readp, 4);
-  i := loader.ReadDword; // 01A, 01B, or 02
-  case i of
-   $20413130: UnpackMakiGraphic(loader, PNGindex, 1); // 01A
-   $20423130: UnpackMakiGraphic(loader, PNGindex, 2); // 01B
-   $20203230: UnpackMAG2Graphic(loader, PNGindex); // 02
-   else raise Exception.Create('unknown MAKI subtype $' + strhex(i));
-  end;
- end
+ // Specification-compliant Pi files should always end the encoded image
+ // stream with "32 bits of 0", ie. one dword of 0. Not all files respect
+ // this: some Deep images end with only 3 zero-bytes, some Tasogare images
+ // end with only 2.
+ if word((loader.endp - 2)^) <> 0 then
+  raise DecompException.Create('File doesn''t end with 00 00');
 
- else begin
-  // The file starts with a metadata string. Find the terminating 1A marker!
-  while byte(loader.readp^) <> $1A do begin
-   inc(loader.readp);
-   if (loader.readp + 16 >= loader.endp) then
-    raise Exception.Create('Initial block not found! Maybe not a PI file.');
+ // The file may begin with the full Pi header, with optional signature, or
+ // it may skip straight to the image size declaration.
+
+ // Check if the first two words are a valid image size.
+ // (converting big endian to native)
+ i := BEtoN(dword(loader.readp^));
+ j := i and $FFFF;
+ i := i shr 16;
+ if (i < 2) or (j < 2)
+ or (i > 640) or (j > 800)
+ then begin
+  // The file doesn't appear to start with a valid size, so it must start
+  // with the full header. The header starts with a comment block that
+  // terminates with $1A.
+  repeat
+   if (loader.readp + 16 >= loader.endp) or (loader.ofs > $170) then begin
+    loader.ofs := 0;
+    raise DecompException.Create('Comment block $1A not found');
+   end;
+  until loader.ReadByte = $1A;
+
+  // The header starts after the first 0 after the 1A.
+  repeat
+   if (loader.readp + 16 >= loader.endp) or (loader.ofs > $170) then begin
+    loader.ofs := 0;
+    raise DecompException.Create('Header start 0 not found');
+   end;
+  until loader.ReadByte = 0;
+
+  // If the comment block went up to offset $168, it probably contains
+  // JAST-specific animation data. This is saved using only the top nibbles
+  // of each byte.
+  if loader.ofs = $168 then begin
+   // Repack $164 nibbles into 178 bytes.
+   loader.ofs := 2;
+   for i := 1 to 178 do begin
+    j := loader.ReadWord;
+    byte(loader.PtrAt(i)^) := (j and $F0) or (j shr 12);
+   end;
+   // Process it.
+   ConvertJastAnimData(loader.PtrAt(1), PNGindex);
+   loader.ofs := $168;
   end;
 
-  // If the metadata string is $166 bytes long, it contains animation data.
-  if loader.ofs = $166 then begin
-   // Pack nibbles into bytes
-   for i := 1 to 178 do
-    byte(loader.PtrAt(i)^) := loader.ReadByteFrom(i * 2) or (loader.ReadByteFrom(i * 2 + 1) shr 4);
-   // Process the data
-   ChewAnimations(loader.PtrAt(1), PNGindex);
-  end;
   // Non-animated images never have offsets in the file, so reset those to
   // zero. Thus, at this point, every image has a proper baseline ofs.
   if PNGlist[PNGindex].seqlen = 0 then begin
@@ -396,77 +429,114 @@ begin
    PNGlist[PNGindex].origofsyp := 0;
   end;
 
-  // Read ahead until 00 encountered
-  while byte(loader.readp^) <> $00 do begin
-   inc(loader.readp);
-   if (loader.readp + 4 >= loader.endp) then
-    raise Exception.Create('No 00 in initial block??');
-  end;
-
-  // Skip this and next four bytes, hope to land on a signature.
-  inc(loader.readp, 5);
-  // Skip over sig.
-  inc(loader.readp, 4);
-  // Skip over a 00 byte.
-  inc(loader.readp);
-  // Now follows what feels like a pascal-string of unknown data.
+  // Mode byte. Should be 00, could be FF.
   i := loader.ReadByte;
+  if i in [0,$FF] = FALSE then
+   raise DecompException.Create('Unknown mode ' + strdec(i));
+
+  // Screen ratio. Is this ever not 0?
+  i := loader.ReadByte;
+  j := loader.ReadByte;
+  if i + j <> 0 then
+   raise DecompException.Create('Non-zero ratio ' + strdec(i) + ':' + strdec(j));
+
+  // Bitdepth. 4 or FF for 16 colors, 8 for 256 colors?
+  i := loader.ReadByte;
+  if i in [4,$FF] = FALSE then
+   raise DecompException.Create('Unknown bitdepth ' + strdec(i));
+
+  // Compressor model string. Usually only ascii chars.
+  i := loader.ReadDword;
+  // "Ese" in hiragana Shift-JIS is possible...
+  if (i <> $B982A682) then
+  // Any char >= $80 can't be ascii...
+  if (i and $80808080 <> 0)
+  // Any char < $20 can't be ascii...
+  or (i and $60000000 = 0)
+  or (i and $00600000 = 0)
+  or (i and $00006000 = 0)
+  or (i and $00000060 = 0) then
+   raise DecompException.Create('Invalid compressor model $' + strhex(i));
+
+  // Compressor-specific data, prefixed by length word, MSB first. Ignore.
+  i := BEtoN(loader.ReadWord);
+  if i > 5 then
+   raise DecompException.Create('Suspicious compressor-specific data length ' + strdec(i));
   inc(loader.readp, i);
-
-  // Next two words are image width and height.
-  PNGlist[PNGindex].origsizexp := (loader.ReadByte shl 8) or loader.ReadByte;
-  PNGlist[PNGindex].origsizeyp := (loader.ReadByte shl 8) or loader.ReadByte;
-
-  if (PNGlist[PNGindex].origsizexp > 640)
-  or (PNGlist[PNGindex].origsizeyp > 800)
-  or (PNGlist[PNGindex].origsizexp < 2)
-  or (PNGlist[PNGindex].origsizeyp < 2) then
-   raise Exception.Create('Suspicious size ' + strdec(PNGlist[PNGindex].origsizexp) + 'x' + strdec(PNGlist[PNGindex].origsizeyp) + ' is causing dragons of loading to refuse.');
-
-  // Read the palette.
-  setlength(PNGlist[PNGindex].pal, 16);
-  for i := 0 to 15 do with PNGlist[PNGindex].pal[i] do begin
-   r := loader.ReadByte and $F0;
-   g := loader.ReadByte and $F0;
-   b := loader.ReadByte and $F0;
-  end;
-
-  UnpackPiGraphic(loader, PNGindex);
  end;
+
+ // Next two words are image width and height, MSB first.
+ i := BEtoN(loader.ReadWord);
+ j := BEtoN(loader.ReadWord);
+
+ if (i > 640) or (j > 800)
+ or (i < 2) or (j < 2) then
+  raise DecompException.Create('Suspicious size ' + strdec(i) + 'x' + strdec(j) + ' is causing dragons of loading to refuse.');
+
+ PNGlist[PNGindex].origsizexp := i;
+ PNGlist[PNGindex].origsizeyp := j;
+
+ // Read the palette. Since PC98 systems of this era only used 4 bits per
+ // channel, each palette byte must copy its top nibble to its bottom nibble.
+ setlength(PNGlist[PNGindex].pal, 0);
+ setlength(PNGlist[PNGindex].pal, 16);
+ for i := 0 to 15 do with PNGlist[PNGindex].pal[i] do begin
+  r := loader.ReadByte and $F0;
+  g := loader.ReadByte and $F0;
+  b := loader.ReadByte and $F0;
+  r := r or (r shr 4);
+  g := g or (g shr 4);
+  b := b or (b shr 4);
+  a := $FF;
+ end;
+
+ // The compressed image stream should immediately follow the palette.
+ UnpackPiGraphic(loader, PNGindex);
 
  // Did we get the image?
  if PNGlist[PNGindex].bitmap = NIL then
-  raise Exception.Create('failed to load image');
+  raise DecompException.Create('Failed to load image');
 
- // If the image has a transparent palette index, it must be marked.
+ // Mark the transparent palette index, if any.
  // The transparent index is almost always 8, and usually applies only to
  // sprites and animations, but there are exceptions. I think the original
  // engines apply transparency only at runtime, so there's nothing in the
  // graphic files themselves to indicate the presence of transparency. So we
  // have no choice but to hardcode this stuff.
- xparency := $FFFF;
+ PNGlist[PNGindex].bitflag := 0;
+ xparency := $FFFFFFFF;
 
- // Common names...
- if (imunamu = 'MS_CUR')
- or (imunamu = 'TIARE_P')
- or (imunamu = 'MARU1') or (imunamu = 'MARU2') or (imunamu = 'MARU3')
- or (imunamu = 'TB_008') // completely transparent graphic!
- or (PNGlist[PNGindex].seqlen <> 0)
- then xparency := 8 else
+ // Commonly named files...
+ if game in [
+   gid_ANGELSCOLLECTION1, gid_ANGELSCOLLECTION2, gid_MARIRIN, gid_DEEP,
+   gid_SETSUJUU, gid_TRANSFER98, gid_3SIS, gid_3SIS98, gid_EDEN, gid_FROMH,
+   gid_HOHOEMI, gid_VANISH, gid_RUNAWAY, gid_RUNAWAY98, gid_SAKURA,
+   gid_SAKURA98, gid_MAJOKKO, gid_TASOGARE]
+ then begin
+  // Anything animated...
+  if (PNGlist[PNGindex].seqlen <> 0)
+  // Common names...
+  or (imunamu = 'MS_CUR')
+  or (imunamu = 'TIARE_P')
+  or (imunamu = 'MARU1') or (imunamu = 'MARU2') or (imunamu = 'MARU3')
+  or (imunamu = 'TB_008') // completely transparent graphic!
+  then xparency := 8 else
 
- if imunamu = 'PUSH2' then xparency := $F else
+  if imunamu = 'PUSH2' then xparency := $F;
+ end
+ else if game in [gid_MAYCLUB, gid_MAYCLUB98, gid_NOCTURNE, gid_NOCTURNE98]
+ then begin
+  // This is nearly always index 0.
+  xparency := 0;
+ end;
 
+ // Game-specific files...
  case game of
    gid_3SIS, gid_3SIS98:
    if copy(imunamu, 1, 2) = 'ST' then xparency := 8;
 
    gid_ANGELSCOLLECTION2:
    if (imunamu = 'O4_005') or (imunamu = 'T2_LOGO') or (imunamu = 'T3_LOGO')
-   then xparency := 8;
-
-   gid_HOHOEMI:
-   if (copy(imunamu, 3, 2) = '_S') or (copy(imunamu, 3, 2) = '_U')
-   or (imunamu = 'OP_000_')
    then xparency := 8;
 
    gid_DEEP:
@@ -485,12 +555,21 @@ begin
    or (imunamu = 'FH_022G') or (imunamu = 'FH_029G')
    or (imunamu = 'FH_029G2') or (imunamu = 'FH_029G3') or (imunamu = 'FIN')
    then xparency := 8
-   else if imunamu = 'OP_001A0' then xparency := $F;
+   else if copy(imunamu, 1, 5) = 'OP_00' then xparency := $FFFFFFFF;
+
+   gid_HOHOEMI:
+   if (copy(imunamu, 3, 2) = '_S') or (copy(imunamu, 3, 2) = '_U')
+   or (imunamu = 'OP_000_')
+   then xparency := 8;
 
    gid_MAJOKKO:
    if (copy(imunamu, 1, 2) = 'MT') or (copy(imunamu, 1, 2) = 'NO')
    or (imunamu = 'TAITOL') or (imunamu = 'SAKURA')
    then xparency := 8;
+
+   gid_MAYCLUB, gid_MAYCLUB98:
+   if (copy(imunamu, 1, 3) = 'Z01') or (imunamu[1] in ['0'..'9'])
+   then xparency := $FFFFFFFF;
 
    gid_RUNAWAY, gid_RUNAWAY98:
    if (copy(imunamu, 1, 3) = 'M8_')
@@ -509,12 +588,6 @@ begin
    and (byte(valx(copy(imunamu, 4, 2))) in [5,9,30,43,48,53,58,63,68])
    then xparency := 8;
 
-   gid_TRANSFER98:
-   if (copy(imunamu, 1, 3) = 'TT_') or (imunamu = 'TI_135A')
-   or (imunamu = 'ROGOL2')
-   then xparency := 8
-   else if imunamu = 'TB_149A' then xparency := 7;
-
    gid_TASOGARE:
    if (copy(imunamu, 1, 3) = 'MAP')
    or (copy(imunamu, 1, 3) = 'YO_')
@@ -524,12 +597,24 @@ begin
    or (imunamu = 'YE_029') or (imunamu = 'YB_012G')
    then xparency := 8;
 
+   gid_TRANSFER98:
+   if (copy(imunamu, 1, 3) = 'TT_') or (imunamu = 'TI_135A')
+   or (imunamu = 'ROGOL2')
+   then xparency := 8
+   else if imunamu = 'TB_149A' then xparency := 7;
+
    gid_VANISH:
    if (copy(imunamu, 1, 3) = 'MC_') or (copy(imunamu, 1, 3) = 'MJ_')
    or (copy(imunamu, 1, 3) = 'MT_') or (copy(imunamu, 1, 2) = 'VM')
    or (copy(imunamu, 1, 3) = 'VT_')
    or (imunamu = 'V_LOGO2')
    then xparency := 8;
+ end;
+
+ // Mark alpha as present.
+ if xparency < dword(length(PNGlist[PNGindex].pal)) then begin
+  PNGlist[PNGindex].bitflag := $80;
+  PNGlist[PNGindex].pal[xparency].a := 0;
  end;
 
  // Mark the intended image resolution.
@@ -546,22 +631,29 @@ begin
   if (PNGlist[PNGindex].origsizexp > baseresx)
   or (PNGlist[PNGindex].origsizeyp > baseresy) then inc(i);
 
- if (imunamu = 'TIARE_P')
- or (imunamu = 'MARU1') or (imunamu = 'MARU2') or (imunamu = 'MARU3')
- then inc(i);
+ if game in [
+   gid_ANGELSCOLLECTION1, gid_ANGELSCOLLECTION2, gid_MARIRIN, gid_DEEP,
+   gid_SETSUJUU, gid_TRANSFER98, gid_3SIS, gid_3SIS98, gid_EDEN, gid_FROMH,
+   gid_HOHOEMI, gid_VANISH, gid_RUNAWAY, gid_RUNAWAY98, gid_SAKURA,
+   gid_SAKURA98, gid_MAJOKKO, gid_TASOGARE]
+ then begin
+  if (imunamu = 'TIARE_P')
+  or (imunamu = 'MARU1') or (imunamu = 'MARU2') or (imunamu = 'MARU3')
+  then inc(i);
+ end;
 
  case game of
-  gid_ANGELSCOLLECTION1: if imunamu = 'TENGO_NO' then inc(i);
-  gid_FROMH: if (imunamu[1] = 'O') or (imunamu = 'PUSH') then inc(i);
-  gid_MAJOKKO: if imunamu = 'JURA' then inc(i);
-  gid_MAYCLUB: if imunamu = 'PRS' then inc(i);
-  gid_SAKURA, gid_SAKURA98:
+   gid_ANGELSCOLLECTION1: if imunamu = 'TENGO_NO' then inc(i);
+   gid_FROMH: if (imunamu[1] = 'O') or (imunamu = 'PUSH') then inc(i);
+   gid_MAJOKKO: if imunamu = 'JURA' then inc(i);
+   gid_MAYCLUB: if imunamu = 'PRS' then inc(i);
+   gid_SAKURA, gid_SAKURA98:
     if (imunamu = 'HANKO') or (imunamu = 'SAKURA')
     or (copy(imunamu, 1, 5) = 'AE_19')
     then inc(i);
-  gid_SETSUJUU: if copy(imunamu, 1, 3) = 'SET' then inc(i);
-  gid_RUNAWAY, gid_RUNAWAY98: if imunamu = 'OP_013A0' then inc(i);
-  gid_TRANSFER98: if imunamu = 'ROGOL2' then inc(i);
+   gid_SETSUJUU: if copy(imunamu, 1, 3) = 'SET' then inc(i);
+   gid_RUNAWAY, gid_RUNAWAY98: if imunamu = 'OP_013A0' then inc(i);
+   gid_TRANSFER98: if imunamu = 'ROGOL2' then inc(i);
  end;
 
  if i <> 0 then begin
@@ -572,15 +664,22 @@ begin
  {$ifdef enable_hacks}
  // Fix image garbage problems, clip transparent edges...
 
- if imunamu = 'MS_CUR' then begin
-  // Hack: all cursors are 32x32 pixels, use proper frame division
-  PNGlist[PNGindex].framewidth := 32;
-  PNGlist[PNGindex].frameheight := 32;
- end;
- if imunamu = 'PUSH' then begin
-  // Hack: all push anims are 16x16 pixels
-  PNGlist[PNGindex].framewidth := 16;
-  PNGlist[PNGindex].frameheight := 16;
+ if game in [
+   gid_ANGELSCOLLECTION1, gid_ANGELSCOLLECTION2, gid_MARIRIN, gid_DEEP,
+   gid_SETSUJUU, gid_TRANSFER98, gid_3SIS, gid_3SIS98, gid_EDEN, gid_FROMH,
+   gid_HOHOEMI, gid_VANISH, gid_RUNAWAY, gid_RUNAWAY98, gid_SAKURA,
+   gid_SAKURA98, gid_MAJOKKO, gid_TASOGARE]
+ then begin
+  if imunamu = 'MS_CUR' then begin
+   // Hack: all cursors are 32x32 pixels, use proper frame division
+   PNGlist[PNGindex].framewidth := 32;
+   PNGlist[PNGindex].frameheight := 32;
+  end else
+  if imunamu = 'PUSH' then begin
+   // Hack: all push anims are 16x16 pixels
+   PNGlist[PNGindex].framewidth := 16;
+   PNGlist[PNGindex].frameheight := 16;
+  end;
  end;
 
  clippedx := PNGlist[PNGindex].origsizexp;
@@ -645,6 +744,22 @@ begin
     sequence[10] := $0009BFFF; // frame 9 for random(16383) ms
    end;
   end;
+  gid_HOHOEMI: begin
+   // Hack: add missing animation data
+   if imunamu = 'FIN' then with PNGlist[PNGindex] do begin
+    framewidth := 152; frameheight := 96;
+    seqlen := 16; setlength(sequence, seqlen);
+    for i := 0 to 15 do sequence[i] := (i shl 16) or $50;
+    sequence[14] := sequence[14] or $200;
+    sequence[15] := sequence[15] or $FFFF;
+   end;
+   // Hack: Replace transparent palette with solid white
+   if imunamu = 'OP_000_' then with PNGlist[PNGindex] do begin
+    xparency := $FFFFFFFF;
+    pal[8] := pal[$F];
+    bitflag := bitflag and $7F;
+   end;
+  end;
   gid_MAJOKKO: begin
    // Hack: cut out garbage pixels
    if imunamu = 'MT01FU' then clippedx := 200;
@@ -681,6 +796,10 @@ begin
     sequence[9] := $00020100; // frame 2 for 256 ms
     sequence[10] := $C0030000; // jump to sequence index random(3)
    end;
+  end;
+  gid_MAYCLUB, gid_MAYCLUB98: begin
+   // Hack: cut out garbage pixels
+   if imunamu = 'D27A' then clippedx := 182;
   end;
   gid_RUNAWAY, gid_RUNAWAY98: begin
    // Hack: set garbage pixel in bottom left corner to transparent
@@ -809,27 +928,20 @@ begin
  tempbmp.sizex := PNGlist[PNGindex].origsizexp;
  tempbmp.sizey := PNGlist[PNGindex].origsizeyp;
  tempbmp.bitdepth := 8;
- tempbmp.memformat := 4; // indexed
+ tempbmp.memformat := 0; // 24-bit RGB
  setlength(tempbmp.palette, length(PNGlist[PNGindex].pal));
 
  if length(PNGlist[PNGindex].pal) <> 0 then begin
+  tempbmp.memformat := 4; // indexed
   for i := high(PNGlist[PNGindex].pal) downto 0 do begin
-   tempbmp.palette[i].a := $FF;
+   tempbmp.palette[i].a := PNGlist[PNGindex].pal[i].a;
    tempbmp.palette[i].b := PNGlist[PNGindex].pal[i].b;
    tempbmp.palette[i].g := PNGlist[PNGindex].pal[i].g;
    tempbmp.palette[i].r := PNGlist[PNGindex].pal[i].r;
   end;
- end
- else begin
-  // If there was no palette, assume our pic's already 24-bit RGB.
-  tempbmp.memformat := 0;
  end;
 
- // Set the transparent palette index, if any.
- if xparency < dword(length(tempbmp.palette)) then begin
-  tempbmp.palette[xparency].a := 0;
-  inc(tempbmp.memformat);
- end;
+ inc(tempbmp.memformat, PNGlist[PNGindex].bitflag shr 7);
 
  // Convert bitmaptype(pic^) into a compressed PNG, saved in bitmap^.
  // The PNG byte size goes into j.
@@ -840,7 +952,7 @@ begin
   if PNGlist[PNGindex].bitmap <> NIL then begin
    freemem(PNGlist[PNGindex].bitmap); PNGlist[PNGindex].bitmap := NIL;
   end;
-  raise Exception.Create(mcg_errortxt);
+  raise DecompException.Create(mcg_errortxt);
  end;
 
  SaveFile(outputfile, PNGlist[PNGindex].bitmap, j);

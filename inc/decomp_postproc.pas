@@ -208,6 +208,7 @@ begin
  // 2: image1 left, image2 right
  // 3: image1 below, image2 above, set PNGlist[].ofsy to init show lower half
  // $80: don't delete image2 afterward
+ {$note at least mayclub/noct gfxs have bad ofs on first run, only works on second}
  case game of
   gid_ANGELSCOLLECTION1: begin
     Composite('GPP_0C','GPP_0A',3);
@@ -276,6 +277,7 @@ begin
     Composite('E35B','E35A',1);
     Composite('E35E','E35A',1);
     Composite('E35G','E35A',1);
+    Composite('E38B','E38A',1);
     Composite('G41B','G41A',1);
     Composite('G41C','G41A',1);
     Composite('G41E','G41A',1);
