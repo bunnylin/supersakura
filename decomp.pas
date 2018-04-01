@@ -551,7 +551,6 @@ procedure DispatchFile(const srcfile : UTF8string); forward;
 {$include inc/decomp_excellents.pas}
 {$include inc/decomp_makichan.pas}
 {$include inc/decomp_pi.pas}
-{$include inc/decomp_excellentg.pas}
 {$include inc/decomp_music.pas}
 {$include inc/decomp_exe.pas}
 {$include inc/decomp_bundles.pas}
@@ -621,7 +620,7 @@ begin
    case game of
      gid_NOCTURNE, gid_NOCTURNE98, gid_MAYCLUB, gid_MAYCLUB98:
      begin
-      Decomp_ExcellentG(loader, decomp_param.outputdir + 'gfx' + DirectorySeparator + basename + '.png');
+      Decomp_Pi(loader, decomp_param.outputdir + 'gfx' + DirectorySeparator + basename + '.png');
       isagraphic := TRUE;
      end;
    end;
