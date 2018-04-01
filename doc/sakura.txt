@@ -1454,6 +1454,19 @@ until you find one of those images and see if it's still broken.
   If it's a bad rip, the long string of 1's may be a bad sector or something.
 In that case, the data will have to be reconstructed with brute force...
 
+[Setsujuu]
+Some images are effectively empty. The graphic files themselves are valid and
+don't have image data. But these graphics are used in places where you'd
+expect to see something. Censorship? Visual override? Unfinished art? Check
+the original engine.
+SB_18 not used
+SB_37 not used
+SH_06 in SMG_S028
+SH_32 in SMG_S075
+SH_33 in SMG_S076
+SH_34 in SMG_S077
+SH_37 in SMG_S080
+
 -----------------------------------------------------------------------------
 
 How to decompress .PI files
