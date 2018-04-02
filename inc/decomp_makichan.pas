@@ -30,15 +30,15 @@ begin
  inc(loader.readp, 4); // computer model, skip
  inc(loader.readp, 20); // user name etc, skip
 
- //flagbsize := (loader.ReadByte shl 8) or loader.ReadByte;
- //pxasize := (loader.ReadByte shl 8) or loader.ReadByte;
- //pxbsize := (loader.ReadByte shl 8) or loader.ReadByte;
+ //flagbsize := BEtoN(loader.ReadWord);
+ //pxasize := BEtoN(loader.ReadWord);
+ //pxbsize := BEtoN(loader.ReadWord);
  inc(loader.readp, 6);
- extflag := (loader.ReadByte shl 8) or loader.ReadByte;
- PNGlist[PNGindex].origofsxp := (loader.ReadByte shl 8) or loader.ReadByte;
- PNGlist[PNGindex].origofsyp := (loader.ReadByte shl 8) or loader.ReadByte;
- PNGlist[PNGindex].origsizexp := (loader.ReadByte shl 8) or loader.ReadByte;
- PNGlist[PNGindex].origsizeyp := (loader.ReadByte shl 8) or loader.ReadByte;
+ extflag := BEtoN(loader.ReadWord);
+ PNGlist[PNGindex].origofsxp := BEtoN(loader.ReadWord);
+ PNGlist[PNGindex].origofsyp := BEtoN(loader.ReadWord);
+ PNGlist[PNGindex].origsizexp := BEtoN(loader.ReadWord);
+ PNGlist[PNGindex].origsizeyp := BEtoN(loader.ReadWord);
 
  // Validate...
  if extflag <> 0 then PrintError('EXTFLAG <> 0!?');
@@ -193,25 +193,25 @@ const delx : array[0..15] of byte = (0,1,2,4,0,1,0,1,2,0,1,2,0,1,2,0);
 
     procedure GrabWord(action : byte);
     // Decompression helper, saves a word of output.
-    var wvar : word;
+    var w : word;
     begin
      if action = 0 then begin
       // Fetch a new word from the color index stream.
       if colorindex + 1 >= loader.size then begin
        PrintError('Tried to read color array out of bounds: outofs=' + strdec(outp - tempimage.image) + '/' + strdec(bytewidth * tempimage.sizey) + ' colorindex=' + strdec(colorindex));
-       wvar := 0;
+       w := 0;
       end
       else begin
-       wvar := loader.ReadWordFrom(colorindex);
+       w := loader.ReadWordFrom(colorindex);
        inc(colorindex, 2);
       end;
      end
      else begin
       // Copy a previously output word.
-      wvar := word((outp - (dely[action] * bytewidth) - delx[action] * 2)^);
+      w := word((outp - (dely[action] * bytewidth) - delx[action] * 2)^);
      end;
      // Output the word.
-     word(outp^) := wvar;
+     word(outp^) := w;
      inc(outp, 2);
     end;
 
@@ -228,15 +228,15 @@ const delx : array[0..15] of byte = (0,1,2,4,0,1,0,1,2,0,1,2,0,1,2,0);
    repeat
 
     // Read the next flag A bit.
-    if loader.ofs >= header.flagbofs then begin
-     PrintError('Tried to read flag A out of bounds'); exit;
-    end;
+    if loader.ofs >= header.flagbofs then
+     raise DecompException.Create('Tried to read flag A out of bounds');
+
     if loader.ReadBit then begin
      // If the flag A bit is set, read the next flag B byte, and xor the
      // current action byte with it.
-     if flagbindex >= header.colorofs then begin
-      PrintError('Tried to read flag B out of bounds'); exit;
-     end;
+     if flagbindex >= header.colorofs then
+      raise DecompException.Create('Tried to read flag B out of bounds');
+
      actionbuffy[actionindex] :=
        actionbuffy[actionindex] xor loader.ReadByteFrom(flagbindex);
      inc(flagbindex);
@@ -303,7 +303,7 @@ const delx : array[0..15] of byte = (0,1,2,4,0,1,0,1,2,0,1,2,0,1,2,0);
    writep := workimage;
 
    // For all bytes in the image...
-   for loopvar := (tempimage.sizex * tempimage.sizey) div 4 - 1 downto 0 do begin
+   for loopvar := (bytewidth * tempimage.sizey) div 4 - 1 downto 0 do begin
     readval := dword(readp^); inc(readp, 4);
 
     // Grab J from low 3 bits of pixels 2 and 3.
@@ -392,45 +392,75 @@ const delx : array[0..15] of byte = (0,1,2,4,0,1,0,1,2,0,1,2,0,1,2,0);
 
 begin
  // Computer model, username etc, $1A, skip.
- while (loader.readp + 32 < loader.endp) and (byte(loader.readp^) <> $1A) do inc(loader.readp);
- // Find the first 0 byte after $1A, where the header starts.
- while (loader.readp + 32 < loader.endp) and (byte(loader.readp^) <> 0) do inc(loader.readp);
- if byte(loader.readp^) <> 0 then
-  raise DecompException.Create('Failed to find start of header 1A-00!');
+ repeat
+  if (loader.readp + 32 >= loader.endp) or (loader.ofs > $200) then begin
+   loader.ofs := 0;
+   raise DecompException.Create('Comment block $1A not found');
+  end;
+ until loader.ReadByte = $1A;
+
+ // The header starts after the first 0 after the 1A.
+ repeat
+  if (loader.readp + 32 >= loader.endp) or (loader.ofs > $200) then begin
+   loader.ofs := 0;
+   raise DecompException.Create('Header start 0 not found');
+  end;
+ until loader.ReadByte = 0;
 
  // Remember the beginning of the header for use below.
- i := loader.ofs; inc(loader.readp);
+ i := loader.ofs - 1;
 
  // Read the header.
  header.modelcode := loader.ReadByte;
  header.modelflags := loader.ReadByte;
  header.screenmode := loader.ReadByte;
 
+ if header.screenmode and 120 <> 0 then
+  raise DecompException.Create('Invalid screenmode $' + strhex(header.screenmode));
+
+ // Read the header further: edge coordinates.
  header.left := loader.ReadWord;
  header.top := loader.ReadWord;
  header.right := loader.ReadWord;
  header.bottom := loader.ReadWord;
 
+ if (header.left > header.right)
+ or (header.top > header.bottom) then
+  raise DecompException.Create('Invalid edge coordinates');
+
+ if (header.right > 1600)
+ or (header.bottom > 1600) then
+  raise DecompException.Create('Suspicious image size '
+    + strdec(header.left) + ',' + strdec(header.top) + '..'
+    + strdec(header.right) + ',' + strdec(header.bottom));
+
+ // Read the header further: section offsets.
  header.flagaofs := i + loader.ReadDword;
  header.flagbofs := i + loader.ReadDword;
  inc(loader.readp, 4); // skip flag B stream size, unnecessary
  header.colorofs := i + loader.ReadDword;
  inc(loader.readp, 4); // skip color index stream size, unnecessary
 
- if (header.flagaofs >= loader.size)
- or (header.flagbofs >= loader.size)
+ if (header.flagaofs >= header.flagbofs)
+ or (header.flagbofs >= header.colorofs)
  or (header.colorofs >= loader.size) then
-  raise DecompException.Create('Section offset out of bounds!');
+  raise DecompException.Create('Invalid section offset, A='
+    + strdec(header.flagaofs) + ', B=' + strdec(header.flagbofs)
+    + ', C=' + strdec(header.colorofs));
 
  // Read GRB palette, usually 16, sometimes up to 256 entries.
  // Let's read from current position up to the start of the flag A stream.
  setlength(tempimage.palette, (header.flagaofs - loader.ofs) div 3);
+ if length(tempimage.palette) > 256 then
+  raise DecompException.Create('Too long palette, ' + strdec(length(tempimage.palette)));
+
  if length(tempimage.palette) <> 0 then
   for i := 0 to length(tempimage.palette) - 1 do
    with tempimage.palette[i] do begin
     g := loader.ReadByte and $F0;
     r := loader.ReadByte and $F0;
     b := loader.ReadByte and $F0;
+    a := $FF;
     // only the top nibble is significant; the bottom nibble is 0 if the top
     // is 0, else it is $F
     if g <> 0 then g := g or $F;
@@ -538,10 +568,10 @@ begin
 
  if length(PNGlist[PNGindex].pal) <> 0 then begin
   for i := high(PNGlist[PNGindex].pal) downto 0 do begin
-   tempbmp.palette[i].a := $FF;
    tempbmp.palette[i].b := PNGlist[PNGindex].pal[i].b;
    tempbmp.palette[i].g := PNGlist[PNGindex].pal[i].g;
    tempbmp.palette[i].r := PNGlist[PNGindex].pal[i].r;
+   tempbmp.palette[i].a := PNGlist[PNGindex].pal[i].a;
   end;
  end
  else begin
