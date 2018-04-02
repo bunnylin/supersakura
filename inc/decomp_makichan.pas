@@ -294,32 +294,71 @@ const delx : array[0..15] of byte = (0,1,2,4,0,1,0,1,2,0,1,2,0,1,2,0);
   // Converts tempimage^ from YJK-encoding to 24-bit RGB.
   var workimage : pointer;
       readp, writep : pointer;
-      loopvar, chibiloopvar, readval : dword;
+      loopx, loopy, readval : dword;
       Y, J, K, outval : longint;
+      rowJ, rowK : array of longint;
   begin
    getmem(workimage, tempimage.sizex * tempimage.sizey * 3);
 
    readp := tempimage.image;
    writep := workimage;
+   setlength(rowJ, bytewidth);
+   setlength(rowK, bytewidth);
 
-   // For all bytes in the image...
-   for loopvar := (bytewidth * tempimage.sizey) div 4 - 1 downto 0 do begin
-    readval := dword(readp^); inc(readp, 4);
+   // For all rows in the image...
+   for loopy := tempimage.sizey - 1 downto 0 do begin
 
-    // Grab J from low 3 bits of pixels 2 and 3.
-    J := ((readval shr 16) and 7) or (((readval shr 24) and 7) shl 3);
-    // Grab K from low 3 bits of pixels 0 and 1.
-    K := (readval and 7) or (((readval shr 8) and 7) shl 3);
+    // Extract the J and K values for this row.
+    loopx := bytewidth;
+    while loopx <> 0 do begin
+     dec(loopx, 4);
+     readval := dword(readp^); inc(readp, 4);
+     // Grab J from low 3 bits of bytes 2 and 3.
+     J := ((readval shr 16) and 7) or (((readval shr 24) and 7) shl 3);
+     // Grab K from low 3 bits of bytes 0 and 1.
+     K := (readval and 7) or (((readval shr 8) and 7) shl 3);
 
-    // These are 6-bit signed ints, so apply the sign.
-    if J > 31 then dec(J, 64);
-    if K > 31 then dec(K, 64);
+     // Scale from unsigned 6-bit to unsigned 9-bit.
+     J := (J * 511 + 31) div 63;
+     K := (K * 511 + 31) div 63;
+     // These are supposed to be signed 9-bit, so apply the sign.
+     dec(J, (J and $100) * 2);
+     dec(K, (K and $100) * 2);
 
-    // For all 4 pixels in this quartet...
-    for chibiloopvar := 3 downto 0 do begin
-     // Grab Y for this pixel.
-     Y := (readval shr 3) and $1F;
-     readval := readval shr 8;
+     // Save J and K.
+     filldword(rowJ[loopx], 4, dword(J));
+     filldword(rowK[loopx], 4, dword(K));
+    end;
+    dec(readp, bytewidth);
+
+    // Smooth the J and K rows using linear interpolation.
+    // This is optional, and reduces blocky color fringing noticeably.
+    // However, it can also produce new artifacts over saturated gradients.
+    // To avoid that, each pixel would need to retain its luma calculated
+    // with non-smoothed J and K, while only importing chroma and saturation
+    // from the smooth values...
+    loopx := 2;
+    while loopx + 4 < bytewidth do begin
+     J := rowJ[loopx];
+     Y := rowJ[loopx + 3];
+     rowJ[loopx + 0] := (J * 7 + Y    ) div 8;
+     rowJ[loopx + 1] := (J * 5 + Y * 3) div 8;
+     rowJ[loopx + 2] := (J * 3 + Y * 5) div 8;
+     rowJ[loopx + 3] := (J     + Y * 7) div 8;
+     K := rowK[loopx];
+     Y := rowK[loopx + 3];
+     rowK[loopx + 0] := (K * 7 + Y    ) div 8;
+     rowK[loopx + 1] := (K * 5 + Y * 3) div 8;
+     rowK[loopx + 2] := (K * 3 + Y * 5) div 8;
+     rowK[loopx + 3] := (K     + Y * 7) div 8;
+     inc(loopx, 4);
+    end;
+
+    // Extract and apply the Y values for this row.
+    for loopx := bytewidth - 1 downto 0 do begin
+     // Grab Y for this pixel, a 5-bit value.
+     Y := byte(readp^) shr 3;
+     inc(readp);
 
      if (hasrgb) and (Y and 1 <> 0) then begin
       // Straight RGB!
@@ -329,21 +368,24 @@ const delx : array[0..15] of byte = (0,1,2,4,0,1,0,1,2,0,1,2,0,1,2,0);
       byte(writep^) := tempimage.palette[Y].r; inc(writep);
      end
      else begin
-      // BLUE = 1.25 * Y - J / 2 - K / 4
-      //outval := round(1.25 * yval - jval / 2 - kval / 4);
-      outval := 5 * Y div 4 - J div 2 - K div 4;
-      if outval < 0 then outval := 0 else if outval > 31 then outval := 31;
-      byte(writep^) := (outval * 255 + 15) div 31;
+      // Scale Y from unsigned 5-bit to unsigned 8-bit.
+      Y := (Y * 255 + 15) div 31;
+      J := rowJ[loopx];
+      K := rowK[loopx];
+      // BLUE = (5/4 * Y) - (2/4 * J) - (1/4 * K)
+      outval := (5 * Y - 2 * J - K) div 4;
+      if outval < 0 then outval := 0 else if outval > 255 then outval := 255;
+      byte(writep^) := outval;
       inc(writep);
       // GREEN = Y + K
       outval := Y + K;
-      if outval < 0 then outval := 0 else if outval > 31 then outval := 31;
-      byte(writep^) := (outval * 255 + 15) div 31;
+      if outval < 0 then outval := 0 else if outval > 255 then outval := 255;
+      byte(writep^) := outval;
       inc(writep);
       // RED = Y + J
       outval := Y + J;
-      if outval < 0 then outval := 0 else if outval > 31 then outval := 31;
-      byte(writep^) := (outval * 255 + 15) div 31;
+      if outval < 0 then outval := 0 else if outval > 255 then outval := 255;
+      byte(writep^) := outval;
       inc(writep);
      end;
     end;
@@ -353,7 +395,7 @@ const delx : array[0..15] of byte = (0,1,2,4,0,1,0,1,2,0,1,2,0,1,2,0);
 
    // It's no longer an indexed-color image, release the palette.
    setlength(tempimage.palette, 0);
-   tempimage.memformat := 0;
+   tempimage.memformat := 0; // 24-bit RGB
    tempimage.bitdepth := 8;
 
    // If the image used to be 4bpp, the conversion halved its pixel width.
