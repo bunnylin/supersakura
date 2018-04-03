@@ -174,6 +174,7 @@ procedure UnpackMAG2Graphic(const loader : TFileLoader; PNGindex : word);
 var tempimage : bitmaptype;
     actionbuffy : array of byte;
     header : record
+      modelstring : dword;
       modelcode, modelflags, screenmode : byte;
       left, top, right, bottom : dword;
       flagaofs, flagbofs, colorofs : dword;
@@ -430,10 +431,66 @@ const delx : array[0..15] of byte = (0,1,2,4,0,1,0,1,2,0,1,2,0,1,2,0);
 
    tempimage.sizey := tempimage.sizey * 2;
   end;
+
+  // ----------------------------------------------------------------
+  procedure ReadPalette();
+  // Reads and converts the palette at the end of the header.
+  var palindex : dword;
+      palettedepth, palettemask : byte;
+  begin
+   // Let's read from current position up to the start of the flag A stream.
+   setlength(tempimage.palette, (header.flagaofs - loader.ofs) div 3);
+   if length(tempimage.palette) > 256 then
+    raise DecompException.Create('Too long palette, ' + strdec(length(tempimage.palette)));
+
+   // Note the number of significant bits in each palette byte, depending on
+   // the computer model this image was saved on. The default for PC98 and X1
+   // is 4 bits per channel.
+   palettedepth := 4;
+   case header.modelcode of
+     // MSXes can at best display thousands of colors with a special
+     // encoding, but their palette is only 9-bit.
+     $03: palettedepth := 3;
+     // X68000 has 16-bit graphics, but for purposes of palettisation, the
+     // single intensity bit is ignored.
+     $68: palettedepth := 5;
+     // The Macintosh II has a full 24-bit palette.
+     $99: palettedepth := 8;
+   end;
+   // Exception: an MSX using the Deca Loader can fake more bits.
+   if (header.modelcode = $03)
+   and (LEtoN(loader.ReadDwordFrom($20)) = $61636544) then
+    palettedepth := 8;
+   // 256-color images will generally use the full 8 bits, except for MSXes
+   // and late PC88's, whose total palette is still limited.
+   if (length(tempimage.palette) = 256)
+   and (header.modelcode in [$03,$88] = FALSE) then
+    palettedepth := 8;
+
+   palettemask := (1 shl palettedepth - 1) shl (8 - palettedepth);
+
+   if length(tempimage.palette) <> 0 then begin
+    for palindex := 0 to length(tempimage.palette) - 1 do
+     with tempimage.palette[palindex] do begin
+      // Read the palette bytes and mirror the significant bits.
+      g := loader.ReadByte and palettemask;
+      r := loader.ReadByte and palettemask;
+      b := loader.ReadByte and palettemask;
+      a := $FF;
+      inc(g, g shr palettedepth + g shr (palettedepth + palettedepth));
+      inc(r, r shr palettedepth + r shr (palettedepth + palettedepth));
+      inc(b, b shr palettedepth + b shr (palettedepth + palettedepth));
+     end;
+   end;
+  end;
   // ----------------------------------------------------------------
 
 begin
- // Computer model, username etc, $1A, skip.
+ // Many files start with a 4-letter computer model string, let's save it.
+ // If the actual model code is left empty, this may be used instead.
+ header.modelstring := LEtoN(dword(loader.readp^));
+
+ // Username, comments, etc, $1A, skip.
  repeat
   if (loader.readp + 32 >= loader.endp) or (loader.ofs > $200) then begin
    loader.ofs := 0;
@@ -459,6 +516,18 @@ begin
 
  if header.screenmode and 120 <> 0 then
   raise DecompException.Create('Invalid screenmode $' + strhex(header.screenmode));
+
+ // If the model code is empty, but the model string looks familiar, use it.
+ if header.modelcode = 0 then case header.modelstring of
+   $4B383658: header.modelcode := $68; // "X68K"
+   $20454758: header.modelcode := $68; // "XGE ", maybe also a 68k?
+   $54535058: header.modelcode := $68; // "XPST"
+   $41563838: header.modelcode := $88; // "88VA"
+   $32464954: header.modelcode := $99; // "TIF2", probably related to Macs?
+   $46464954: header.modelcode := $99; // "TIFF", probably related to Macs?
+   $20504D42: header.modelcode := $99; // "BMP ", probably related to Macs?
+   $4E574F54: ; // "TOWN", FM-Towns
+ end;
 
  // Read the header further: edge coordinates.
  header.left := loader.ReadWord;
@@ -491,24 +560,7 @@ begin
     + ', C=' + strdec(header.colorofs));
 
  // Read GRB palette, usually 16, sometimes up to 256 entries.
- // Let's read from current position up to the start of the flag A stream.
- setlength(tempimage.palette, (header.flagaofs - loader.ofs) div 3);
- if length(tempimage.palette) > 256 then
-  raise DecompException.Create('Too long palette, ' + strdec(length(tempimage.palette)));
-
- if length(tempimage.palette) <> 0 then
-  for i := 0 to length(tempimage.palette) - 1 do
-   with tempimage.palette[i] do begin
-    g := loader.ReadByte and $F0;
-    r := loader.ReadByte and $F0;
-    b := loader.ReadByte and $F0;
-    a := $FF;
-    // only the top nibble is significant; the bottom nibble is 0 if the top
-    // is 0, else it is $F
-    if g <> 0 then g := g or $F;
-    if r <> 0 then r := r or $F;
-    if b <> 0 then b := b or $F;
-   end;
+ ReadPalette;
 
  if (header.screenmode and $80 = 0)
  then tempimage.bitdepth := 4
@@ -533,7 +585,7 @@ begin
 
  // Calculate how many pixels of padding are being added.
  // This will be used later to delete the padding.
- cropleft := header.left - paddedleft * 8 div tempimage.bitdepth;
+ cropleft := header.left - paddedleft * byte(8 div tempimage.bitdepth);
  cropright := tempimage.sizex - (header.right - header.left + 1) - cropleft;
 
  // Set up actionbuffy for one row of flag B bytes.
