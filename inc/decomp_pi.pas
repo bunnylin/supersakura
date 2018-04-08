@@ -84,10 +84,20 @@ end;
 
 procedure UnpackPiGraphic(loader : TFileLoader; PNGindex : dword);
 var destp, endp, startp : pointer;
-    lcolors : array[0..15] of array[0..15] of byte;
+    lcolors : array of array of byte;
     i, j : dword;
     lastbyteout, lastreptype : byte;
     doingrepetition : boolean;
+
+  function readbits(numbits : byte) : byte; inline;
+  begin
+   readbits := 0;
+   while numbits <> 0 do begin
+    dec(numbits);
+    readbits := readbits shl 1;
+    if loader.Readbit then inc(readbits);
+   end;
+  end;
 
   function translatedeltacode : byte; inline;
   // Translates a variable-bit-length delta code into a normal number.
@@ -103,29 +113,31 @@ var destp, endp, startp : pointer;
    if loader.ReadBit then begin // 1x
     if loader.ReadBit then translatedeltacode := 1;
 
-   end else begin // 0.....
-    if loader.ReadBit then begin // 01....
-     if loader.ReadBit then begin // 011xxx
-      if loader.ReadBit then begin // 0111xx
-       if loader.ReadBit then begin // 01111x
-        if loader.ReadBit then translatedeltacode := 15 else translatedeltacode := 14;
-       end else begin // 01110x
-        if loader.ReadBit then translatedeltacode := 13 else translatedeltacode := 12;
-       end;
-      end else begin // 0110xx
-       if loader.ReadBit then begin // 01101x
-        if loader.ReadBit then translatedeltacode := 11 else translatedeltacode := 10;
-       end else begin // 01100x
-        if loader.ReadBit then translatedeltacode := 9 else translatedeltacode := 8;
-       end;
-      end;
-     end else begin // 010xx
-      if loader.ReadBit then begin // 0101x
-       if loader.ReadBit then translatedeltacode := 7 else translatedeltacode := 6;
-      end else begin // 0100x
-       if loader.ReadBit then translatedeltacode := 5 else translatedeltacode := 4;
-      end;
-     end;
+   end else begin // 0...
+    if loader.ReadBit then begin // 01...
+     if loader.ReadBit then begin // 011...
+
+      if length(lcolors) = 256 then begin
+       if loader.ReadBit then begin // 0111...
+        if loader.ReadBit then begin // 01111...
+         if loader.ReadBit then begin // 011111...
+          if loader.ReadBit then begin // 0111111xxxxxxx
+           translatedeltacode := 128 + readbits(7);
+          end else // 0111110xxxxxx
+           translatedeltacode := 64 + readbits(6);
+         end else // 011110xxxxx
+          translatedeltacode := 32 + readbits(5);
+        end else // 01110xxxx
+         translatedeltacode := 16 + readbits(4);
+       end else // 0110xxx
+        translatedeltacode := 8 + readbits(3);
+      end
+
+      else // 011xxx
+       translatedeltacode := 8 + readbits(3);
+
+     end else // 010xx
+      translatedeltacode := 4 + readbits(2);
     end else begin // 00x
      if loader.ReadBit then translatedeltacode := 3 else translatedeltacode := 2;
     end;
@@ -295,9 +307,12 @@ begin
  doingrepetition := TRUE;
 
  // Set up a color delta table.
- for i := 0 to high(lcolors) do
+ setlength(lcolors, length(PNGlist[PNGindex].pal));
+ for i := 0 to high(lcolors) do begin
+  setlength(lcolors[i], length(lcolors));
   for j := 0 to high(lcolors[i]) do
-   lcolors[i][j] := (16 + i - j) and $F;
+   lcolors[i][j] := (dword(length(lcolors)) + i - j) and byte(high(lcolors));
+ end;
 
  // Start with two color codes.
  processcolorcode();
@@ -330,12 +345,14 @@ procedure Decomp_Pi(const loader : TFileLoader; const outputfile : UTF8string);
 // Reads the indicated Pi graphics file, and saves it in outputfile as
 // a normal PNG.
 // Throws an exception in case of errors.
-var imunamu : UTF8string;
+var tempbmp : bitmaptype;
+    imunamu : UTF8string;
     i, j : dword;
     PNGindex, xparency, clippedx : dword;
-    tempbmp : bitmaptype;
+    bitdepth : byte;
 begin
  tempbmp.image := NIL;
+ bitdepth := 4;
 
  // Find this graphic name in PNGlist[], or create if doesn't exist yet.
  imunamu := ExtractFileName(loader.filename);
@@ -442,13 +459,13 @@ begin
   // Screen ratio. Is this ever not 0?
   i := loader.ReadByte;
   j := loader.ReadByte;
-  if i + j <> 0 then
+  if (i + j <> 0) and (i or j <> 1) then
    raise DecompException.Create('Non-zero ratio ' + strdec(i) + ':' + strdec(j));
 
-  // Bitdepth. 4 or FF for 16 colors, 8 for 256 colors?
-  i := loader.ReadByte;
-  if i in [4,$FF] = FALSE then
-   raise DecompException.Create('Unknown bitdepth ' + strdec(i));
+  // Bitdepth. 4 or FF for 16 colors, 8 for 256 colors.
+  bitdepth := loader.ReadByte;
+  if bitdepth in [4,8,$FF] = FALSE then
+   raise DecompException.Create('Unknown bitdepth ' + strdec(bitdepth));
 
   // Compressor model string. Usually only ascii chars.
   i := loader.ReadDword;
@@ -484,16 +501,22 @@ begin
  // Read the palette. Since PC98 systems of this era only used 4 bits per
  // channel, each palette byte must copy its top nibble to its bottom nibble.
  setlength(PNGlist[PNGindex].pal, 0);
- setlength(PNGlist[PNGindex].pal, 16);
- for i := 0 to 15 do with PNGlist[PNGindex].pal[i] do begin
-  r := loader.ReadByte and $F0;
-  g := loader.ReadByte and $F0;
-  b := loader.ReadByte and $F0;
-  r := r or (r shr 4);
-  g := g or (g shr 4);
-  b := b or (b shr 4);
-  a := $FF;
+ case bitdepth of
+   4, $FF: setlength(PNGlist[PNGindex].pal, 16);
+   8: setlength(PNGlist[PNGindex].pal, 256);
+   else raise DecompException.Create('Unknown bitdepth ' + strdec(bitdepth));
  end;
+
+ for i := 0 to high(PNGlist[PNGindex].pal) do
+  with PNGlist[PNGindex].pal[i] do begin
+   r := loader.ReadByte and $F0;
+   g := loader.ReadByte and $F0;
+   b := loader.ReadByte and $F0;
+   r := r or (r shr 4);
+   g := g or (g shr 4);
+   b := b or (b shr 4);
+   a := $FF;
+  end;
 
  // The compressed image stream should immediately follow the palette.
  UnpackPiGraphic(loader, PNGindex);

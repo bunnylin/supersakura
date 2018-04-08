@@ -616,6 +616,12 @@ begin
     isagraphic := TRUE;
    end;
 
+   '.pi':
+   begin
+    Decomp_Pi(loader, decomp_param.outputdir + 'gfx' + DirectorySeparator + basename + '.png');
+    isagraphic := TRUE;
+   end;
+
    '.g':
    case game of
      gid_NOCTURNE, gid_NOCTURNE98, gid_MAYCLUB, gid_MAYCLUB98:
