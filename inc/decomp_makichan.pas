@@ -338,21 +338,24 @@ const delx : array[0..15] of byte = (0,1,2,4,0,1,0,1,2,0,1,2,0,1,2,0);
     // To avoid that, each pixel would need to retain its luma calculated
     // with non-smoothed J and K, while only importing chroma and saturation
     // from the smooth values...
-    loopx := 2;
-    while loopx + 4 < bytewidth do begin
-     J := rowJ[loopx];
-     Y := rowJ[loopx + 3];
-     rowJ[loopx + 0] := (J * 7 + Y    ) div 8;
-     rowJ[loopx + 1] := (J * 5 + Y * 3) div 8;
-     rowJ[loopx + 2] := (J * 3 + Y * 5) div 8;
-     rowJ[loopx + 3] := (J     + Y * 7) div 8;
-     K := rowK[loopx];
-     Y := rowK[loopx + 3];
-     rowK[loopx + 0] := (K * 7 + Y    ) div 8;
-     rowK[loopx + 1] := (K * 5 + Y * 3) div 8;
-     rowK[loopx + 2] := (K * 3 + Y * 5) div 8;
-     rowK[loopx + 3] := (K     + Y * 7) div 8;
-     inc(loopx, 4);
+    // This is less necessary when indexed-color pixels are included.
+    if (hasrgb = FALSE) then begin
+     loopx := 2;
+     while loopx + 4 < bytewidth do begin
+      J := rowJ[loopx];
+      Y := rowJ[loopx + 3];
+      rowJ[loopx + 0] := (J * 7 + Y    ) div 8;
+      rowJ[loopx + 1] := (J * 5 + Y * 3) div 8;
+      rowJ[loopx + 2] := (J * 3 + Y * 5) div 8;
+      rowJ[loopx + 3] := (J     + Y * 7) div 8;
+      K := rowK[loopx];
+      Y := rowK[loopx + 3];
+      rowK[loopx + 0] := (K * 7 + Y    ) div 8;
+      rowK[loopx + 1] := (K * 5 + Y * 3) div 8;
+      rowK[loopx + 2] := (K * 3 + Y * 5) div 8;
+      rowK[loopx + 3] := (K     + Y * 7) div 8;
+      inc(loopx, 4);
+     end;
     end;
 
     // Extract and apply the Y values for this row.
@@ -565,27 +568,29 @@ begin
  if (header.screenmode and $80 = 0)
  then tempimage.bitdepth := 4
  else tempimage.bitdepth := 8;
+ tempimage.memformat := 4; // indexed
+
+ // Calculate pixels per byte. (at 8bpp = 1 pixel; at 4bpp = 2 pixels)
+ i := 8 div tempimage.bitdepth;
 
  // Calculate the byte location of the left and right edges.
- // (at 8bpp, 1 byte = 1 pixel; at 4bpp, 1 byte = 2 pixels)
- paddedleft := (header.left div byte(8 div tempimage.bitdepth));
- paddedright := (header.right div byte(8 div tempimage.bitdepth));
+ paddedleft := header.left div i;
+ paddedright := header.right div i;
 
  // Pad the edges to a multiple of 4 bytes.
+ // And convert the right edge to exclusive instead of inclusive.
  paddedleft := paddedleft and $FFFC;
- paddedright := (paddedright + 3 + 1) and $FFFC;
+ paddedright := (paddedright + 1 + 3) and $FFFC;
  bytewidth := paddedright - paddedleft;
 
- // Set up tempimage as an indexed-color image, although we'll treat it as
- // a byte array at first, to simplify decompression.
- tempimage.memformat := 4;
- tempimage.sizex := bytewidth * byte(8 div tempimage.bitdepth);
+ // Set up tempimage. The decompressed padded output goes here.
+ tempimage.sizex := bytewidth * i;
  tempimage.sizey := header.bottom - header.top + 1;
  getmem(tempimage.image, bytewidth * tempimage.sizey);
 
  // Calculate how many pixels of padding are being added.
  // This will be used later to delete the padding.
- cropleft := header.left - paddedleft * byte(8 div tempimage.bitdepth);
+ cropleft := header.left - paddedleft * i;
  cropright := tempimage.sizex - (header.right - header.left + 1) - cropleft;
 
  // Set up actionbuffy for one row of flag B bytes.
