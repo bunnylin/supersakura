@@ -84,7 +84,7 @@ end;
 
 procedure UnpackPiGraphic(loader : TFileLoader; PNGindex : dword);
 var destp, endp, startp : pointer;
-    lcolors : array of array of byte;
+    dtable : array of array of byte;
     i, j : dword;
     lastbyteout, lastreptype : byte;
     doingrepetition : boolean;
@@ -101,7 +101,6 @@ var destp, endp, startp : pointer;
 
   function translatedeltacode : byte; inline;
   // Translates a variable-bit-length delta code into a normal number.
-  // (Only works for 16-color variant, haven't seen 256-color Pi files...)
   begin
    translatedeltacode := 0;
    // safety
@@ -117,7 +116,7 @@ var destp, endp, startp : pointer;
     if loader.ReadBit then begin // 01...
      if loader.ReadBit then begin // 011...
 
-      if length(lcolors) = 256 then begin
+      if length(dtable) = 256 then begin
        if loader.ReadBit then begin // 0111...
         if loader.ReadBit then begin // 01111...
          if loader.ReadBit then begin // 011111...
@@ -202,23 +201,26 @@ var destp, endp, startp : pointer;
    inc(destp, replen);
   end;
 
-  procedure processcolorcode;
-  // Reads a color code from the input bit stream, adjusts the delta table,
+  procedure processdeltacode;
+  // Reads a delta code from the input bit stream, adjusts the delta table,
   // and outputs a single byte.
-  var deltaindex, newdelta : byte;
+  var deltaindex, colorbyte : byte;
   begin
+   // safety
+   if destp >= endp then exit;
+
    deltaindex := translatedeltacode();
-   // Move the new delta code to the front of its array.
-   newdelta := lcolors[lastbyteout][deltaindex];
+   // Move the new color byte to the front of its table row.
+   colorbyte := dtable[lastbyteout][deltaindex];
    while deltaindex <> 0 do begin
-    lcolors[lastbyteout][deltaindex] := lcolors[lastbyteout][deltaindex - 1];
+    dtable[lastbyteout][deltaindex] := dtable[lastbyteout][deltaindex - 1];
     dec(deltaindex);
    end;
-   lcolors[lastbyteout][0] := newdelta;
-   // The next byte out is the last byte plus a delta.
-   lastbyteout := newdelta;
-   byte(destp^) := lastbyteout;
+   dtable[lastbyteout][0] := colorbyte;
+   // Output the color byte, and remember it for the next delta code.
+   byte(destp^) := colorbyte;
    inc(destp);
+   lastbyteout := colorbyte;
   end;
 
   procedure processrepetitioncode(minusreps : byte);
@@ -228,7 +230,7 @@ var destp, endp, startp : pointer;
       reptype : byte;
   begin
    // If the new repetition type is the same as the last one, stop doing
-   // repeats and expect color codes again.
+   // repeats and expect delta codes again.
    reptype := getrepetitiontype();
    if lastreptype = reptype then begin
     doingrepetition := FALSE;
@@ -248,7 +250,7 @@ var destp, endp, startp : pointer;
 
    if replength <> 0 then
    case reptype of
-     0: begin
+     00: begin
       // Special repeat type, "Location 0" in the spec. Normally this repeats
       // the last 4 bytes, unless the last two bytes are equal or we're only
       // two bytes into the image, in which case it repeats the last 2 bytes.
@@ -272,7 +274,7 @@ var destp, endp, startp : pointer;
 
      // Repeat type "Location 1" in the spec. Copy bytes from exactly one
      // row above. While out of bounds, copy only the top left word.
-     1: copybytes(replength, PNGlist[PNGindex].origsizexp, word(startp^));
+     01: copybytes(replength, PNGlist[PNGindex].origsizexp, word(startp^));
 
      // Repeat type "Location 2" in the spec. Copy bytes from exactly two
      // rows above. While out of bounds, copy only the top left word.
@@ -307,16 +309,16 @@ begin
  doingrepetition := TRUE;
 
  // Set up a color delta table.
- setlength(lcolors, length(PNGlist[PNGindex].pal));
- for i := 0 to high(lcolors) do begin
-  setlength(lcolors[i], length(lcolors));
-  for j := 0 to high(lcolors[i]) do
-   lcolors[i][j] := (dword(length(lcolors)) + i - j) and byte(high(lcolors));
+ setlength(dtable, length(PNGlist[PNGindex].pal));
+ for i := 0 to high(dtable) do begin
+  setlength(dtable[i], length(dtable));
+  for j := 0 to high(dtable[i]) do
+   dtable[i][j] := (dword(length(dtable)) + i - j) and byte(high(dtable));
  end;
 
- // Start with two color codes.
- processcolorcode();
- processcolorcode();
+ // Start with two delta codes.
+ processdeltacode();
+ processdeltacode();
  // Forced repetition, with length reduced by one.
  processrepetitioncode(1);
 
@@ -324,10 +326,10 @@ begin
   if doingrepetition then
    processrepetitioncode(0)
   else begin
-   processcolorcode();
-   processcolorcode();
+   processdeltacode();
+   processdeltacode();
    // If the next bit is not set, we'll do a repetition;
-   // else two more color codes will follow.
+   // else two more delta codes will follow.
    if loader.ReadBit = FALSE then begin
     doingrepetition := TRUE;
     lastreptype := 255;
@@ -456,7 +458,7 @@ begin
   if i in [0,$FF] = FALSE then
    raise DecompException.Create('Unknown mode ' + strdec(i));
 
-  // Screen ratio. Is this ever not 0?
+  // Screen ratio. Is this ever not 0 or 1:1?
   i := loader.ReadByte;
   j := loader.ReadByte;
   if (i + j <> 0) and (i or j <> 1) then
