@@ -1,6 +1,8 @@
 SuperSakura engine
 ==================
 
+Now available at [gitlab](https://gitlab.com/bunnylin/supersakura/)!
+
 SuperSakura is a modern visual novel engine that can run certain Japanese
 games from the mid-90's. Many of these old titles were surprisingly good,
 but were never localised. SuperSakura has tools to help localise games, and
